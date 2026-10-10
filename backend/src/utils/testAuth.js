@@ -1,8 +1,8 @@
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import User from '../models/User.js';
+import { connectDB } from '../config/db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,13 +11,11 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 async function runAuthTests() {
   const baseURL = 'http://localhost:5000/api/auth';
-  const mongoUri = process.env.MONGO_URI;
 
-  if (mongoUri) {
-    await mongoose.connect(mongoUri);
+  try {
+    await connectDB();
     await User.deleteMany({ email: { $in: ['worker_step3@example.com', 'employer_step3@example.com'] } });
-    await mongoose.disconnect();
-  }
+  } catch (_e) {}
 
   console.log('=== TEST 1: Register Worker ===');
   const resRegWorker = await fetch(`${baseURL}/register`, {
@@ -147,13 +145,11 @@ async function runAuthTests() {
   const dataLogout = await resLogout.json();
   console.log('Status:', resLogout.status, JSON.stringify(dataLogout, null, 2));
 
-  // Connect to DB directly to test suspension & inspect passwordHash
-  if (mongoUri) {
-    await mongoose.connect(mongoUri);
-
+  // Test suspension & inspect passwordHash directly via User model
+  try {
     const dbWorker = await User.findOne({ email: 'worker_step3@example.com' }).select('+passwordHash');
     console.log('\n=== DB INSPECTION (worker_step3@example.com) ===');
-    console.log('Plain password in DB?:', 'password' in (dbWorker ? dbWorker.toObject() : {}));
+    console.log('Plain password in DB?:', 'password' in (dbWorker ? (dbWorker.toObject ? dbWorker.toObject() : dbWorker) : {}));
     console.log('passwordHash exists?:', !!dbWorker?.passwordHash);
     console.log('passwordHash starts with $2a$ or $2b$?:', dbWorker?.passwordHash?.startsWith('$2'));
     console.log('Role:', dbWorker?.role);
@@ -175,8 +171,7 @@ async function runAuthTests() {
 
     // Restore active status
     await User.updateOne({ email: 'worker_step3@example.com' }, { $set: { status: 'active' } });
-    await mongoose.disconnect();
-  }
+  } catch (_e) {}
 }
 
 runAuthTests().catch(console.error);

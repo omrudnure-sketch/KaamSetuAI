@@ -14,8 +14,10 @@ export const createReview = async (user, projectId, inputData) => {
     throw error;
   }
 
-  const isEmployer = project.employerId.toString() === user.id;
-  const projectWorker = await ProjectWorker.findOne({ projectId, workerId: user.id });
+  const employerId = (project.employerId?._id || project.employerId?.id || project.employerId)?.toString();
+  const userId = (user.id || user._id)?.toString();
+  const isEmployer = employerId === userId;
+  const projectWorker = await ProjectWorker.findOne({ projectId, workerId: userId });
   const isWorker = !!projectWorker;
 
   if (!isEmployer && !isWorker) {

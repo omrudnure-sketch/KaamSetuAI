@@ -21,7 +21,7 @@ import {
 import { createComplaint } from '../src/services/complaintService.js';
 import { createDispute } from '../src/services/disputeService.js';
 import { Job, Project, ProjectWorker, HiringAgreement } from '../src/models/index.js';
-import mongoose from 'mongoose';
+import { generateObjectId } from './testHelper.js';
 
 export async function runCommunicationSupportTests() {
   console.log('\n========================================');
@@ -76,7 +76,7 @@ export async function runCommunicationSupportTests() {
     const project = await Project.create({
       jobId: job._id,
       employerId: employer._id,
-      createdFromHiringAgreement: new mongoose.Types.ObjectId(),
+      createdFromHiringAgreement: generateObjectId(),
       name: 'Electrical Rewiring Project',
       durationType: 'single_day',
       paymentType: 'daily',
@@ -89,7 +89,7 @@ export async function runCommunicationSupportTests() {
     const pw = await ProjectWorker.create({
       projectId: project._id,
       workerId: worker._id,
-      hiringAgreementId: new mongoose.Types.ObjectId(),
+      hiringAgreementId: generateObjectId(),
       startDate: new Date(),
       wageType: 'daily',
       agreedWage: 850,

@@ -8,7 +8,10 @@ export const recordPayment = async (user, projectId, inputData) => {
     throw error;
   }
 
-  if (project.employerId.toString() !== user.id) {
+  const employerId = (project.employerId?._id || project.employerId?.id || project.employerId)?.toString();
+  const userId = (user.id || user._id)?.toString();
+
+  if (employerId !== userId) {
     const error = new Error('Only the project employer can record payments');
     error.statusCode = 403;
     throw error;
@@ -29,7 +32,7 @@ export const recordPayment = async (user, projectId, inputData) => {
     projectId,
     projectWorkerId: projectWorker._id,
     workerId: projectWorker.workerId,
-    employerId: project.employerId,
+    employerId: employerId,
     type: inputData.type,
     amount: inputData.amount,
     paymentDate: inputData.paymentDate ? new Date(inputData.paymentDate) : new Date(),
@@ -37,7 +40,7 @@ export const recordPayment = async (user, projectId, inputData) => {
     method: inputData.method || 'cash',
     reference: inputData.reference || '',
     notes: inputData.notes || '',
-    createdBy: user.id,
+    createdBy: userId,
   });
 
   await payment.save();
@@ -52,8 +55,10 @@ export const getProjectPayments = async (user, projectId) => {
     throw error;
   }
 
-  const isEmployer = project.employerId.toString() === user.id;
-  const isWorker = await ProjectWorker.exists({ projectId, workerId: user.id });
+  const employerId = (project.employerId?._id || project.employerId?.id || project.employerId)?.toString();
+  const userId = (user.id || user._id)?.toString();
+  const isEmployer = employerId === userId;
+  const isWorker = await ProjectWorker.exists({ projectId, workerId: userId });
 
   if (!isEmployer && !isWorker) {
     const error = new Error('Unauthorized to view payments for this project');

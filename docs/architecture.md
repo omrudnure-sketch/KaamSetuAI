@@ -4,17 +4,17 @@
 
 ```
 +------------------------+             +------------------------+             +------------------------+
-|    React Frontend      |  HTTP/REST  |  Node.js + Express API |  Mongoose   |    MongoDB Database    |
-| (Vite, TS, Tailwind)   | ----------->|      (TypeScript)      | ----------->|     (Configured)       |
+|    React Frontend      |  HTTP/REST  |  Node.js + Express API |  PostgreSQL |    Supabase Database   |
+| (Vite, React 19, CSS)  | ----------->|    (JavaScript ES)     | ----------->|    (Managed Cloud)     |
 | http://localhost:5173  |             | http://localhost:5000  |             |                        |
 +------------------------+             +------------------------+             +------------------------+
 ```
 
 ### Components Summary
 
-1. **Frontend**: Built with React, Vite, TypeScript, React Router, Tailwind CSS, Axios, TanStack Query, and Lucide React. Serves the web interface and communicates with the backend API.
-2. **Backend API**: Built with Node.js, Express, and TypeScript. Uses Helmet for security, CORS for origin management, Zod for request validation, and centralized error handling middleware. Exposes health check endpoint (`GET /api/health`).
-3. **Database Layer**: MongoDB connection configuration established via Mongoose (`backend/src/config/db.ts`).
+1. **Frontend**: Built with React 19, Vite, React Router, Vanilla CSS design system, Axios, and Lucide React. Serves the web interface and communicates with the backend API.
+2. **Backend API**: Built with Node.js and Express. Uses Helmet for security, CORS for origin management, Zod for request validation, Socket.IO for realtime chat, and centralized error handling middleware. Exposes health check endpoints (`GET /api/health`, `GET /api/health/ready`).
+3. **Database Layer**: Supabase PostgreSQL database connection established via `pg` connection pool and `@supabase/supabase-js` client (`backend/src/config/supabase.js`, `backend/src/config/db.js`).
 
 ---
 

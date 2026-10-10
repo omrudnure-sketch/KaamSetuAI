@@ -8,14 +8,20 @@ build/
 out/
 .next/
 
-# Environment Variables
+# Environment Variables & Deployment Imports
 .env
 *.env
 **/.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+!**/.env.example
+deployment/vercel.env
+deployment/render.env
+deployment/*.env
+frontend/.env
+frontend/.env.*
+backend/.env
+backend/.env.*
 
 
 # Logs & Debugging

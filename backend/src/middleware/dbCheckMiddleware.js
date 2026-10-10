@@ -1,13 +1,16 @@
-import mongoose from 'mongoose';
+// Supabase Database Readiness Middleware
+import { getDbStatus } from '../config/db.js';
 
 export const checkDbConnection = (_req, res, next) => {
-  if (mongoose.connection.readyState !== 1) {
+  if (!getDbStatus()) {
     return res.status(503).json({
       success: false,
       error: {
-        message: 'Database connection unavailable. Please ensure your IP address is whitelisted on MongoDB Atlas (0.0.0.0/0 for dev) or start MongoDB.',
+        message: 'Database connection unavailable. Please check your Supabase configuration.',
       },
     });
   }
   next();
 };
+
+export default checkDbConnection;

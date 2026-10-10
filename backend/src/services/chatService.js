@@ -18,7 +18,8 @@ export const validatePlatformRelationship = async (user1Id, user2Id, projectId =
   if (projectId) {
     const project = await Project.findById(projectId);
     if (project) {
-      const isEmp = project.employerId.toString() === user1Id || project.employerId.toString() === user2Id;
+      const empId = (project.employerId?._id || project.employerId?.id || project.employerId)?.toString();
+      const isEmp = empId === user1Id.toString() || empId === user2Id.toString();
       const hasWorker1 = await ProjectWorker.exists({ projectId, workerId: user1Id });
       const hasWorker2 = await ProjectWorker.exists({ projectId, workerId: user2Id });
       if (isEmp && (hasWorker1 || hasWorker2)) return true;
@@ -29,8 +30,9 @@ export const validatePlatformRelationship = async (user1Id, user2Id, projectId =
   if (jobId) {
     const job = await Job.findById(jobId);
     if (job) {
-      const isEmp = job.employerId.toString() === user1Id || job.employerId.toString() === user2Id;
-      const otherUser = isEmp ? (job.employerId.toString() === user1Id ? user2Id : user1Id) : null;
+      const jobEmpId = (job.employerId?._id || job.employerId?.id || job.employerId)?.toString();
+      const isEmp = jobEmpId === user1Id.toString() || jobEmpId === user2Id.toString();
+      const otherUser = isEmp ? (jobEmpId === user1Id.toString() ? user2Id : user1Id) : null;
       if (otherUser) {
         const hasApp = await JobApplication.exists({ jobId, workerId: otherUser });
         const hasInv = await JobInvitation.exists({ jobId, workerId: otherUser });
@@ -127,7 +129,9 @@ export const getConversation = async (user, conversationId) => {
     throw error;
   }
 
-  const isParticipant = conversation.participants.some((p) => p._id.toString() === user.id);
+  const isParticipant = conversation.participants.some(
+    (p) => (p._id || p.id || p)?.toString() === user.id.toString()
+  );
   if (!isParticipant) {
     const error = new Error('Unauthorized to access this conversation');
     error.statusCode = 403;
@@ -140,8 +144,10 @@ export const getConversation = async (user, conversationId) => {
 export const sendMessage = async (user, conversationId, inputData) => {
   const conversation = await getConversation(user, conversationId);
 
-  const receiver = conversation.participants.find((p) => p._id.toString() !== user.id);
-  const receiverId = receiver ? receiver._id.toString() : user.id;
+  const receiver = conversation.participants.find(
+    (p) => (p._id || p.id || p)?.toString() !== user.id.toString()
+  );
+  const receiverId = receiver ? (receiver._id || receiver.id || receiver).toString() : user.id;
 
   const message = new Message({
     conversationId: conversation._id,

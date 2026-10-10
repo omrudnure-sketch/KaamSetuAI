@@ -172,7 +172,7 @@ export async function runSecurityHardeningTests() {
 
     let readyStatus = null;
     let readyJson = null;
-    getReadinessStatus({}, {
+    await getReadinessStatus({}, {
       status: (code) => {
         readyStatus = code;
         return { json: (data) => { readyJson = data; } };

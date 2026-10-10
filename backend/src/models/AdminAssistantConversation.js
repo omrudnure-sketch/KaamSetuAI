@@ -1,51 +1,14 @@
-import mongoose from 'mongoose';
+// Supabase-backed AdminAssistantConversation Model
+import createModel from './supabaseModel.js';
 
-const adminAssistantConversationSchema = new mongoose.Schema(
-  {
-    adminId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-      index: true,
-    },
-    question: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 500,
-    },
-    intent: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    response: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    sources: {
-      type: [String],
-      default: [],
-    },
-    metrics: {
-      type: mongoose.Schema.Types.Mixed,
-      default: {},
-    },
-    records: {
-      type: mongoose.Schema.Types.Mixed,
-      default: [],
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
+export const AdminAssistantConversation = createModel('admin_assistant_conversations', {
+  adminId: null,
+  question: '',
+  intent: '',
+  response: '',
+  sources: [],
+  metrics: {},
+  records: [],
+});
 
-adminAssistantConversationSchema.index({ adminId: 1, createdAt: -1 });
-
-export const AdminAssistantConversation = mongoose.model(
-  'AdminAssistantConversation',
-  adminAssistantConversationSchema
-);
 export default AdminAssistantConversation;

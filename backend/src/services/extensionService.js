@@ -14,10 +14,12 @@ export const createRequest = async (user, projectId, inputData) => {
     throw error;
   }
 
-  const isEmployer = project.employerId.toString() === user.id;
+  const employerId = (project.employerId?._id || project.employerId?.id || project.employerId)?.toString();
+  const userId = (user.id || user._id)?.toString();
+  const isEmployer = employerId === userId;
   const projectWorker = await ProjectWorker.findOne({
-    projectId,
-    workerId: user.id,
+    projectId: (project.id || project._id)?.toString(),
+    workerId: userId,
     status: { $in: ['confirmed', 'active'] },
   });
   const isWorker = !!projectWorker;
@@ -94,10 +96,12 @@ export const approveRequest = async (user, extensionId) => {
     throw error;
   }
 
-  const isEmployer = project.employerId.toString() === user.id;
+  const employerId = (project.employerId?._id || project.employerId?.id || project.employerId)?.toString();
+  const userId = (user.id || user._id)?.toString();
+  const isEmployer = employerId === userId;
   const projectWorker = await ProjectWorker.findOne({
-    projectId: project._id,
-    workerId: user.id,
+    projectId: (project.id || project._id)?.toString(),
+    workerId: userId,
     status: { $in: ['confirmed', 'active'] },
   });
   const isWorker = !!projectWorker;
@@ -174,10 +178,12 @@ export const rejectRequest = async (user, extensionId) => {
     throw error;
   }
 
-  const isEmployer = project.employerId.toString() === user.id;
+  const employerId = (project.employerId?._id || project.employerId?.id || project.employerId)?.toString();
+  const userId = (user.id || user._id)?.toString();
+  const isEmployer = employerId === userId;
   const isWorker = await ProjectWorker.exists({
-    projectId: project._id,
-    workerId: user.id,
+    projectId: (project.id || project._id)?.toString(),
+    workerId: userId,
   });
 
   if (!isEmployer && !isWorker) {

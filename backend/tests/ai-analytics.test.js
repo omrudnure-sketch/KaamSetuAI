@@ -15,7 +15,7 @@ import {
   evaluateUserRisk,
 } from '../src/services/riskDetectionService.js';
 import { Job, Project, ProjectWorker, HiringAgreement, User } from '../src/models/index.js';
-import mongoose from 'mongoose';
+import { generateObjectId } from './testHelper.js';
 
 export async function runAiAnalyticsTests() {
   console.log('\n========================================');
@@ -73,7 +73,7 @@ export async function runAiAnalyticsTests() {
     const project = await Project.create({
       jobId: dummyJob._id,
       employerId: employer._id,
-      createdFromHiringAgreement: new mongoose.Types.ObjectId(),
+      createdFromHiringAgreement: generateObjectId(),
       name: 'Bungalow Foundation Masonry',
       durationType: 'fixed_duration',
       paymentType: 'daily',
@@ -86,7 +86,7 @@ export async function runAiAnalyticsTests() {
     const pw = await ProjectWorker.create({
       projectId: project._id,
       workerId: worker._id,
-      hiringAgreementId: new mongoose.Types.ObjectId(),
+      hiringAgreementId: generateObjectId(),
       startDate: new Date(),
       wageType: 'daily',
       agreedWage: 950,

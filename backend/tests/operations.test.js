@@ -18,7 +18,7 @@ import { createRequest as requestExtension, approveRequest as approveExtension }
 import { recordPayment, getProjectPayments } from '../src/services/paymentService.js';
 import { createReview } from '../src/services/reviewService.js';
 import { Job, HiringAgreement, ProjectWorker } from '../src/models/index.js';
-import mongoose from 'mongoose';
+import { generateObjectId } from './testHelper.js';
 
 export async function runOperationsTests() {
   console.log('\n========================================');
@@ -64,7 +64,7 @@ export async function runOperationsTests() {
       employerId: employer._id,
       workerId: worker._id,
       sourceType: 'invitation',
-      sourceId: new mongoose.Types.ObjectId(),
+      sourceId: generateObjectId(),
       durationType: 'fixed_duration',
       startDate: new Date(),
       estimatedEndDate: new Date(Date.now() + 3 * 24 * 3600 * 1000),

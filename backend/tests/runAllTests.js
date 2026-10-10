@@ -8,7 +8,13 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Ensure test environment defaults are available to all child test processes
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test_jwt_secret_for_automated_test_suites_32chars_long';
+process.env.JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+process.env.NODE_ENV = 'test';
+
 const suites = [
+  { name: '0. Supabase Database Migration & MongoDB Regression', file: 'database-migration.test.js' },
   { name: '1. Authentication & Role-Based Authorization', file: 'auth-authz.test.js' },
   { name: '2. Profile & Marketplace Workflow', file: 'marketplace.test.js' },
   { name: '3. Multi-Day Projects, Attendance, Progress & Payments', file: 'operations.test.js' },

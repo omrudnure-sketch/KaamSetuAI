@@ -1,17 +1,21 @@
 import { z } from 'zod';
-import mongoose from 'mongoose';
 
-const isValidObjectId = (val) => mongoose.Types.ObjectId.isValid(val);
+const isValidId = (val) => {
+  if (!val || typeof val !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val) ||
+         /^[0-9a-fA-F]{24}$/.test(val) ||
+         /^\d+$/.test(val);
+};
 
 const createReviewSchema = z
   .object({
     projectId: z
       .string()
       .optional()
-      .refine((val) => !val || isValidObjectId(val), { message: 'Invalid Project ID format' }),
+      .refine((val) => !val || isValidId(val), { message: 'Invalid Project ID format' }),
     revieweeId: z
       .string({ required_error: 'Reviewee ID is required' })
-      .refine(isValidObjectId, { message: 'Invalid Reviewee ID format' }),
+      .refine(isValidId, { message: 'Invalid Reviewee ID format' }),
     rating: z
       .number({ required_error: 'Rating is required' })
       .int('Rating must be a whole number')

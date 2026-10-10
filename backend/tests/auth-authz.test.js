@@ -10,7 +10,7 @@ import { validateRegister } from '../src/validators/authValidator.js';
 import { comparePassword, verifyToken } from '../src/services/authService.js';
 import { ADMIN_ROLE_PERMISSIONS } from '../src/middleware/adminMiddleware.js';
 import { getProject } from '../src/services/projectService.js';
-import mongoose from 'mongoose';
+import { generateObjectId } from './testHelper.js';
 
 export async function runAuthAuthzTests() {
   console.log('\n========================================');
@@ -140,7 +140,7 @@ export async function runAuthAuthzTests() {
     const dummyProject = await Project.create({
       jobId: dummyJob._id,
       employerId: empA._id,
-      createdFromHiringAgreement: new mongoose.Types.ObjectId(),
+      createdFromHiringAgreement: generateObjectId(),
       name: 'Employer A Private Project',
       durationType: 'single_day',
       paymentType: 'daily',

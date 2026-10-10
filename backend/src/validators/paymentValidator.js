@@ -1,13 +1,17 @@
 import { z } from 'zod';
-import mongoose from 'mongoose';
 
-const isValidObjectId = (val) => mongoose.Types.ObjectId.isValid(val);
+const isValidId = (val) => {
+  if (!val || typeof val !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val) ||
+         /^[0-9a-fA-F]{24}$/.test(val) ||
+         /^\d+$/.test(val);
+};
 
 const recordPaymentSchema = z
   .object({
     projectWorkerId: z
       .string({ required_error: 'ProjectWorker ID is required' })
-      .refine(isValidObjectId, { message: 'Invalid ProjectWorker ID format' }),
+      .refine(isValidId, { message: 'Invalid ProjectWorker ID format' }),
     type: z.enum(['daily', 'weekly', 'milestone', 'final', 'adjustment'], {
       required_error: 'Payment type is required',
       invalid_type_error: 'Invalid payment type',

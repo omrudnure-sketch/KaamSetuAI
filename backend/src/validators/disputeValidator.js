@@ -1,16 +1,20 @@
 import { z } from 'zod';
-import mongoose from 'mongoose';
 
-const isValidObjectId = (val) => mongoose.Types.ObjectId.isValid(val);
+const isValidId = (val) => {
+  if (!val || typeof val !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val) ||
+         /^[0-9a-fA-F]{24}$/.test(val) ||
+         /^\d+$/.test(val);
+};
 
 const createDisputeSchema = z
   .object({
     projectId: z
       .string({ required_error: 'Project ID is required' })
-      .refine(isValidObjectId, { message: 'Invalid Project ID format' }),
+      .refine(isValidId, { message: 'Invalid Project ID format' }),
     againstUserId: z
       .string({ required_error: 'Against User ID is required' })
-      .refine(isValidObjectId, { message: 'Invalid Against User ID format' }),
+      .refine(isValidId, { message: 'Invalid Against User ID format' }),
     type: z.enum(['payment', 'attendance', 'work_quality', 'project_completion', 'contract_terms', 'other'], {
       required_error: 'Dispute type is required',
     }),

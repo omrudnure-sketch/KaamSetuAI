@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import Project from '../models/Project.js';
 import ProjectWorker from '../models/ProjectWorker.js';
 import HiringAgreement from '../models/HiringAgreement.js';
@@ -45,78 +44,47 @@ export const createFromConfirmedAgreement = async (userId, agreementId, override
     throw error;
   }
 
-  // Attempt transaction if supported by MongoDB deployment
-  let session = null;
-  let useTransaction = false;
-  try {
-    session = await mongoose.startSession();
-    session.startTransaction();
-    useTransaction = true;
-  } catch (_e) {
-    // Transaction not supported on standalone local mongo instance, fallback to non-transactional atomic sequence
-    session = null;
-    useTransaction = false;
-  }
+  const projectPayload = {
+    jobId: agreement.jobId,
+    employerId: agreement.employerId,
+    createdFromHiringAgreement: agreement._id,
+    name: overrides.name || job.title,
+    description: overrides.description || job.description,
+    projectType: agreement.durationType,
+    location: job.location || { city: '', area: '', address: '' },
+    durationType: agreement.durationType,
+    startDate: agreement.startDate,
+    originalEstimatedEndDate: agreement.estimatedEndDate,
+    currentExpectedEndDate: agreement.estimatedEndDate,
+    workingHours: agreement.workingHours,
+    paymentType: agreement.wageType,
+    paymentAmount: agreement.agreedWage || agreement.proposedWage,
+    workersRequired: job.workersRequired || 1,
+    progressPercentage: 0,
+    status: 'confirmed',
+  };
 
-  try {
-    const projectPayload = {
-      jobId: agreement.jobId,
-      employerId: agreement.employerId,
-      createdFromHiringAgreement: agreement._id,
-      name: overrides.name || job.title,
-      description: overrides.description || job.description,
-      projectType: agreement.durationType,
-      location: job.location || { city: '', area: '', address: '' },
-      durationType: agreement.durationType,
-      startDate: agreement.startDate,
-      originalEstimatedEndDate: agreement.estimatedEndDate,
-      currentExpectedEndDate: agreement.estimatedEndDate,
-      workingHours: agreement.workingHours,
-      paymentType: agreement.wageType,
-      paymentAmount: agreement.agreedWage || agreement.proposedWage,
-      workersRequired: job.workersRequired || 1,
-      progressPercentage: 0,
-      status: 'confirmed',
-    };
+  const projectDocs = await Project.create(projectPayload);
+  const project = Array.isArray(projectDocs) ? projectDocs[0] : projectDocs;
 
-    const projectDocs = await Project.create(
-      [projectPayload],
-      useTransaction ? { session } : {}
-    );
-    const project = projectDocs[0];
+  const workerPayload = {
+    projectId: project._id,
+    workerId: agreement.workerId,
+    hiringAgreementId: agreement._id,
+    agreedWage: agreement.agreedWage || agreement.proposedWage,
+    wageType: agreement.wageType,
+    startDate: agreement.startDate,
+    expectedEndDate: agreement.estimatedEndDate,
+    role: 'worker',
+    status: 'confirmed',
+    workerAccepted: true,
+    employerAccepted: true,
+  };
 
-    const workerPayload = {
-      projectId: project._id,
-      workerId: agreement.workerId,
-      hiringAgreementId: agreement._id,
-      agreedWage: agreement.agreedWage || agreement.proposedWage,
-      wageType: agreement.wageType,
-      startDate: agreement.startDate,
-      expectedEndDate: agreement.estimatedEndDate,
-      role: 'worker',
-      status: 'confirmed',
-      workerAccepted: true,
-      employerAccepted: true,
-    };
+  const workerDocs = await ProjectWorker.create(workerPayload);
+  const workers = Array.isArray(workerDocs) ? workerDocs : [workerDocs];
 
-    const workerDocs = await ProjectWorker.create(
-      [workerPayload],
-      useTransaction ? { session } : {}
-    );
-
-    if (useTransaction && session) {
-      await session.commitTransaction();
-      session.endSession();
-    }
-
-    return { project, workers: workerDocs };
-  } catch (error) {
-    if (useTransaction && session) {
-      await session.abortTransaction();
-      session.endSession();
-    }
-    throw error;
-  }
+  return { project, workers };
 };
 
 export const getWorkerProjects = async (workerId) => {
@@ -169,8 +137,9 @@ export const getProject = async (userId, userRole, projectId) => {
   }
 
   let userWorkerRecord = null;
+  const employerId = (project.employerId?._id || project.employerId?.id || project.employerId)?.toString();
   if (userRole === 'employer') {
-    if (project.employerId._id.toString() !== userId.toString()) {
+    if (employerId !== userId.toString()) {
       const error = new Error('Unauthorized access to project');
       error.statusCode = 403;
       throw error;

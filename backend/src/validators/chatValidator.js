@@ -1,23 +1,27 @@
 import { z } from 'zod';
-import mongoose from 'mongoose';
 
-const isValidObjectId = (val) => mongoose.Types.ObjectId.isValid(val);
+const isValidId = (val) => {
+  if (!val || typeof val !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val) ||
+         /^[0-9a-fA-F]{24}$/.test(val) ||
+         /^\d+$/.test(val);
+};
 
 const createConversationSchema = z
   .object({
     recipientId: z
       .string({ required_error: 'Recipient ID is required' })
-      .refine(isValidObjectId, { message: 'Invalid Recipient ID format' }),
+      .refine(isValidId, { message: 'Invalid Recipient ID format' }),
     projectId: z
       .string()
       .nullable()
       .optional()
-      .refine((val) => !val || isValidObjectId(val), { message: 'Invalid Project ID format' }),
+      .refine((val) => !val || isValidId(val), { message: 'Invalid Project ID format' }),
     jobId: z
       .string()
       .nullable()
       .optional()
-      .refine((val) => !val || isValidObjectId(val), { message: 'Invalid Job ID format' }),
+      .refine((val) => !val || isValidId(val), { message: 'Invalid Job ID format' }),
     conversationType: z.enum(['job', 'project', 'support']).optional().default('project'),
   })
   .strict();

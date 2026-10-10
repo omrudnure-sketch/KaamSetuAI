@@ -80,7 +80,7 @@ app.use('/api', routes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-import mongoose from 'mongoose';
+import { pgPool } from './config/supabase.js';
 
 // Start Database Connection & Server
 const startServer = async () => {
@@ -97,8 +97,10 @@ const gracefulShutdown = async (signal) => {
   httpServer.close(async () => {
     console.log('[KaamSetu AI] HTTP server closed.');
     try {
-      await mongoose.connection.close(false);
-      console.log('[KaamSetu AI] MongoDB connection closed.');
+      if (pgPool) {
+        await pgPool.end();
+        console.log('[KaamSetu AI] Supabase PostgreSQL connection pool closed.');
+      }
       process.exit(0);
     } catch (err) {
       console.error('[KaamSetu AI] Error during database disconnect:', err.message);
