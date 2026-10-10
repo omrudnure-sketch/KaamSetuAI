@@ -12,7 +12,9 @@ export const comparePassword = async (password, passwordHash) => {
 };
 
 export const generateAccessToken = (user) => {
-  const secret = process.env.JWT_SECRET;
+  const secret =
+    process.env.JWT_SECRET ||
+    (process.env.NODE_ENV !== 'production' ? 'kaamsetu-ai-dev-secret-key-32chars-min' : null);
   if (!secret) {
     throw new Error('JWT_SECRET is missing from environment variables');
   }
@@ -32,7 +34,9 @@ export const generateAccessToken = (user) => {
 export const generateToken = generateAccessToken;
 
 export const verifyToken = (token) => {
-  const secret = process.env.JWT_SECRET;
+  const secret =
+    process.env.JWT_SECRET ||
+    (process.env.NODE_ENV !== 'production' ? 'kaamsetu-ai-dev-secret-key-32chars-min' : null);
   if (!secret) {
     throw new Error('JWT_SECRET is missing from environment variables');
   }

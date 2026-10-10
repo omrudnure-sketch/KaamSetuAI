@@ -72,9 +72,18 @@ export const checkSupabaseConnection = async () => {
     }
   }
 
-  // Check Supabase SDK
+  // Check Supabase SDK with an active test query
   if (supabaseAdmin) {
-    status.supabaseClient = true;
+    try {
+      const { error } = await supabaseAdmin.from('users').select('id').limit(1);
+      if (!error || error.code === 'PGRST116' || !error.message?.includes('fetch failed')) {
+        status.supabaseClient = true;
+      } else {
+        if (!status.error) status.error = error.message;
+      }
+    } catch (err) {
+      if (!status.error) status.error = err.message;
+    }
   }
 
   return status;

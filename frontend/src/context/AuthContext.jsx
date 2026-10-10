@@ -34,7 +34,14 @@ export const AuthProvider = ({ children }) => {
         return { success: true, user: res.data.user };
       }
     } catch (err) {
-      const message = err.response?.data?.error?.message || err.message || 'Login failed';
+      let message = err.response?.data?.error?.message;
+      if (!message) {
+        if (err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
+          message = 'Unable to connect to KaamSetu server. The server may be waking up or offline. Please try again.';
+        } else {
+          message = err.message || 'Login failed';
+        }
+      }
       setError(message);
       return { success: false, error: message };
     }
@@ -49,7 +56,14 @@ export const AuthProvider = ({ children }) => {
         return { success: true, user: res.data.user };
       }
     } catch (err) {
-      const message = err.response?.data?.error?.message || err.message || 'Registration failed';
+      let message = err.response?.data?.error?.message;
+      if (!message) {
+        if (err.message === 'Network Error' || err.code === 'ERR_NETWORK') {
+          message = 'Unable to connect to KaamSetu server. The server may be waking up or offline. Please try again.';
+        } else {
+          message = err.message || 'Registration failed';
+        }
+      }
       setError(message);
       return { success: false, error: message };
     }

@@ -24,27 +24,70 @@ const PORT = process.env.PORT || 5000;
 import rateLimiter from './middleware/rateLimiter.js';
 import securitySanitizer from './middleware/securitySanitizer.js';
 
-// Parse allowed CORS origins from CLIENT_URL (supports comma-separated origins)
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
-  .split(',')
-  .map((url) => url.trim())
-  .filter(Boolean);
+// Parse allowed CORS origins from CLIENT_URL (supports comma-separated origins, trailing slash normalization, and scheme deduction)
+const parseAllowedOrigins = () => {
+  const configured = (process.env.CLIENT_URL || '')
+    .split(',')
+    .map((url) => url.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+
+  const origins = new Set([
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:5000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
+    ...configured,
+  ]);
+
+  // Ensure scheme is present for bare domains like "kaamsetuai.vercel.app"
+  for (const origin of Array.from(origins)) {
+    if (!origin.startsWith('http://') && !origin.startsWith('https://')) {
+      origins.add(`https://${origin}`);
+      origins.add(`http://${origin}`);
+    }
+  }
+
+  return origins;
+};
+
+export const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, server-to-server, curl, health checks)
+    if (!origin) return callback(null, true);
+
+    const cleanOrigin = origin.trim().replace(/\/+$/, '');
+    const allowed = parseAllowedOrigins();
+
+    // 1. Direct match against allowed origins set
+    if (allowed.has(cleanOrigin)) {
+      return callback(null, true);
+    }
+
+    // 2. Allow all Vercel deployment domains (*.vercel.app) for preview branches & production
+    if (/^https:\/\/[a-zA-Z0-9_-]+\.vercel\.app$/.test(cleanOrigin)) {
+      return callback(null, true);
+    }
+
+    // 3. Allow non-production environments
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+
+    // Reject untrusted origin safely without triggering 500 error on preflight requests
+    console.warn(`[KaamSetu AI CORS] Blocked request from unauthorized origin: ${origin}`);
+    return callback(null, false);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  optionsSuccessStatus: 204,
+};
 
 // Security & Parsing Middleware
 app.use(helmet());
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, server-to-server, curl)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
-        return callback(null, true);
-      }
-      return callback(new Error('CORS origin denied by policy'));
-    },
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
@@ -52,7 +95,7 @@ app.use(rateLimiter({ windowMs: 15 * 60 * 1000, max: 1000 }));
 app.use(securitySanitizer);
 
 // Initialize Socket.IO
-initSocket(httpServer);
+initSocket(httpServer, corsOptions);
 
 // Root Route Handler
 app.get('/', (req, res) => {

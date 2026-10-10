@@ -4,12 +4,14 @@ import { Conversation, Message, User } from '../models/index.js';
 
 let io = null;
 
-export const initSocket = (httpServer) => {
+export const initSocket = (httpServer, customCors) => {
+  const corsConfig = customCors || {
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    credentials: true,
+  };
+
   io = new Server(httpServer, {
-    cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:5173',
-      credentials: true,
-    },
+    cors: corsConfig,
   });
 
   // Socket Authentication Middleware

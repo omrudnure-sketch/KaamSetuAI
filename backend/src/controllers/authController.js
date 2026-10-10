@@ -1,4 +1,6 @@
 import User from '../models/User.js';
+import WorkerProfile from '../models/WorkerProfile.js';
+import EmployerProfile from '../models/EmployerProfile.js';
 import { hashPassword, comparePassword, generateAccessToken } from '../services/authService.js';
 import { validateRegister, validateLogin } from '../validators/authValidator.js';
 
@@ -62,6 +64,32 @@ export const register = async (req, res, next) => {
     });
 
     const savedUser = await user.save();
+
+    // Auto-create initial profile for the registered user
+    try {
+      if (savedUser.role === 'worker') {
+        const existingProfile = await WorkerProfile.findOne({ userId: savedUser._id });
+        if (!existingProfile) {
+          await WorkerProfile.create({
+            userId: savedUser._id,
+            fullName: savedUser.name,
+            languages: [savedUser.preferredLanguage || 'en'],
+          });
+        }
+      } else if (savedUser.role === 'employer') {
+        const existingProfile = await EmployerProfile.findOne({ userId: savedUser._id });
+        if (!existingProfile) {
+          await EmployerProfile.create({
+            userId: savedUser._id,
+            name: savedUser.name,
+            phone: savedUser.phone || '',
+          });
+        }
+      }
+    } catch (profileErr) {
+      console.warn('[KaamSetu AI] Initial profile initialization notice:', profileErr.message);
+    }
+
     const token = generateAccessToken(savedUser);
 
     res.cookie('token', token, COOKIE_OPTIONS);
@@ -87,7 +115,8 @@ export const register = async (req, res, next) => {
       },
     });
   } catch (error) {
-    if (error.code === 11000) {
+    // 11000 = MongoDB duplicate key, 23505 = PostgreSQL / Supabase unique constraint violation
+    if (error.code === 11000 || error.code === '23505' || String(error.code) === '23505') {
       return res.status(409).json({
         success: false,
         error: {
@@ -95,6 +124,8 @@ export const register = async (req, res, next) => {
         },
       });
     }
+    // Safe diagnostic log without leaking credentials or tokens
+    console.error('[KaamSetu AI Registration Error]:', error.message || error);
     next(error);
   }
 };
