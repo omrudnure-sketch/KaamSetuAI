@@ -1,0 +1,37 @@
+{
+  "name": "kaamsetu-ai-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "KaamSetu AI Express JavaScript Backend API",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "seed": "node src/utils/seedAdmin.js",
+    "test": "node tests/runAllTests.js",
+    "test:unit": "node tests/ai-analytics.test.js",
+    "test:api": "node tests/auth-authz.test.js && node tests/marketplace.test.js && node tests/operations.test.js && node tests/communication-support.test.js",
+    "test:e2e": "node tests/e2e-workflow.test.js",
+    "build": "echo \"No build step required for JS backend\"",
+    "lint": "eslint src --ext .js"
+  },
+  "dependencies": {
+    "@google/genai": "^2.28.0",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.5",
+    "socket.io": "^4.8.4",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2",
+    "socket.io-client": "^4.8.4"
+  }
+}
