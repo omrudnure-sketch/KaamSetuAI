@@ -64,15 +64,15 @@ export const WorkerInvitationsPage = () => {
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case 'pending':
-        return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+        return 'bg-amber-50 text-amber-800 border-amber-200';
       case 'accepted':
-        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+        return 'bg-emerald-50 text-emerald-800 border-emerald-200';
       case 'rejected':
-        return 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+        return 'bg-rose-50 text-rose-800 border-rose-200';
       case 'cancelled':
-        return 'bg-slate-700/50 text-slate-400 border-slate-600';
+        return 'bg-slate-100 text-slate-700 border-slate-200';
       default:
-        return 'bg-slate-800 text-slate-300 border-slate-700';
+        return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
 
@@ -81,20 +81,20 @@ export const WorkerInvitationsPage = () => {
       {/* Header & Language Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white flex items-center gap-2">
-            <Mail className="w-7 h-7 text-cyan-400" />
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 flex items-center gap-2">
+            <Mail className="w-7 h-7 text-primary" />
             <span>{t.invitations}</span>
           </h1>
-          <p className="text-slate-400 text-xs sm:text-sm mt-1">{t.invitationsSubtitle}</p>
+          <p className="text-slate-600 text-xs sm:text-sm mt-1">{t.invitationsSubtitle}</p>
         </div>
 
         {/* Language selector */}
-        <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 p-1.5 rounded-xl self-start sm:self-auto">
-          <Globe className="w-4 h-4 text-cyan-400 ml-1.5" />
+        <div className="flex items-center gap-1.5 bg-white border border-slate-200 p-1.5 rounded-xl shadow-xs self-start sm:self-auto">
+          <Globe className="w-4 h-4 text-primary ml-1.5" />
           <button
             onClick={() => setLang('en')}
             className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-              lang === 'en' ? 'bg-cyan-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              lang === 'en' ? 'bg-primary text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             English
@@ -102,7 +102,7 @@ export const WorkerInvitationsPage = () => {
           <button
             onClick={() => setLang('mr')}
             className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-              lang === 'mr' ? 'bg-cyan-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              lang === 'mr' ? 'bg-primary text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             मराठी
@@ -110,7 +110,7 @@ export const WorkerInvitationsPage = () => {
           <button
             onClick={() => setLang('hi')}
             className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-              lang === 'hi' ? 'bg-cyan-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              lang === 'hi' ? 'bg-primary text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             हिंदी
@@ -119,75 +119,75 @@ export const WorkerInvitationsPage = () => {
       </div>
 
       {actionMessage && (
-        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-xl flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl flex items-center gap-2 shadow-xs">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           <span>{actionMessage}</span>
         </div>
       )}
 
       {loading ? (
-        <div className="w-full p-12 text-center bg-slate-850 border border-slate-800 rounded-2xl">
-          <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-3"></div>
-          <p className="text-slate-400 text-sm font-medium">Loading invitations...</p>
+        <div className="w-full p-12 text-center bg-white border border-slate-200 rounded-2xl shadow-sm">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
+          <p className="text-slate-600 text-sm font-medium">Loading invitations...</p>
         </div>
       ) : error ? (
-        <div className="w-full p-8 bg-slate-850 border border-slate-800 rounded-2xl text-center text-rose-400 space-y-2">
-          <AlertCircle className="w-8 h-8 mx-auto" />
+        <div className="w-full p-8 bg-rose-50 border border-rose-200 rounded-2xl text-center text-rose-800 space-y-2">
+          <AlertCircle className="w-8 h-8 mx-auto text-rose-600" />
           <p className="font-semibold text-sm">{error}</p>
         </div>
       ) : invitations.length === 0 ? (
-        <div className="w-full p-12 bg-slate-850 border border-slate-800 rounded-2xl text-center text-slate-400 space-y-4">
-          <Mail className="w-12 h-12 mx-auto text-slate-600" />
-          <p className="text-base font-semibold">{t.noInvitations}</p>
+        <div className="w-full p-12 bg-white border border-slate-200 rounded-2xl text-center text-slate-600 space-y-4 shadow-sm">
+          <Mail className="w-12 h-12 mx-auto text-slate-400" />
+          <p className="text-base font-semibold text-slate-800">{t.noInvitations}</p>
         </div>
       ) : (
         <div className="space-y-4">
           {invitations.map((inv) => (
             <div
               key={inv._id}
-              className="bg-slate-850 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 transition-all shadow-md space-y-4"
+              className="bg-white border border-slate-200 hover:border-primary/40 rounded-2xl p-5 transition-all shadow-sm hover:shadow-md space-y-4"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md border ${getStatusBadgeClass(inv.status)}`}>
                       {t.statuses[inv.status] || inv.status}
                     </span>
                     {inv.jobId?.skillRequired && (
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
                         {inv.jobId.skillRequired}
                       </span>
                     )}
                   </div>
-                  <h3 className="text-lg font-bold text-white">
+                  <h3 className="text-lg font-bold text-slate-900">
                     {inv.jobId?.title || 'Job Title Unavailable'}
                   </h3>
                   {inv.employerId?.name && (
-                    <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1">
-                      <Building className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Employer: <strong>{inv.employerId.name}</strong></span>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-600 mt-1">
+                      <Building className="w-3.5 h-3.5 text-primary" />
+                      <span>Employer: <strong className="text-slate-800">{inv.employerId.name}</strong></span>
                     </div>
                   )}
                 </div>
 
                 <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <span className="text-[11px] text-slate-400 uppercase font-semibold">{t.proposedWage}</span>
-                    <p className="text-xl font-extrabold text-emerald-400">₹{inv.proposedWage}</p>
+                  <div className="text-left sm:text-right">
+                    <span className="text-[11px] text-slate-500 uppercase font-semibold">{t.proposedWage}</span>
+                    <p className="text-xl font-extrabold text-emerald-700">₹{inv.proposedWage}</p>
                   </div>
 
                   {inv.status === 'pending' && (
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleAccept(inv._id)}
-                        className="flex items-center gap-1 px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold rounded-xl transition-all"
+                        className="flex items-center gap-1 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl transition-all shadow-xs"
                       >
                         <Check className="w-3.5 h-3.5" />
                         <span>{t.accept}</span>
                       </button>
                       <button
                         onClick={() => handleReject(inv._id)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold rounded-xl transition-all"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl transition-all"
                       >
                         <X className="w-3.5 h-3.5" />
                         <span>{t.reject}</span>
@@ -197,14 +197,14 @@ export const WorkerInvitationsPage = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-600">
                 <div className="flex items-center gap-4">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5 text-slate-500" />
                     Received: {new Date(inv.createdAt).toLocaleDateString()}
                   </span>
                   {inv.message && (
-                    <span className="text-slate-300 italic max-w-md truncate">
+                    <span className="text-slate-700 italic max-w-md truncate">
                       "{inv.message}"
                     </span>
                   )}
@@ -213,7 +213,7 @@ export const WorkerInvitationsPage = () => {
                 {inv.status === 'accepted' && (
                   <Link
                     to="/worker/hiring"
-                    className="inline-flex items-center gap-1 font-bold text-cyan-400 hover:text-cyan-300"
+                    className="inline-flex items-center gap-1 font-bold text-primary hover:text-primary-dark"
                   >
                     View Hiring Status <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
@@ -226,3 +226,4 @@ export const WorkerInvitationsPage = () => {
     </div>
   );
 };
+

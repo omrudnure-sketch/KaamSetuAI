@@ -264,21 +264,21 @@ export const WorkerProjectDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="w-full max-w-4xl mx-auto p-12 text-center bg-slate-850 border border-slate-800 rounded-2xl">
-        <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-3"></div>
-        <p className="text-slate-400 text-sm font-medium">Loading project details...</p>
+      <div className="w-full max-w-4xl mx-auto p-12 text-center bg-white border border-slate-200 rounded-2xl shadow-sm">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
+        <p className="text-slate-600 text-sm font-medium">Loading project details...</p>
       </div>
     );
   }
 
   if (error || !projectData) {
     return (
-      <div className="w-full max-w-4xl mx-auto p-8 bg-slate-850 border border-slate-800 rounded-2xl text-center space-y-4">
-        <AlertCircle className="w-10 h-10 text-rose-400 mx-auto" />
-        <h2 className="text-xl font-bold text-white">{error || 'Project Not Found'}</h2>
+      <div className="w-full max-w-4xl mx-auto p-8 bg-white border border-slate-200 rounded-2xl text-center space-y-4 shadow-sm">
+        <AlertCircle className="w-10 h-10 text-rose-600 mx-auto" />
+        <h2 className="text-xl font-bold text-slate-900">{error || 'Project Not Found'}</h2>
         <button
           onClick={() => navigate('/worker/projects')}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-200 text-sm rounded-xl font-semibold"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm rounded-xl font-semibold transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Back to My Projects
         </button>
@@ -298,20 +298,20 @@ export const WorkerProjectDetailPage = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <button
           onClick={() => navigate('/worker/projects')}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to My Projects</span>
         </button>
 
-        <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
-          <Globe className="w-4 h-4 text-cyan-400 ml-1.5" />
+        <div className="flex items-center gap-1.5 bg-white border border-slate-200 p-1.5 rounded-xl shadow-xs">
+          <Globe className="w-4 h-4 text-primary ml-1.5" />
           {['en', 'mr', 'hi'].map((l) => (
             <button
               key={l}
               onClick={() => setLang(l)}
               className={`px-3 py-1 text-xs font-bold rounded-lg transition-all capitalize ${
-                lang === l ? 'bg-cyan-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+                lang === l ? 'bg-primary text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               {l === 'en' ? 'English' : l === 'mr' ? 'मराठी' : 'हिंदी'}
@@ -321,32 +321,32 @@ export const WorkerProjectDetailPage = () => {
       </div>
 
       {actionMessage && (
-        <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm font-bold rounded-2xl flex items-center gap-2 shadow-lg">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-bold rounded-2xl flex items-center gap-2 shadow-xs">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
           <span>{actionMessage}</span>
         </div>
       )}
 
       {/* Main Header Banner */}
-      <div className="bg-slate-850 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-4 shadow-xl">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 space-y-4 shadow-sm">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <span className="text-xs font-bold px-3 py-1 rounded-md border bg-cyan-500/10 text-cyan-400 border-cyan-500/30">
+            <span className="text-xs font-bold px-3 py-1 rounded-md border bg-blue-50 text-blue-800 border-blue-200">
               {t.statuses[project.status] || project.status}
             </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white mt-2">{project.name}</h1>
-            <p className="text-slate-400 text-sm mt-1">Employer: {project.employerId?.name || 'N/A'}</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2">{project.name}</h1>
+            <p className="text-slate-600 text-sm mt-1">Employer: <strong className="text-slate-800">{project.employerId?.name || 'N/A'}</strong></p>
           </div>
-          <div className="text-right">
-            <span className="text-xs text-slate-400 uppercase">Agreed Wage</span>
-            <p className="text-3xl font-extrabold text-emerald-400">₹{userWorkerRecord?.agreedWage || project.paymentAmount}</p>
-            <span className="text-xs text-slate-400">per {userWorkerRecord?.wageType || project.paymentType}</span>
+          <div className="text-left sm:text-right">
+            <span className="text-xs text-slate-500 uppercase font-semibold">Agreed Wage</span>
+            <p className="text-3xl font-extrabold text-emerald-700">₹{userWorkerRecord?.agreedWage || project.paymentAmount}</p>
+            <span className="text-xs text-slate-500">per {userWorkerRecord?.wageType || project.paymentType}</span>
           </div>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 overflow-x-auto pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-2">
         {[
           { id: 'overview', label: t.overview },
           { id: 'attendance', label: t.attendance },
@@ -360,8 +360,8 @@ export const WorkerProjectDetailPage = () => {
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2 text-sm font-bold rounded-xl transition-all whitespace-nowrap ${
               activeTab === tab.id
-                ? 'bg-cyan-500 text-slate-950 shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-primary text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             {tab.label}
@@ -371,8 +371,8 @@ export const WorkerProjectDetailPage = () => {
 
       {/* TAB 1: OVERVIEW */}
       {activeTab === 'overview' && (
-        <div className="bg-slate-850 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
-          <h2 className="text-xl font-bold text-white border-b border-slate-800 pb-3">{t.overview}</h2>
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6 shadow-sm">
+          <h2 className="text-xl font-bold text-slate-900 border-b border-slate-200 pb-3">{t.overview}</h2>
 
           {/* AI-Powered Project Summary (Step 25) */}
           <AiSummaryCard
@@ -384,33 +384,33 @@ export const WorkerProjectDetailPage = () => {
           />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
               <span className="text-xs text-slate-500">Start Date</span>
-              <p className="font-bold text-white mt-1">{new Date(project.startDate).toLocaleDateString()}</p>
+              <p className="font-bold text-slate-900 mt-1">{new Date(project.startDate).toLocaleDateString()}</p>
             </div>
-            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
               <span className="text-xs text-slate-500">Expected End Date</span>
-              <p className="font-bold text-white mt-1">
+              <p className="font-bold text-slate-900 mt-1">
                 {project.currentExpectedEndDate ? new Date(project.currentExpectedEndDate).toLocaleDateString() : 'N/A'}
               </p>
             </div>
-            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
               <span className="text-xs text-slate-500">Original Estimated End</span>
-              <p className="font-bold text-slate-400 mt-1">
+              <p className="font-bold text-slate-700 mt-1">
                 {project.originalEstimatedEndDate ? new Date(project.originalEstimatedEndDate).toLocaleDateString() : 'N/A'}
               </p>
             </div>
           </div>
 
-          <div className="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-2">
-            <span className="text-xs font-bold text-slate-400 uppercase">Overall Progress</span>
+          <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-2">
+            <span className="text-xs font-bold text-slate-600 uppercase">Overall Progress</span>
             <div className="flex justify-between items-center text-sm">
-              <span className="text-white font-semibold">Project Completion</span>
-              <span className="text-cyan-400 font-extrabold">{project.progressPercentage}%</span>
+              <span className="text-slate-800 font-semibold">Project Completion</span>
+              <span className="text-primary font-extrabold">{project.progressPercentage}%</span>
             </div>
-            <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800">
+            <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden border border-slate-300">
               <div
-                className="bg-cyan-500 h-full transition-all duration-500"
+                className="bg-primary h-full transition-all duration-500"
                 style={{ width: `${project.progressPercentage}%` }}
               ></div>
             </div>
@@ -420,19 +420,19 @@ export const WorkerProjectDetailPage = () => {
 
       {/* TAB 2: ATTENDANCE */}
       {activeTab === 'attendance' && (
-        <div className="bg-slate-850 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
-          <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-            <h2 className="text-xl font-bold text-white">{t.attendance}</h2>
-            <span className="text-xs bg-slate-800 text-cyan-400 px-3 py-1 rounded-full font-bold">
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6 shadow-xl">
+          <div className="flex justify-between items-center border-b border-slate-200 pb-3">
+            <h2 className="text-xl font-bold text-slate-900">{t.attendance}</h2>
+            <span className="text-xs bg-blue-50 text-blue-800 border border-blue-200 px-3 py-1 rounded-full font-bold">
               Days Worked: {presentDays}
             </span>
           </div>
 
           {project.status === 'in_progress' && (
-            <div className="bg-slate-900 p-5 rounded-xl border border-slate-800 flex justify-between items-center">
+            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 flex justify-between items-center">
               <div>
-                <p className="text-sm font-bold text-white">Today's Shift Status</p>
-                <p className="text-xs text-slate-400">
+                <p className="text-sm font-bold text-slate-900">Today's Shift Status</p>
+                <p className="text-xs text-slate-600">
                   {attendance?.checkOut
                     ? 'Check-out completed'
                     : attendance?.checkIn
@@ -444,7 +444,7 @@ export const WorkerProjectDetailPage = () => {
                 {!attendance && (
                   <button
                     onClick={handleCheckIn}
-                    className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5"
+                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
                   >
                     <LogIn className="w-4 h-4" /> {t.checkIn}
                   </button>
@@ -452,7 +452,7 @@ export const WorkerProjectDetailPage = () => {
                 {attendance && !attendance.checkOut && (
                   <button
                     onClick={handleCheckOut}
-                    className="px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5"
+                    className="px-5 py-2 bg-primary hover:bg-primary-dark text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
                   >
                     <LogOut className="w-4 h-4" /> {t.checkOut}
                   </button>
@@ -463,18 +463,18 @@ export const WorkerProjectDetailPage = () => {
 
           {/* History List */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-slate-300">Attendance History</h3>
+            <h3 className="text-sm font-bold text-slate-800">Attendance History</h3>
             {attendanceList.length === 0 ? (
               <p className="text-xs text-slate-500">No attendance records found.</p>
             ) : (
-              <div className="divide-y divide-slate-800 bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
+              <div className="divide-y divide-slate-200 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
                 {attendanceList.map((a) => (
                   <div key={a._id} className="p-4 flex justify-between items-center text-xs">
                     <div>
-                      <span className="font-bold text-white">{a.date}</span>
-                      <span className="ml-3 text-emerald-400 font-semibold capitalize">● {a.status}</span>
+                      <span className="font-bold text-slate-900">{a.date}</span>
+                      <span className="ml-3 text-emerald-700 font-semibold capitalize">● {a.status}</span>
                     </div>
-                    <div className="text-slate-400">
+                    <div className="text-slate-600">
                       In: {a.checkIn ? new Date(a.checkIn).toLocaleTimeString() : 'N/A'} | Out: {a.checkOut ? new Date(a.checkOut).toLocaleTimeString() : 'N/A'}
                     </div>
                   </div>
@@ -487,11 +487,11 @@ export const WorkerProjectDetailPage = () => {
 
       {/* TAB 3: PROGRESS */}
       {activeTab === 'progress' && (
-        <div className="bg-slate-850 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
-          <h2 className="text-xl font-bold text-white border-b border-slate-800 pb-3">{t.progress}</h2>
-          <form onSubmit={handleProgressSubmit} className="space-y-4 bg-slate-900 p-5 rounded-xl border border-slate-800">
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6 shadow-sm">
+          <h2 className="text-xl font-bold text-slate-900 border-b border-slate-200 pb-3">{t.progress}</h2>
+          <form onSubmit={handleProgressSubmit} className="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-200">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Updated Progress % ({progressForm.percentage}%)
               </label>
               <input
@@ -500,22 +500,22 @@ export const WorkerProjectDetailPage = () => {
                 max="100"
                 value={progressForm.percentage}
                 onChange={(e) => setProgressForm({ ...progressForm, percentage: Number(e.target.value) })}
-                className="w-full accent-cyan-400"
+                className="w-full accent-primary"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">{t.description}</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">{t.description}</label>
               <textarea
                 rows="3"
                 value={progressForm.description}
                 onChange={(e) => setProgressForm({ ...progressForm, description: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-3 text-xs"
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-3 text-xs"
               />
             </div>
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl"
+              className="px-5 py-2 bg-primary hover:bg-primary-dark text-white font-bold text-xs rounded-xl shadow-xs"
             >
               {todayProgress ? t.updateProgress : t.saveProgress}
             </button>
@@ -525,51 +525,51 @@ export const WorkerProjectDetailPage = () => {
 
       {/* TAB 4: EXTENSIONS */}
       {activeTab === 'extensions' && (
-        <div className="bg-slate-850 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
-          <h2 className="text-xl font-bold text-white border-b border-slate-800 pb-3">{t.extensions}</h2>
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6 shadow-sm">
+          <h2 className="text-xl font-bold text-slate-900 border-b border-slate-200 pb-3">{t.extensions}</h2>
 
           {/* Request Form */}
-          <form onSubmit={handleExtensionSubmit} className="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <PlusCircle className="w-4 h-4 text-cyan-400" /> {t.requestExtension}
+          <form onSubmit={handleExtensionSubmit} className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <PlusCircle className="w-4 h-4 text-primary" /> {t.requestExtension}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">{t.requestedEndDate}</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.requestedEndDate}</label>
                 <input
                   type="date"
                   value={extForm.requestedEndDate}
                   onChange={(e) => setExtForm({ ...extForm, requestedEndDate: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs"
+                  className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs"
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">{t.proposedWage}</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.proposedWage}</label>
                 <input
                   type="number"
                   placeholder="e.g. 1000"
                   value={extForm.proposedWage}
                   onChange={(e) => setExtForm({ ...extForm, proposedWage: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs"
+                  className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">{t.reason}</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">{t.reason}</label>
               <textarea
                 rows="2"
                 placeholder="State the reason for duration extension..."
                 value={extForm.reason}
                 onChange={(e) => setExtForm({ ...extForm, reason: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs"
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs"
                 required
               />
             </div>
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl"
+              className="px-5 py-2 bg-primary hover:bg-primary-dark text-white font-bold text-xs rounded-xl shadow-xs"
             >
               Submit Request
             </button>
@@ -577,40 +577,40 @@ export const WorkerProjectDetailPage = () => {
 
           {/* Extension Requests List */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-slate-300">Extension History</h3>
+            <h3 className="text-sm font-bold text-slate-800">Extension History</h3>
             {extensions.length === 0 ? (
               <p className="text-xs text-slate-500">{t.noExtensions}</p>
             ) : (
               <div className="space-y-3">
                 {extensions.map((ext) => (
-                  <div key={ext._id} className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2">
+                  <div key={ext._id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-white">Requested End: {new Date(ext.requestedEndDate).toLocaleDateString()}</span>
+                      <span className="font-bold text-slate-900">Requested End: {new Date(ext.requestedEndDate).toLocaleDateString()}</span>
                       <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] ${
-                        ext.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                        ext.status === 'rejected' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' :
-                        'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        ext.status === 'approved' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+                        ext.status === 'rejected' ? 'bg-rose-50 text-rose-800 border border-rose-200' :
+                        'bg-amber-50 text-amber-800 border border-amber-200'
                       }`}>
                         {ext.status}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300">Reason: {ext.reason}</p>
-                    <div className="text-[11px] text-slate-400 flex gap-4 pt-1">
-                      <span>Worker Approval: <strong className="capitalize">{ext.workerApproval}</strong></span>
-                      <span>Employer Approval: <strong className="capitalize">{ext.employerApproval}</strong></span>
+                    <p className="text-xs text-slate-700">Reason: {ext.reason}</p>
+                    <div className="text-[11px] text-slate-600 flex gap-4 pt-1">
+                      <span>Worker Approval: <strong className="capitalize text-slate-800">{ext.workerApproval}</strong></span>
+                      <span>Employer Approval: <strong className="capitalize text-slate-800">{ext.employerApproval}</strong></span>
                     </div>
 
                     {ext.status === 'pending' && ext.workerApproval === 'pending' && (
-                      <div className="flex gap-2 pt-2 border-t border-slate-800">
+                      <div className="flex gap-2 pt-2 border-t border-slate-200">
                         <button
                           onClick={() => handleApproveExtension(ext._id)}
-                          className="px-3 py-1 bg-emerald-500 text-slate-950 font-bold text-xs rounded-lg"
+                          className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg shadow-xs"
                         >
                           {t.approve}
                         </button>
                         <button
                           onClick={() => handleRejectExtension(ext._id)}
-                          className="px-3 py-1 bg-rose-500 text-white font-bold text-xs rounded-lg"
+                          className="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-lg shadow-xs"
                         >
                           {t.reject}
                         </button>
@@ -626,38 +626,38 @@ export const WorkerProjectDetailPage = () => {
 
       {/* TAB 5: PAYMENTS */}
       {activeTab === 'payments' && (
-        <div className="bg-slate-850 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
-          <h2 className="text-xl font-bold text-white border-b border-slate-800 pb-3">{t.payments}</h2>
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6 shadow-sm">
+          <h2 className="text-xl font-bold text-slate-900 border-b border-slate-200 pb-3">{t.payments}</h2>
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
               <span className="text-xs text-slate-500">{t.expectedAmount}</span>
-              <p className="text-xl font-bold text-white mt-1">₹{expectedTotal.toLocaleString()}</p>
+              <p className="text-xl font-bold text-slate-900 mt-1">₹{expectedTotal.toLocaleString()}</p>
             </div>
-            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
               <span className="text-xs text-slate-500">{t.paidAmount}</span>
-              <p className="text-xl font-bold text-emerald-400 mt-1">₹{totalPaidAmount.toLocaleString()}</p>
+              <p className="text-xl font-bold text-emerald-700 mt-1">₹{totalPaidAmount.toLocaleString()}</p>
             </div>
-            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
               <span className="text-xs text-slate-500">{t.pendingAmount}</span>
-              <p className="text-xl font-bold text-amber-400 mt-1">₹{pendingAmount.toLocaleString()}</p>
+              <p className="text-xl font-bold text-amber-700 mt-1">₹{pendingAmount.toLocaleString()}</p>
             </div>
           </div>
 
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-slate-300">{t.paymentHistory}</h3>
+            <h3 className="text-sm font-bold text-slate-800">{t.paymentHistory}</h3>
             {payments.length === 0 ? (
               <p className="text-xs text-slate-500">{t.noPayments}</p>
             ) : (
-              <div className="divide-y divide-slate-800 bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
+              <div className="divide-y divide-slate-200 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
                 {payments.map((p) => (
                   <div key={p._id} className="p-4 flex justify-between items-center text-xs">
                     <div>
-                      <span className="font-bold text-white">₹{p.amount}</span>
-                      <span className="ml-2 text-slate-400 capitalize">({p.type} - {p.method})</span>
+                      <span className="font-bold text-slate-900">₹{p.amount}</span>
+                      <span className="ml-2 text-slate-600 capitalize">({p.type} - {p.method})</span>
                       <p className="text-[11px] text-slate-500 mt-0.5">{new Date(p.paymentDate).toLocaleDateString()}</p>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                       {p.status}
                     </span>
                   </div>
@@ -670,28 +670,28 @@ export const WorkerProjectDetailPage = () => {
 
       {/* TAB 6: REVIEWS */}
       {activeTab === 'reviews' && (
-        <div className="bg-slate-850 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
-          <h2 className="text-xl font-bold text-white border-b border-slate-800 pb-3">{t.reviews}</h2>
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6 shadow-sm">
+          <h2 className="text-xl font-bold text-slate-900 border-b border-slate-200 pb-3">{t.reviews}</h2>
 
           {/* Project Completed Banner */}
           {['completed', 'closed'].includes(project.status) ? (
-            <div className="bg-emerald-500/10 border border-emerald-500/30 p-5 rounded-xl space-y-3">
-              <div className="flex items-center gap-2 text-emerald-400 font-extrabold text-lg">
-                <CheckSquare className="w-6 h-6" /> {t.projectCompletedBadge}
+            <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-xl space-y-3">
+              <div className="flex items-center gap-2 text-emerald-800 font-extrabold text-lg">
+                <CheckSquare className="w-6 h-6 text-emerald-700" /> {t.projectCompletedBadge}
               </div>
-              <p className="text-xs text-slate-300">
+              <p className="text-xs text-slate-700">
                 This project is complete! You can leave a review and rating for your employer below.
               </p>
 
               {/* Review Form */}
-              <form onSubmit={handleReviewSubmit} className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-3 mt-4">
-                <h3 className="text-sm font-bold text-white">{t.rateEmployer}</h3>
+              <form onSubmit={handleReviewSubmit} className="bg-white p-4 rounded-xl border border-slate-200 space-y-3 mt-4">
+                <h3 className="text-sm font-bold text-slate-900">{t.rateEmployer}</h3>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">{t.rating} (1 - 5 Stars)</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">{t.rating} (1 - 5 Stars)</label>
                   <select
                     value={reviewForm.rating}
                     onChange={(e) => setReviewForm({ ...reviewForm, rating: Number(e.target.value) })}
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs"
+                    className="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs"
                   >
                     <option value="5">⭐⭐⭐⭐⭐ (5 - Excellent)</option>
                     <option value="4">⭐⭐⭐⭐ (4 - Good)</option>
@@ -701,48 +701,48 @@ export const WorkerProjectDetailPage = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">{t.comment}</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">{t.comment}</label>
                   <textarea
                     rows="3"
                     value={reviewForm.comment}
                     onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
                     placeholder="Share your experience working with this employer..."
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs"
+                    className="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl"
+                  className="px-5 py-2 bg-primary hover:bg-primary-dark text-white font-bold text-xs rounded-xl shadow-xs"
                 >
                   {t.submitReview}
                 </button>
               </form>
             </div>
           ) : (
-            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 text-xs text-slate-400">
-              Reviews can be submitted once the project status is set to <strong>Completed</strong>.
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-600">
+              Reviews can be submitted once the project status is set to <strong className="text-slate-800">Completed</strong>.
             </div>
           )}
 
           {/* Published Reviews List */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-slate-300">Project Reviews</h3>
+            <h3 className="text-sm font-bold text-slate-800">Project Reviews</h3>
             {reviews.length === 0 ? (
               <p className="text-xs text-slate-500">{t.noReviews}</p>
             ) : (
               <div className="space-y-3">
                 {reviews.map((rev) => (
-                  <div key={rev._id} className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-1">
+                  <div key={rev._id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
                     <div className="flex justify-between items-center">
-                      <span className="font-bold text-white text-xs">
+                      <span className="font-bold text-slate-900 text-xs">
                         {rev.reviewerId?.name || 'Participant'} ({rev.reviewerRole})
                       </span>
-                      <span className="text-amber-400 font-bold text-xs flex items-center gap-1">
-                        <Star className="w-3.5 h-3.5 fill-amber-400" /> {rev.rating} / 5
+                      <span className="text-amber-700 font-bold text-xs flex items-center gap-1">
+                        <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" /> {rev.rating} / 5
                       </span>
                     </div>
-                    {rev.comment && <p className="text-xs text-slate-300 italic">"{rev.comment}"</p>}
+                    {rev.comment && <p className="text-xs text-slate-700 italic">"{rev.comment}"</p>}
                     <span className="text-[10px] text-slate-500 block">
                       {new Date(rev.createdAt).toLocaleDateString()}
                     </span>
@@ -758,3 +758,4 @@ export const WorkerProjectDetailPage = () => {
 };
 
 export default WorkerProjectDetailPage;
+

@@ -56,15 +56,15 @@ export const Register = () => {
   };
 
   return (
-    <div className="w-full max-w-lg bg-slate-850 border border-slate-800 rounded-2xl p-8 shadow-2xl space-y-6">
+    <div className="w-full max-w-lg bg-white border border-slate-200 rounded-2xl p-8 shadow-xl space-y-6">
       <div className="text-center space-y-2">
-        <h2 className="text-3xl font-extrabold text-white">Create Account</h2>
-        <p className="text-sm text-slate-400">Join KaamSetu AI as a Worker or Employer</p>
+        <h2 className="text-3xl font-extrabold text-slate-900">Create Account</h2>
+        <p className="text-sm text-slate-600">Join KaamSetu AI as a Worker or Employer</p>
       </div>
 
       {localError && (
-        <div className="flex items-center gap-2 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-sm">
-          <AlertCircle className="w-5 h-5 shrink-0" />
+        <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm">
+          <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
           <span>{localError}</span>
         </div>
       )}
@@ -72,7 +72,7 @@ export const Register = () => {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Role Selector */}
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
             I am registering as:
           </label>
           <div className="grid grid-cols-2 gap-3">
@@ -81,8 +81,8 @@ export const Register = () => {
               onClick={() => handleRoleChange('worker')}
               className={`p-3 border rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-all ${
                 role === 'worker'
-                  ? 'bg-amber-500/10 border-amber-500 text-amber-400'
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                  ? 'bg-primary/10 border-primary text-primary'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
               }`}
             >
               <User className="w-5 h-5" />
@@ -93,8 +93,8 @@ export const Register = () => {
               onClick={() => handleRoleChange('employer')}
               className={`p-3 border rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-all ${
                 role === 'employer'
-                  ? 'bg-blue-500/10 border-blue-500 text-blue-400'
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                  ? 'bg-primary/10 border-primary text-primary'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
               }`}
             >
               <Briefcase className="w-5 h-5" />
@@ -105,18 +105,18 @@ export const Register = () => {
 
         {/* Full Name */}
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
             Full Name *
           </label>
           <div className="relative">
-            <User className="w-5 h-5 absolute left-3 top-3 text-slate-500" />
+            <User className="w-5 h-5 absolute left-3 top-3 text-slate-400" />
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Rahul Patil"
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors"
             />
           </div>
         </div>
@@ -124,33 +124,33 @@ export const Register = () => {
         {/* Email & Phone */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               Email Address
             </label>
             <div className="relative">
-              <Mail className="w-5 h-5 absolute left-3 top-3 text-slate-500" />
+              <Mail className="w-5 h-5 absolute left-3 top-3 text-slate-400" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="rahul@example.com"
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               Phone Number
             </label>
             <div className="relative">
-              <Phone className="w-5 h-5 absolute left-3 top-3 text-slate-500" />
+              <Phone className="w-5 h-5 absolute left-3 top-3 text-slate-400" />
               <input
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="9999999999"
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors"
               />
             </div>
           </div>
@@ -158,11 +158,11 @@ export const Register = () => {
 
         {/* Password */}
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
             Password * (min 8 chars)
           </label>
           <div className="relative">
-            <Lock className="w-5 h-5 absolute left-3 top-3 text-slate-500" />
+            <Lock className="w-5 h-5 absolute left-3 top-3 text-slate-400" />
             <input
               type="password"
               required
@@ -170,23 +170,23 @@ export const Register = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-primary focus:bg-white transition-colors"
             />
           </div>
         </div>
 
         {/* Preferred Language */}
         <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
             Preferred Language
           </label>
           <div className="relative">
-            <Globe className="w-5 h-5 absolute left-3 top-3 text-slate-500" />
+            <Globe className="w-5 h-5 absolute left-3 top-3 text-slate-400" />
             <select
               value={preferredLanguage}
               onChange={(e) => setPreferredLanguage(e.target.value)}
               disabled={role === 'employer'}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-cyan-500 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <option value="en">English (EN)</option>
               {role === 'worker' && (
@@ -198,14 +198,14 @@ export const Register = () => {
             </select>
           </div>
           {role === 'employer' && (
-            <p className="text-xs text-slate-500 mt-1">Employer accounts are restricted to English only.</p>
+            <p className="text-xs text-slate-600 mt-1">Employer accounts are restricted to English only.</p>
           )}
         </div>
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-3 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+          className="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-md"
         >
           {isSubmitting ? (
             <span>Creating Account...</span>
@@ -218,9 +218,9 @@ export const Register = () => {
         </button>
       </form>
 
-      <div className="text-center text-xs text-slate-400 pt-2 border-t border-slate-800">
+      <div className="text-center text-xs text-slate-600 pt-2 border-t border-slate-100">
         Already have an account?{' '}
-        <Link to="/login" className="text-cyan-400 font-semibold hover:underline">
+        <Link to="/login" className="text-primary font-bold hover:underline">
           Sign In
         </Link>
       </div>

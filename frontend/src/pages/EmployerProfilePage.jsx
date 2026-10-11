@@ -103,8 +103,8 @@ export const EmployerProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[50vh] flex flex-col items-center justify-center text-slate-400">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+      <div className="min-h-[50vh] flex flex-col items-center justify-center text-slate-600">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
         <p className="text-sm font-medium">Loading employer profile...</p>
       </div>
     );
@@ -113,30 +113,30 @@ export const EmployerProfilePage = () => {
   return (
     <div className="w-full max-w-4xl space-y-6">
       {/* Header */}
-      <div className="bg-slate-850 border border-slate-800 rounded-2xl p-6 shadow-xl flex items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl text-blue-400">
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700">
             <Briefcase className="w-8 h-8" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Employer Profile</h1>
-            <p className="text-xs text-slate-400">Manage your business & hiring account details</p>
+            <h1 className="text-2xl font-bold text-slate-900">Employer Profile</h1>
+            <p className="text-xs text-slate-600">Manage your business & hiring account details</p>
           </div>
         </div>
       </div>
 
       {/* Profile Completion Indicator */}
-      <div className="bg-slate-850 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-2">
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-2">
         <div className="flex items-center justify-between text-sm">
-          <span className="font-semibold text-slate-300 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-blue-400" />
+          <span className="font-semibold text-slate-700 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" />
             <span>Profile Completion Status</span>
           </span>
-          <span className="font-extrabold text-blue-400">{completionPercentage}%</span>
+          <span className="font-extrabold text-primary">{completionPercentage}%</span>
         </div>
-        <div className="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-700">
+        <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
           <div
-            className="h-full bg-gradient-to-r from-blue-600 to-cyan-500 transition-all duration-500 rounded-full"
+            className="h-full bg-gradient-to-r from-blue-600 to-primary transition-all duration-500 rounded-full"
             style={{ width: `${completionPercentage}%` }}
           ></div>
         </div>
@@ -144,25 +144,25 @@ export const EmployerProfilePage = () => {
 
       {/* Feedback Messages */}
       {successMsg && (
-        <div className="flex items-center gap-2 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-sm">
-          <CheckCircle2 className="w-5 h-5 shrink-0" />
+        <div className="flex items-center gap-2 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm shadow-xs">
+          <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {errorMsg && (
-        <div className="flex items-center gap-2 p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-sm">
-          <AlertCircle className="w-5 h-5 shrink-0" />
+        <div className="flex items-center gap-2 p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm shadow-xs">
+          <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {/* Profile Form */}
-      <form onSubmit={handleSubmit} className="bg-slate-850 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           {/* Full Name */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               Contact Name *
             </label>
             <input
@@ -172,13 +172,13 @@ export const EmployerProfilePage = () => {
               value={formData.name}
               onChange={handleChange}
               placeholder="Vikram Shah"
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             />
           </div>
 
           {/* Business Name */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               Business / Company Name *
             </label>
             <input
@@ -188,20 +188,20 @@ export const EmployerProfilePage = () => {
               value={formData.businessName}
               onChange={handleChange}
               placeholder="Shah Constructions Pvt Ltd"
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             />
           </div>
 
           {/* Business Type */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               Business Type
             </label>
             <select
               name="businessType"
               value={formData.businessType}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-blue-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             >
               <option value="contractor">Contractor</option>
               <option value="homeowner">Homeowner / Individual</option>
@@ -213,7 +213,7 @@ export const EmployerProfilePage = () => {
 
           {/* Phone */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               Contact Phone Number
             </label>
             <input
@@ -222,13 +222,13 @@ export const EmployerProfilePage = () => {
               value={formData.phone}
               onChange={handleChange}
               placeholder="9876543210"
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             />
           </div>
 
           {/* Location: City & Area */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               City
             </label>
             <input
@@ -237,12 +237,12 @@ export const EmployerProfilePage = () => {
               value={formData.city}
               onChange={handleChange}
               placeholder="Mumbai / Pune"
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               Area / Neighborhood
             </label>
             <input
@@ -251,13 +251,13 @@ export const EmployerProfilePage = () => {
               value={formData.area}
               onChange={handleChange}
               placeholder="Bandra West / Hinjewadi"
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             />
           </div>
 
           {/* Description */}
           <div className="sm:col-span-2">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               Business Description
             </label>
             <textarea
@@ -266,13 +266,13 @@ export const EmployerProfilePage = () => {
               value={formData.description}
               onChange={handleChange}
               placeholder="Brief description of your business or hiring requirements..."
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             ></textarea>
           </div>
 
           {/* Profile Photo URL */}
           <div className="sm:col-span-2">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               Company Logo / Profile Photo URL
             </label>
             <input
@@ -281,7 +281,7 @@ export const EmployerProfilePage = () => {
               value={formData.profilePhoto}
               onChange={handleChange}
               placeholder="https://example.com/logo.jpg"
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             />
           </div>
         </div>
@@ -290,7 +290,7 @@ export const EmployerProfilePage = () => {
         <button
           type="submit"
           disabled={saving}
-          className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+          className="w-full py-3 px-4 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-xs transition-all disabled:opacity-50"
         >
           {saving ? (
             <span>Saving Profile...</span>

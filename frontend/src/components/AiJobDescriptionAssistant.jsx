@@ -143,14 +143,14 @@ export const AiJobDescriptionAssistant = ({ initialData, onApplyDescription }) =
     <div className="w-full">
       {/* Trigger Button Card */}
       {!isOpen ? (
-        <div className="p-4 bg-gradient-to-r from-blue-900/30 to-cyan-900/30 border border-cyan-500/30 rounded-2xl flex items-center justify-between gap-4 shadow-sm">
+        <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-2xl flex items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-cyan-500/20 text-cyan-400 rounded-xl">
+            <div className="p-2.5 bg-blue-100 text-blue-700 rounded-xl">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <div className="font-bold text-sm text-white">AI Job Description Assistant</div>
-              <div className="text-xs text-slate-400">
+              <div className="font-bold text-sm text-slate-900">AI Job Description Assistant</div>
+              <div className="text-xs text-slate-600">
                 Let KaamSetu AI draft a complete, worker-friendly job description with safety and task details.
               </div>
             </div>
@@ -158,7 +158,7 @@ export const AiJobDescriptionAssistant = ({ initialData, onApplyDescription }) =
           <button
             type="button"
             onClick={handleOpen}
-            className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-sm"
+            className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-sm"
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>Open Assistant</span>
@@ -166,15 +166,15 @@ export const AiJobDescriptionAssistant = ({ initialData, onApplyDescription }) =
         </div>
       ) : (
         /* Full AI Assistant Panel */
-        <div className="p-6 bg-slate-900 border border-cyan-500/40 rounded-2xl shadow-2xl space-y-5">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="p-6 bg-white border border-blue-200 rounded-2xl shadow-xl space-y-5">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
             <div className="flex items-center gap-2.5">
-              <Sparkles className="w-5 h-5 text-cyan-400" />
+              <Sparkles className="w-5 h-5 text-blue-600" />
               <div>
-                <h3 className="font-bold text-sm text-white uppercase tracking-wider">
+                <h3 className="font-bold text-sm text-slate-900 uppercase tracking-wider">
                   AI Job Description Assistant
                 </h3>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-600">
                   Provide factual requirements below. AI will draft a complete job specification.
                 </p>
               </div>
@@ -182,14 +182,14 @@ export const AiJobDescriptionAssistant = ({ initialData, onApplyDescription }) =
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="text-slate-400 hover:text-white p-1 rounded-lg"
+              className="text-slate-400 hover:text-slate-700 p-1 rounded-lg"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {error && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-300 text-xs flex items-center gap-2">
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -198,55 +198,55 @@ export const AiJobDescriptionAssistant = ({ initialData, onApplyDescription }) =
           {/* Input Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             <div>
-              <label className="font-semibold text-slate-300 block mb-1">Job Title / Preliminary Idea *</label>
+              <label className="font-semibold text-slate-700 block mb-1">Job Title / Preliminary Idea *</label>
               <input
                 type="text"
                 name="title"
                 value={aiInput.title}
                 onChange={handleInputChange}
                 placeholder="e.g. Residential Electrician Required"
-                className="w-full bg-slate-950 border border-slate-750 rounded-xl p-2.5 text-white focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary"
               />
             </div>
 
             <div>
-              <label className="font-semibold text-slate-300 block mb-1">Required Skill *</label>
+              <label className="font-semibold text-slate-700 block mb-1">Required Skill *</label>
               <input
                 type="text"
                 name="skillRequired"
                 value={aiInput.skillRequired}
                 onChange={handleInputChange}
                 placeholder="e.g. electrician, mason, painter"
-                className="w-full bg-slate-950 border border-slate-750 rounded-xl p-2.5 text-white focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary"
               />
             </div>
 
             <div>
-              <label className="font-semibold text-slate-300 block mb-1">Work Location (City & Area)</label>
+              <label className="font-semibold text-slate-700 block mb-1">Work Location (City & Area)</label>
               <input
                 type="text"
                 name="city"
                 value={aiInput.city}
                 onChange={handleInputChange}
                 placeholder="City (e.g. Pune)"
-                className="w-full bg-slate-950 border border-slate-750 rounded-xl p-2.5 text-white focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary"
               />
             </div>
 
             <div>
-              <label className="font-semibold text-slate-300 block mb-1">Wage Rate (₹)</label>
+              <label className="font-semibold text-slate-700 block mb-1">Wage Rate (₹)</label>
               <input
                 type="number"
                 name="wageAmount"
                 value={aiInput.wageAmount}
                 onChange={handleInputChange}
                 placeholder="Daily Wage Amount"
-                className="w-full bg-slate-950 border border-slate-750 rounded-xl p-2.5 text-white focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary"
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label className="font-semibold text-slate-300 block mb-1">
+              <label className="font-semibold text-slate-700 block mb-1">
                 Main Tasks / Responsibilities (One per line)
               </label>
               <textarea
@@ -255,12 +255,12 @@ export const AiJobDescriptionAssistant = ({ initialData, onApplyDescription }) =
                 value={aiInput.tasks}
                 onChange={handleInputChange}
                 placeholder="e.g. Install conduit pipes&#10;Pull wires through switchboards&#10;Test circuit breakers"
-                className="w-full bg-slate-950 border border-slate-750 rounded-xl p-2.5 text-white focus:outline-none focus:border-cyan-500 resize-none"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary resize-none"
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label className="font-semibold text-slate-300 block mb-1">
+              <label className="font-semibold text-slate-700 block mb-1">
                 Experience & Safety Notes (Optional)
               </label>
               <input
@@ -269,18 +269,18 @@ export const AiJobDescriptionAssistant = ({ initialData, onApplyDescription }) =
                 value={aiInput.safetyRequirements}
                 onChange={handleInputChange}
                 placeholder="e.g. Must wear safety boots; insulated tools mandatory"
-                className="w-full bg-slate-950 border border-slate-750 rounded-xl p-2.5 text-white focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary"
               />
             </div>
           </div>
 
           {/* Generate Button */}
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
             <button
               type="button"
               disabled={loading}
               onClick={handleGenerate}
-              className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 transition-all shadow-md disabled:opacity-50"
+              className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl text-xs flex items-center gap-2 transition-all shadow-md disabled:opacity-50"
             >
               <Sparkles className="w-4 h-4" />
               <span>{loading ? 'Generating Draft with AI...' : draft ? 'Regenerate Draft' : 'Generate Description'}</span>
@@ -289,44 +289,44 @@ export const AiJobDescriptionAssistant = ({ initialData, onApplyDescription }) =
 
           {/* AI-GENERATED DRAFT PREVIEW (Section 21.3, 21.4, 21.9) */}
           {draft && (
-            <div className="p-4 bg-slate-950 border border-cyan-500/50 rounded-xl space-y-3.5 mt-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span className="text-[11px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-cyan-400" />
+            <div className="p-4 bg-slate-50 border border-blue-200 rounded-xl space-y-3.5 mt-4">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <span className="text-[11px] font-bold text-blue-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-blue-700" />
                   AI-generated draft — review and edit before publishing.
                 </span>
-                <span className="text-[10px] text-slate-400 font-medium">Editable Preview</span>
+                <span className="text-[10px] text-slate-500 font-medium">Editable Preview</span>
               </div>
 
               {/* Editable Suggested Title */}
               <div>
-                <label className="text-[11px] font-bold text-slate-300 block mb-1">Suggested Title</label>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">Suggested Title</label>
                 <input
                   type="text"
                   value={draft.suggestedTitle}
                   onChange={(e) => handleDraftChange('suggestedTitle', e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white font-bold focus:outline-none focus:border-cyan-500"
+                  className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs text-slate-900 font-bold focus:outline-none focus:border-primary"
                 />
               </div>
 
               {/* Editable Description */}
               <div>
-                <label className="text-[11px] font-bold text-slate-300 block mb-1">Job Description</label>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">Job Description</label>
                 <textarea
                   rows={4}
                   value={draft.description}
                   onChange={(e) => handleDraftChange('description', e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-cyan-500 resize-none leading-relaxed"
+                  className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs text-slate-900 focus:outline-none focus:border-primary resize-none leading-relaxed"
                 />
               </div>
 
               {/* Responsibilities list */}
               <div>
-                <label className="text-[11px] font-bold text-slate-300 block mb-1">Responsibilities / Tasks</label>
+                <label className="text-[11px] font-bold text-slate-700 block mb-1">Responsibilities / Tasks</label>
                 <div className="space-y-1">
                   {draft.responsibilities?.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-xs text-slate-300">
-                      <span className="text-cyan-400">•</span>
+                    <div key={idx} className="flex items-center gap-2 text-xs text-slate-700">
+                      <span className="text-blue-600 font-bold">•</span>
                       <span>{item}</span>
                     </div>
                   ))}
@@ -336,10 +336,10 @@ export const AiJobDescriptionAssistant = ({ initialData, onApplyDescription }) =
               {/* Required Skills & Safety */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-300 block mb-1">Required Skills</label>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Required Skills</label>
                   <div className="flex flex-wrap gap-1">
                     {draft.requiredSkills?.map((s, idx) => (
-                      <span key={idx} className="px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 font-bold text-[10px]">
+                      <span key={idx} className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold text-[10px]">
                         {s}
                       </span>
                     ))}
@@ -347,26 +347,26 @@ export const AiJobDescriptionAssistant = ({ initialData, onApplyDescription }) =
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-300 block mb-1">Safety Reminders</label>
-                  <div className="text-[11px] text-slate-300">
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Safety Reminders</label>
+                  <div className="text-[11px] text-slate-700 font-medium">
                     {draft.safetyReminders?.join(' • ') || 'Standard site precautions'}
                   </div>
                 </div>
               </div>
 
               {/* Action Buttons: Use Description, Regenerate, Cancel */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => setDraft(null)}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-semibold rounded-lg transition-all"
+                  className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold rounded-lg transition-all"
                 >
                   Discard Draft
                 </button>
                 <button
                   type="button"
                   onClick={handleUseDescription}
-                  className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 text-xs font-black rounded-lg flex items-center gap-1.5 transition-all shadow-md"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-md"
                 >
                   <Check className="w-4 h-4" />
                   <span>Use Description (Populate Form)</span>

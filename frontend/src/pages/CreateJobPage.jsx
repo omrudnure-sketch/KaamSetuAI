@@ -166,11 +166,11 @@ export const CreateJobPage = () => {
     }
   };
 
-  if (loading) {
+  if (loadingJob) {
     return (
-      <div className="w-full max-w-3xl mx-auto p-12 text-center bg-slate-850 border border-slate-800 rounded-2xl">
-        <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-3"></div>
-        <p className="text-slate-400 text-sm">Loading job form...</p>
+      <div className="w-full max-w-3xl mx-auto p-12 text-center bg-white border border-slate-200 rounded-2xl shadow-sm">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
+        <p className="text-slate-600 text-sm">Loading job form...</p>
       </div>
     );
   }
@@ -181,36 +181,36 @@ export const CreateJobPage = () => {
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate('/employer/jobs')}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to My Jobs</span>
         </button>
       </div>
 
-      <div className="bg-slate-850 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
-        <div className="flex items-center gap-3 border-b border-slate-800 pb-5">
-          <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-cyan-400">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+        <div className="flex items-center gap-3 border-b border-slate-100 pb-5">
+          <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl text-primary">
             <Briefcase className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">{isEditMode ? 'Edit Job Posting' : 'Post a New Requirement'}</h1>
-            <p className="text-slate-400 text-sm">Fill in the details to find suitable verified workers</p>
+            <h1 className="text-2xl font-bold text-slate-900">{isEditMode ? 'Edit Job Posting' : 'Post a New Requirement'}</h1>
+            <p className="text-slate-600 text-sm">Fill in the details to find suitable verified workers</p>
           </div>
         </div>
 
         {/* Success Alert */}
         {success && (
-          <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-3 text-emerald-300 text-sm">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3 text-emerald-800 text-sm">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
             <span>{success}</span>
           </div>
         )}
 
         {/* Error Alert */}
         {error && (
-          <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-3 text-rose-300 text-sm">
-            <AlertCircle className="w-5 h-5 text-rose-400 flex-shrink-0" />
+          <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3 text-rose-800 text-sm">
+            <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
             <span>{error}</span>
           </div>
         )}
@@ -237,11 +237,11 @@ export const CreateJobPage = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Section: Basic Info */}
           <div className="space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-cyan-400">1. Job Details</h3>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">1. Job Details</h3>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Job Title <span className="text-rose-400">*</span>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Job Title <span className="text-rose-600">*</span>
               </label>
               <input
                 type="text"
@@ -249,14 +249,14 @@ export const CreateJobPage = () => {
                 value={formData.title}
                 onChange={handleChange}
                 placeholder="e.g. Need 3 Electricians for Commercial Building Wiring"
-                className="w-full bg-slate-900 border border-slate-750 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none"
+                className="w-full bg-slate-50 border border-slate-300 focus:border-primary rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Job Description <span className="text-rose-400">*</span>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Job Description <span className="text-rose-600">*</span>
               </label>
               <textarea
                 name="description"
@@ -264,21 +264,21 @@ export const CreateJobPage = () => {
                 value={formData.description}
                 onChange={handleChange}
                 placeholder="Describe the scope of work, tasks, tools required..."
-                className="w-full bg-slate-900 border border-slate-750 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none resize-none"
+                className="w-full bg-slate-50 border border-slate-300 focus:border-primary rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white resize-none"
                 required
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Primary Required Skill <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Primary Required Skill <span className="text-rose-600">*</span>
                 </label>
                 <select
                   name="skillRequired"
                   value={formData.skillRequired}
                   onChange={handleChange}
-                  className="w-full bg-slate-900 border border-slate-750 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-300 focus:border-primary rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white"
                 >
                   {SKILL_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -289,8 +289,8 @@ export const CreateJobPage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Workers Required <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Workers Required <span className="text-rose-600">*</span>
                 </label>
                 <input
                   type="number"
@@ -298,14 +298,14 @@ export const CreateJobPage = () => {
                   min="1"
                   value={formData.workersRequired}
                   onChange={handleChange}
-                  className="w-full bg-slate-900 border border-slate-750 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-300 focus:border-primary rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                 Additional Skills (Comma separated)
               </label>
               <input
@@ -314,19 +314,19 @@ export const CreateJobPage = () => {
                 value={formData.additionalSkills}
                 onChange={handleChange}
                 placeholder="e.g. Conduit bending, Panel wiring"
-                className="w-full bg-slate-900 border border-slate-750 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none"
+                className="w-full bg-slate-50 border border-slate-300 focus:border-primary rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white"
               />
             </div>
           </div>
 
           {/* Section: Location */}
-          <div className="space-y-4 pt-4 border-t border-slate-800">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-cyan-400">2. Work Location</h3>
+          <div className="space-y-4 pt-4 border-t border-slate-100">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">2. Work Location</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  City <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  City <span className="text-rose-600">*</span>
                 </label>
                 <input
                   type="text"
@@ -334,49 +334,49 @@ export const CreateJobPage = () => {
                   value={formData.city}
                   onChange={handleChange}
                   placeholder="e.g. Pune, Mumbai"
-                  className="w-full bg-slate-900 border border-slate-750 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-300 focus:border-primary rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Area / Neighborhood</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Area / Neighborhood</label>
                 <input
                   type="text"
                   name="area"
                   value={formData.area}
                   onChange={handleChange}
                   placeholder="e.g. Hinjewadi Phase 1"
-                  className="w-full bg-slate-900 border border-slate-750 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-300 focus:border-primary rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Full Site Address</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Full Site Address</label>
               <input
                 type="text"
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
                 placeholder="e.g. Plot No 42, Next to IT Park"
-                className="w-full bg-slate-900 border border-slate-750 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none"
+                className="w-full bg-slate-50 border border-slate-300 focus:border-primary rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white"
               />
             </div>
           </div>
 
           {/* Section: Payment & Duration */}
-          <div className="space-y-4 pt-4 border-t border-slate-800">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-cyan-400">3. Wages & Duration</h3>
+          <div className="space-y-4 pt-4 border-t border-slate-100">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">3. Wages & Duration</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Wage Type</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Wage Type</label>
                 <select
                   name="wageType"
                   value={formData.wageType}
                   onChange={handleChange}
-                  className="w-full bg-slate-900 border border-slate-750 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-300 focus:border-primary rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white"
                 >
                   <option value="daily">Daily Wage (per day)</option>
                   <option value="weekly">Weekly Wage (per week)</option>
@@ -385,8 +385,8 @@ export const CreateJobPage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Wage Amount (₹) <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Wage Amount (₹) <span className="text-rose-600">*</span>
                 </label>
                 <input
                   type="number"
@@ -395,7 +395,7 @@ export const CreateJobPage = () => {
                   value={formData.wageAmount}
                   onChange={handleChange}
                   placeholder="e.g. 900"
-                  className="w-full bg-slate-900 border border-slate-750 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-300 focus:border-primary rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white"
                   required
                 />
               </div>
@@ -403,12 +403,12 @@ export const CreateJobPage = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Duration Type</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Duration Type</label>
                 <select
                   name="durationType"
                   value={formData.durationType}
                   onChange={handleChange}
-                  className="w-full bg-slate-900 border border-slate-750 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-300 focus:border-primary rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white"
                 >
                   <option value="single_day">Single Day</option>
                   <option value="fixed_duration">Fixed Duration (Multi-day)</option>
@@ -417,30 +417,30 @@ export const CreateJobPage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Start Date <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Start Date <span className="text-rose-600">*</span>
                 </label>
                 <input
                   type="date"
                   name="startDate"
                   value={formData.startDate}
                   onChange={handleChange}
-                  className="w-full bg-slate-900 border border-slate-750 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-300 focus:border-primary rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white"
                   required
                 />
               </div>
 
               {formData.durationType === 'fixed_duration' && (
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Estimated End Date <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Estimated End Date <span className="text-rose-600">*</span>
                   </label>
                   <input
                     type="date"
                     name="estimatedEndDate"
                     value={formData.estimatedEndDate}
                     onChange={handleChange}
-                    className="w-full bg-slate-900 border border-slate-750 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                    className="w-full bg-slate-50 border border-slate-300 focus:border-primary rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white"
                     required
                   />
                 </div>
@@ -449,54 +449,54 @@ export const CreateJobPage = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Working Hours Start</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Working Hours Start</label>
                 <input
                   type="time"
                   name="workingStart"
                   value={formData.workingStart}
                   onChange={handleChange}
-                  className="w-full bg-slate-900 border border-slate-750 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-300 focus:border-primary rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Working Hours End</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Working Hours End</label>
                 <input
                   type="time"
                   name="workingEnd"
                   value={formData.workingEnd}
                   onChange={handleChange}
-                  className="w-full bg-slate-900 border border-slate-750 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-300 focus:border-primary rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:bg-white"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Job Requirements (Comma separated)</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Job Requirements (Comma separated)</label>
               <input
                 type="text"
                 name="requirements"
                 value={formData.requirements}
                 onChange={handleChange}
                 placeholder="e.g. Safety helmet, Personal tool kit, Valid ID proof"
-                className="w-full bg-slate-900 border border-slate-750 focus:border-cyan-500 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none"
+                className="w-full bg-slate-50 border border-slate-300 focus:border-primary rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white"
               />
             </div>
           </div>
 
           {/* Submit Action */}
-          <div className="pt-4 border-t border-slate-800 flex justify-end gap-3">
+          <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
             <button
               type="button"
               onClick={() => navigate('/employer/jobs')}
-              className="px-5 py-2.5 bg-slate-800 hover:bg-slate-750 text-slate-300 text-sm font-semibold rounded-xl transition-all"
+              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-semibold rounded-xl border border-slate-200 transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold rounded-xl shadow-lg transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               <span>{submitting ? 'Saving...' : isEditMode ? 'Update Job' : 'Publish Job'}</span>

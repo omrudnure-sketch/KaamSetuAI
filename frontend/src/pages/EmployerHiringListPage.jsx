@@ -31,18 +31,18 @@ export const EmployerHiringListPage = () => {
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case 'confirmed':
-        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+        return 'bg-emerald-50 text-emerald-800 border-emerald-200';
       case 'pending_employer':
-        return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+        return 'bg-amber-50 text-amber-800 border-amber-200';
       case 'pending_worker':
-        return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30';
+        return 'bg-blue-50 text-blue-800 border-blue-200';
       case 'negotiation':
-        return 'bg-purple-500/10 text-purple-400 border-purple-500/30';
+        return 'bg-purple-50 text-purple-800 border-purple-200';
       case 'rejected':
       case 'cancelled':
-        return 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+        return 'bg-rose-50 text-rose-800 border-rose-200';
       default:
-        return 'bg-slate-800 text-slate-300 border-slate-700';
+        return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
 
@@ -50,29 +50,29 @@ export const EmployerHiringListPage = () => {
     <div className="w-full max-w-5xl mx-auto space-y-6 pb-12">
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white flex items-center gap-2">
-          <FileCheck className="w-7 h-7 text-cyan-400" />
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 flex items-center gap-2">
+          <FileCheck className="w-7 h-7 text-primary" />
           <span>Hiring Agreements</span>
         </h1>
-        <p className="text-slate-400 text-xs sm:text-sm mt-1">
+        <p className="text-slate-600 text-xs sm:text-sm mt-1">
           Manage wage proposals, negotiations, and formal worker hiring agreements
         </p>
       </div>
 
       {loading ? (
-        <div className="w-full p-12 text-center bg-slate-850 border border-slate-800 rounded-2xl">
-          <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-3"></div>
-          <p className="text-slate-400 text-sm font-medium">Loading hiring agreements...</p>
+        <div className="w-full p-12 text-center bg-white border border-slate-200 rounded-2xl shadow-sm">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
+          <p className="text-slate-600 text-sm font-medium">Loading hiring agreements...</p>
         </div>
       ) : error ? (
-        <div className="w-full p-8 bg-slate-850 border border-slate-800 rounded-2xl text-center text-rose-400 space-y-2">
-          <AlertCircle className="w-8 h-8 mx-auto" />
+        <div className="w-full p-8 bg-rose-50 border border-rose-200 rounded-2xl text-center text-rose-800 space-y-2">
+          <AlertCircle className="w-8 h-8 mx-auto text-rose-600" />
           <p className="font-semibold text-sm">{error}</p>
         </div>
       ) : agreements.length === 0 ? (
-        <div className="w-full p-12 bg-slate-850 border border-slate-800 rounded-2xl text-center text-slate-400 space-y-4">
-          <FileCheck className="w-12 h-12 mx-auto text-slate-600" />
-          <p className="text-base font-semibold">No hiring agreements initiated yet.</p>
+        <div className="w-full p-12 bg-white border border-slate-200 rounded-2xl text-center text-slate-600 space-y-4 shadow-sm">
+          <FileCheck className="w-12 h-12 mx-auto text-slate-400" />
+          <p className="text-base font-semibold text-slate-800">No hiring agreements initiated yet.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -80,7 +80,7 @@ export const EmployerHiringListPage = () => {
             <Link
               key={agr._id}
               to={`/employer/hiring/${agr._id}`}
-              className="block bg-slate-850 border border-slate-800 hover:border-cyan-500/50 rounded-2xl p-5 transition-all shadow-md group"
+              className="block bg-white border border-slate-200 hover:border-primary/50 rounded-2xl p-5 transition-all shadow-sm hover:shadow-md group"
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-2">
@@ -89,20 +89,20 @@ export const EmployerHiringListPage = () => {
                       {agr.status.toUpperCase()}
                     </span>
                     {agr.status === 'confirmed' && (
-                      <span className="flex items-center gap-1 text-[11px] font-extrabold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                        <ShieldCheck className="w-3 h-3" /> Confirmed
+                      <span className="flex items-center gap-1 text-[11px] font-extrabold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        <ShieldCheck className="w-3 h-3 text-emerald-700" /> Confirmed
                       </span>
                     )}
                   </div>
 
-                  <h3 className="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors">
+                  <h3 className="text-lg font-bold text-slate-900 group-hover:text-primary transition-colors">
                     {agr.jobId?.title || 'Job Title'}
                   </h3>
 
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400">
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
                     {agr.workerId?.name && (
                       <span className="flex items-center gap-1">
-                        <Users className="w-3.5 h-3.5 text-cyan-400" /> Worker: <strong>{agr.workerId.name}</strong>
+                        <Users className="w-3.5 h-3.5 text-primary" /> Worker: <strong className="text-slate-800">{agr.workerId.name}</strong>
                       </span>
                     )}
                     <span className="flex items-center gap-1">
@@ -111,20 +111,20 @@ export const EmployerHiringListPage = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between sm:justify-end gap-6 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-800">
+                <div className="flex items-center justify-between sm:justify-end gap-6 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-200">
                   <div className="text-left sm:text-right">
-                    <span className="text-[11px] text-slate-400 uppercase font-semibold">
+                    <span className="text-[11px] text-slate-500 uppercase font-semibold">
                       {agr.status === 'confirmed' ? 'Agreed Wage' : 'Proposed Wage'}
                     </span>
-                    <p className="text-xl font-extrabold text-emerald-400">
+                    <p className="text-xl font-extrabold text-emerald-700">
                       ₹{agr.status === 'confirmed' ? agr.agreedWage : agr.proposedWage}
                     </p>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[10px] text-slate-500">
                       {agr.wageType}
                     </span>
                   </div>
 
-                  <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
+                  <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                 </div>
               </div>
             </Link>

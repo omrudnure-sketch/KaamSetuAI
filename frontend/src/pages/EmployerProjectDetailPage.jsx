@@ -267,21 +267,21 @@ export const EmployerProjectDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="w-full max-w-4xl mx-auto p-12 text-center bg-slate-850 border border-slate-800 rounded-2xl">
-        <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-3"></div>
-        <p className="text-slate-400 text-sm font-medium">Loading project details...</p>
+      <div className="w-full max-w-4xl mx-auto p-12 text-center bg-white border border-slate-200 rounded-2xl shadow-sm">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
+        <p className="text-slate-600 text-sm font-medium">Loading project details...</p>
       </div>
     );
   }
 
   if (error || !projectData) {
     return (
-      <div className="w-full max-w-4xl mx-auto p-8 bg-slate-850 border border-slate-800 rounded-2xl text-center space-y-4">
-        <AlertCircle className="w-10 h-10 text-rose-400 mx-auto" />
-        <h2 className="text-xl font-bold text-white">{error || 'Project Not Found'}</h2>
+      <div className="w-full max-w-4xl mx-auto p-8 bg-white border border-rose-200 rounded-2xl text-center space-y-4 shadow-sm">
+        <AlertCircle className="w-10 h-10 text-rose-600 mx-auto" />
+        <h2 className="text-xl font-bold text-slate-900">{error || 'Project Not Found'}</h2>
         <button
           onClick={() => navigate('/employer/projects')}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 text-slate-200 text-sm rounded-xl font-semibold"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 border border-slate-200 text-slate-700 text-sm rounded-xl font-semibold hover:bg-slate-200"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Employer Projects
         </button>
@@ -298,7 +298,7 @@ export const EmployerProjectDetailPage = () => {
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate('/employer/projects')}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Employer Projects</span>
@@ -306,44 +306,44 @@ export const EmployerProjectDetailPage = () => {
       </div>
 
       {actionMessage && (
-        <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm font-bold rounded-2xl flex items-center gap-2 shadow-lg">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-bold rounded-2xl flex items-center gap-2 shadow-sm">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
           <span>{actionMessage}</span>
         </div>
       )}
 
       {/* Main Overview Card */}
-      <div className="bg-slate-850 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-slate-800 pb-6">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-slate-100 pb-6">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-bold px-3 py-1 rounded-md border bg-cyan-500/10 text-cyan-400 border-cyan-500/30">
+              <span className="text-xs font-bold px-3 py-1 rounded-md border bg-primary/10 text-primary border-primary/20">
                 {project.status.toUpperCase()}
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{project.name}</h1>
-            <p className="text-slate-400 text-sm mt-1">{project.description}</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{project.name}</h1>
+            <p className="text-slate-600 text-sm mt-1">{project.description}</p>
           </div>
 
-          <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl text-left sm:text-right">
-            <p className="text-xs text-slate-400 uppercase font-semibold">Payment Rate</p>
-            <p className="text-3xl font-extrabold text-emerald-400">₹{project.paymentAmount}</p>
-            <p className="text-xs text-slate-400">per {project.paymentType}</p>
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-left sm:text-right">
+            <p className="text-xs text-slate-500 uppercase font-semibold">Payment Rate</p>
+            <p className="text-3xl font-extrabold text-emerald-700">₹{project.paymentAmount}</p>
+            <p className="text-xs text-slate-500">per {project.paymentType}</p>
           </div>
         </div>
 
         {/* Status Action Buttons */}
-        <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex flex-wrap items-center justify-between gap-3">
+        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs text-slate-400 uppercase font-bold">Status Controls</p>
-            <p className="text-sm font-bold text-white">State: <span className="text-cyan-400">{project.status}</span></p>
+            <p className="text-xs text-slate-500 uppercase font-bold">Status Controls</p>
+            <p className="text-sm font-bold text-slate-900">State: <span className="text-primary">{project.status}</span></p>
           </div>
 
           <div className="flex items-center gap-2">
             {project.status === 'confirmed' && (
               <button
                 onClick={handleStartProject}
-                className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5"
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm"
               >
                 <Play className="w-4 h-4" /> Start Project
               </button>
@@ -352,7 +352,7 @@ export const EmployerProjectDetailPage = () => {
             {project.status === 'in_progress' && (
               <button
                 onClick={handleRequestCompletion}
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5"
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm"
               >
                 <Clock className="w-4 h-4" /> Request Completion
               </button>
@@ -361,7 +361,7 @@ export const EmployerProjectDetailPage = () => {
             {(project.status === 'in_progress' || project.status === 'completion_requested') && (
               <button
                 onClick={handleCompleteProject}
-                className="px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5"
+                className="px-5 py-2 bg-primary hover:bg-primary/90 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm"
               >
                 <Check className="w-4 h-4" /> Mark Completed
               </button>
@@ -370,7 +370,7 @@ export const EmployerProjectDetailPage = () => {
             {project.status !== 'completed' && project.status !== 'closed' && project.status !== 'cancelled' && (
               <button
                 onClick={handleCancelProject}
-                className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-bold text-xs rounded-xl flex items-center gap-1.5"
+                className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs rounded-xl flex items-center gap-1.5"
               >
                 <XCircle className="w-4 h-4" /> Cancel Project
               </button>
@@ -380,7 +380,7 @@ export const EmployerProjectDetailPage = () => {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 overflow-x-auto pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-2">
         {[
           { id: 'overview', label: 'Overview' },
           { id: 'attendance', label: 'Attendance' },
@@ -394,8 +394,8 @@ export const EmployerProjectDetailPage = () => {
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2 text-sm font-bold rounded-xl transition-all whitespace-nowrap ${
               activeTab === tab.id
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-primary text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200'
             }`}
           >
             {tab.label}
@@ -405,8 +405,8 @@ export const EmployerProjectDetailPage = () => {
 
       {/* TAB 1: OVERVIEW */}
       {activeTab === 'overview' && (
-        <div className="bg-slate-850 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
-          <h2 className="text-xl font-bold text-white border-b border-slate-800 pb-3">Project Overview</h2>
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6 shadow-sm">
+          <h2 className="text-xl font-bold text-slate-900 border-b border-slate-100 pb-3">Project Overview</h2>
 
           {/* AI-Powered Project Summary (Step 25) */}
           <AiSummaryCard
@@ -418,33 +418,33 @@ export const EmployerProjectDetailPage = () => {
           />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
               <span className="text-xs text-slate-500">Start Date</span>
-              <p className="font-bold text-white mt-1">{new Date(project.startDate).toLocaleDateString()}</p>
+              <p className="font-bold text-slate-900 mt-1">{new Date(project.startDate).toLocaleDateString()}</p>
             </div>
-            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
               <span className="text-xs text-slate-500">Expected End Date</span>
-              <p className="font-bold text-white mt-1">
+              <p className="font-bold text-slate-900 mt-1">
                 {project.currentExpectedEndDate ? new Date(project.currentExpectedEndDate).toLocaleDateString() : 'N/A'}
               </p>
             </div>
-            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
               <span className="text-xs text-slate-500">Original Estimated End</span>
-              <p className="font-bold text-slate-400 mt-1">
+              <p className="font-bold text-slate-600 mt-1">
                 {project.originalEstimatedEndDate ? new Date(project.originalEstimatedEndDate).toLocaleDateString() : 'N/A'}
               </p>
             </div>
           </div>
 
-          <div className="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-2">
-            <span className="text-xs font-bold text-slate-400 uppercase">Overall Progress Percentage</span>
+          <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-2">
+            <span className="text-xs font-bold text-slate-600 uppercase">Overall Progress Percentage</span>
             <div className="flex justify-between items-center text-sm">
-              <span className="text-white font-semibold">Progress</span>
-              <span className="text-cyan-400 font-extrabold">{project.progressPercentage}%</span>
+              <span className="text-slate-900 font-semibold">Progress</span>
+              <span className="text-primary font-extrabold">{project.progressPercentage}%</span>
             </div>
-            <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800">
+            <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden border border-slate-300">
               <div
-                className="bg-cyan-500 h-full transition-all duration-500"
+                className="bg-primary h-full transition-all duration-500"
                 style={{ width: `${project.progressPercentage}%` }}
               ></div>
             </div>
@@ -452,18 +452,18 @@ export const EmployerProjectDetailPage = () => {
 
           {/* Assigned Workers */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">
-              <Users className="w-4 h-4 text-cyan-400" /> Assigned Workers ({workers.length})
+            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary" /> Assigned Workers ({workers.length})
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {workers.map((w) => (
-                <div key={w._id} className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex justify-between items-center text-xs">
+                <div key={w._id} className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center text-xs">
                   <div>
-                    <p className="font-bold text-white text-sm">{w.workerId?.name || 'Worker'}</p>
-                    <p className="text-slate-400 mt-0.5">{w.workerId?.phone || w.workerId?.email}</p>
-                    <p className="text-emerald-400 font-semibold mt-1">Agreed Wage: ₹{w.agreedWage}/{w.wageType}</p>
+                    <p className="font-bold text-slate-900 text-sm">{w.workerId?.name || 'Worker'}</p>
+                    <p className="text-slate-500 mt-0.5">{w.workerId?.phone || w.workerId?.email}</p>
+                    <p className="text-emerald-700 font-semibold mt-1">Agreed Wage: ₹{w.agreedWage}/{w.wageType}</p>
                   </div>
-                  <span className="px-2.5 py-1 rounded bg-slate-800 text-slate-300 font-mono text-[10px] uppercase">
+                  <span className="px-2.5 py-1 rounded bg-slate-200 text-slate-700 font-mono text-[10px] uppercase font-bold">
                     {w.status}
                   </span>
                 </div>
@@ -475,22 +475,22 @@ export const EmployerProjectDetailPage = () => {
 
       {/* TAB 2: ATTENDANCE */}
       {activeTab === 'attendance' && (
-        <div className="bg-slate-850 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-          <h2 className="text-xl font-bold text-white border-b border-slate-800 pb-3">Worker Attendance Records</h2>
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
+          <h2 className="text-xl font-bold text-slate-900 border-b border-slate-100 pb-3">Worker Attendance Records</h2>
 
           {attendanceRecords.length === 0 ? (
-            <p className="text-slate-400 text-sm italic">No attendance records logged yet.</p>
+            <p className="text-slate-500 text-sm italic">No attendance records logged yet.</p>
           ) : (
             <div className="space-y-3">
               {attendanceRecords.map((att) => (
-                <div key={att._id} className="p-4 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
+                <div key={att._id} className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs">
                   <div>
-                    <p className="font-bold text-white text-sm">{att.workerId?.name || 'Worker'}</p>
-                    <p className="text-slate-400 mt-0.5">
-                      Date: <strong className="text-slate-200">{att.date}</strong> | Status: <span className="text-emerald-400 font-bold uppercase">{att.status}</span>
+                    <p className="font-bold text-slate-900 text-sm">{att.workerId?.name || 'Worker'}</p>
+                    <p className="text-slate-600 mt-0.5">
+                      Date: <strong className="text-slate-800">{att.date}</strong> | Status: <span className="text-emerald-700 font-bold uppercase">{att.status}</span>
                     </p>
                   </div>
-                  <div className="text-right text-slate-300">
+                  <div className="text-right text-slate-600">
                     <p>In: {att.checkIn ? new Date(att.checkIn).toLocaleTimeString() : 'N/A'}</p>
                     <p>Out: {att.checkOut ? new Date(att.checkOut).toLocaleTimeString() : 'N/A'}</p>
                   </div>
@@ -503,25 +503,25 @@ export const EmployerProjectDetailPage = () => {
 
       {/* TAB 3: PROGRESS */}
       {activeTab === 'progress' && (
-        <div className="bg-slate-850 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-          <h2 className="text-xl font-bold text-white border-b border-slate-800 pb-3">Daily Progress Timeline</h2>
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
+          <h2 className="text-xl font-bold text-slate-900 border-b border-slate-100 pb-3">Daily Progress Timeline</h2>
 
           {progressUpdates.length === 0 ? (
-            <p className="text-slate-400 text-sm italic">No daily progress updates submitted yet.</p>
+            <p className="text-slate-500 text-sm italic">No daily progress updates submitted yet.</p>
           ) : (
             <div className="space-y-4">
               {progressUpdates.map((prog) => (
-                <div key={prog._id} className="p-5 bg-slate-900 border border-slate-800 rounded-xl space-y-3">
+                <div key={prog._id} className="p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-white text-sm">{prog.workerId?.name || 'Worker'}</span>
-                      <span className="text-xs font-extrabold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                      <span className="font-bold text-slate-900 text-sm">{prog.workerId?.name || 'Worker'}</span>
+                      <span className="text-xs font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
                         {prog.date}
                       </span>
                     </div>
-                    <span className="text-lg font-extrabold text-emerald-400">{prog.percentage}%</span>
+                    <span className="text-lg font-extrabold text-emerald-700">{prog.percentage}%</span>
                   </div>
-                  {prog.description && <p className="text-xs text-slate-300">{prog.description}</p>}
+                  {prog.description && <p className="text-xs text-slate-700">{prog.description}</p>}
                 </div>
               ))}
             </div>
@@ -531,51 +531,51 @@ export const EmployerProjectDetailPage = () => {
 
       {/* TAB 4: EXTENSIONS */}
       {activeTab === 'extensions' && (
-        <div className="bg-slate-850 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
-          <h2 className="text-xl font-bold text-white border-b border-slate-800 pb-3">Project Extensions</h2>
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6 shadow-sm">
+          <h2 className="text-xl font-bold text-slate-900 border-b border-slate-100 pb-3">Project Extensions</h2>
 
           {/* Form */}
-          <form onSubmit={handleExtensionSubmit} className="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <PlusCircle className="w-4 h-4 text-cyan-400" /> Request Duration Extension
+          <form onSubmit={handleExtensionSubmit} className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <PlusCircle className="w-4 h-4 text-primary" /> Request Duration Extension
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Requested End Date</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Requested End Date</label>
                 <input
                   type="date"
                   value={extForm.requestedEndDate}
                   onChange={(e) => setExtForm({ ...extForm, requestedEndDate: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs"
+                  className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs focus:border-primary"
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Proposed Revised Wage (Optional)</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Proposed Revised Wage (Optional)</label>
                 <input
                   type="number"
                   placeholder="e.g. 1000"
                   value={extForm.proposedWage}
                   onChange={(e) => setExtForm({ ...extForm, proposedWage: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs"
+                  className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs focus:border-primary"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Reason for Extension</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Reason for Extension</label>
               <textarea
                 rows="2"
                 placeholder="Describe reason..."
                 value={extForm.reason}
                 onChange={(e) => setExtForm({ ...extForm, reason: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs"
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs focus:border-primary"
                 required
               />
             </div>
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl"
+              className="px-5 py-2 bg-primary hover:bg-primary/90 text-white font-bold text-xs rounded-xl shadow-sm"
             >
               Submit Extension Request
             </button>
@@ -583,36 +583,36 @@ export const EmployerProjectDetailPage = () => {
 
           {/* List */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-slate-300">Extension History</h3>
+            <h3 className="text-sm font-bold text-slate-800">Extension History</h3>
             {extensions.length === 0 ? (
               <p className="text-xs text-slate-500">No extension requests found.</p>
             ) : (
               <div className="space-y-3">
                 {extensions.map((ext) => (
-                  <div key={ext._id} className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2">
+                  <div key={ext._id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-white">Requested End: {new Date(ext.requestedEndDate).toLocaleDateString()}</span>
+                      <span className="font-bold text-slate-900">Requested End: {new Date(ext.requestedEndDate).toLocaleDateString()}</span>
                       <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] ${
-                        ext.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                        ext.status === 'rejected' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' :
-                        'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        ext.status === 'approved' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' :
+                        ext.status === 'rejected' ? 'bg-rose-50 text-rose-800 border border-rose-200' :
+                        'bg-amber-50 text-amber-800 border border-amber-200'
                       }`}>
                         {ext.status}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300">Reason: {ext.reason}</p>
+                    <p className="text-xs text-slate-600">Reason: {ext.reason}</p>
 
                     {ext.status === 'pending' && ext.employerApproval === 'pending' && (
-                      <div className="flex gap-2 pt-2 border-t border-slate-800">
+                      <div className="flex gap-2 pt-2 border-t border-slate-200">
                         <button
                           onClick={() => handleApproveExtension(ext._id)}
-                          className="px-3 py-1 bg-emerald-500 text-slate-950 font-bold text-xs rounded-lg"
+                          className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg shadow-sm"
                         >
                           Approve Extension
                         </button>
                         <button
                           onClick={() => handleRejectExtension(ext._id)}
-                          className="px-3 py-1 bg-rose-500 text-white font-bold text-xs rounded-lg"
+                          className="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-lg shadow-sm"
                         >
                           Reject Extension
                         </button>
@@ -628,25 +628,25 @@ export const EmployerProjectDetailPage = () => {
 
       {/* TAB 5: PAYMENTS */}
       {activeTab === 'payments' && (
-        <div className="bg-slate-850 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
-          <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-            <h2 className="text-xl font-bold text-white">Project Payment Ledger</h2>
-            <span className="text-sm font-bold text-emerald-400">Total Recorded: ₹{totalPaid.toLocaleString()}</span>
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6 shadow-sm">
+          <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+            <h2 className="text-xl font-bold text-slate-900">Project Payment Ledger</h2>
+            <span className="text-sm font-bold text-emerald-700">Total Recorded: ₹{totalPaid.toLocaleString()}</span>
           </div>
 
           {/* Record Payment Form */}
-          <form onSubmit={handlePaymentSubmit} className="bg-slate-900 p-5 rounded-xl border border-slate-800 space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-emerald-400" /> Record Worker Payment
+          <form onSubmit={handlePaymentSubmit} className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-emerald-600" /> Record Worker Payment
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Select Worker</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Select Worker</label>
                 <select
                   value={payForm.projectWorkerId}
                   onChange={(e) => setPayForm({ ...payForm, projectWorkerId: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs"
+                  className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs focus:border-primary"
                   required
                 >
                   {workers.map((w) => (
@@ -658,11 +658,11 @@ export const EmployerProjectDetailPage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Payment Type</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Payment Type</label>
                 <select
                   value={payForm.type}
                   onChange={(e) => setPayForm({ ...payForm, type: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs"
+                  className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs focus:border-primary"
                 >
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
@@ -675,24 +675,24 @@ export const EmployerProjectDetailPage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Amount (₹)</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Amount (₹)</label>
                 <input
                   type="number"
                   min="1"
                   placeholder="e.g. 950"
                   value={payForm.amount}
                   onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs"
+                  className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs focus:border-primary"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Payment Method</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Payment Method</label>
                 <select
                   value={payForm.method}
                   onChange={(e) => setPayForm({ ...payForm, method: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs"
+                  className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs focus:border-primary"
                 >
                   <option value="cash">Cash</option>
                   <option value="bank_transfer">Bank Transfer</option>
@@ -702,32 +702,32 @@ export const EmployerProjectDetailPage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Payment Date</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Payment Date</label>
                 <input
                   type="date"
                   value={payForm.paymentDate}
                   onChange={(e) => setPayForm({ ...payForm, paymentDate: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs"
+                  className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs focus:border-primary"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Reference / Notes (Optional)</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Reference / Notes (Optional)</label>
               <input
                 type="text"
                 placeholder="Receipt / Transaction reference ID"
                 value={payForm.reference}
                 onChange={(e) => setPayForm({ ...payForm, reference: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs"
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs focus:border-primary"
               />
             </div>
 
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl"
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-sm"
             >
               Record Payment
             </button>
@@ -735,20 +735,20 @@ export const EmployerProjectDetailPage = () => {
 
           {/* Payment History */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-slate-300">Payment Timeline</h3>
+            <h3 className="text-sm font-bold text-slate-800">Payment Timeline</h3>
             {payments.length === 0 ? (
               <p className="text-xs text-slate-500">No payment records found.</p>
             ) : (
-              <div className="divide-y divide-slate-800 bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
+              <div className="divide-y divide-slate-100 bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                 {payments.map((p) => (
                   <div key={p._id} className="p-4 flex justify-between items-center text-xs">
                     <div>
-                      <span className="font-bold text-white">{p.workerId?.name || 'Worker'}</span>
-                      <span className="ml-2 text-emerald-400 font-bold">₹{p.amount}</span>
-                      <span className="ml-2 text-slate-400 capitalize">({p.type} - {p.method})</span>
+                      <span className="font-bold text-slate-900">{p.workerId?.name || 'Worker'}</span>
+                      <span className="ml-2 text-emerald-700 font-bold">₹{p.amount}</span>
+                      <span className="ml-2 text-slate-600 capitalize">({p.type} - {p.method})</span>
                       <p className="text-[11px] text-slate-500 mt-0.5">{new Date(p.paymentDate).toLocaleDateString()}</p>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                       {p.status}
                     </span>
                   </div>
@@ -761,27 +761,27 @@ export const EmployerProjectDetailPage = () => {
 
       {/* TAB 6: REVIEWS */}
       {activeTab === 'reviews' && (
-        <div className="bg-slate-850 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
-          <h2 className="text-xl font-bold text-white border-b border-slate-800 pb-3">Project Reviews & Ratings</h2>
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-6 shadow-sm">
+          <h2 className="text-xl font-bold text-slate-900 border-b border-slate-100 pb-3">Project Reviews & Ratings</h2>
 
           {['completed', 'closed'].includes(project.status) ? (
-            <div className="bg-emerald-500/10 border border-emerald-500/30 p-5 rounded-xl space-y-3">
-              <div className="flex items-center gap-2 text-emerald-400 font-extrabold text-lg">
-                <CheckSquare className="w-6 h-6" /> Project Completed ✓
+            <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-xl space-y-3">
+              <div className="flex items-center gap-2 text-emerald-800 font-extrabold text-lg">
+                <CheckSquare className="w-6 h-6 text-emerald-600" /> Project Completed ✓
               </div>
-              <p className="text-xs text-slate-300">
+              <p className="text-xs text-slate-600">
                 Rate the workers who participated in this project. Your review updates their profile average rating.
               </p>
 
               {/* Review Form */}
-              <form onSubmit={handleReviewSubmit} className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-3 mt-4">
-                <h3 className="text-sm font-bold text-white">Rate Worker</h3>
+              <form onSubmit={handleReviewSubmit} className="bg-white p-4 rounded-xl border border-slate-200 space-y-3 mt-4 shadow-sm">
+                <h3 className="text-sm font-bold text-slate-900">Rate Worker</h3>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Select Worker to Review</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Select Worker to Review</label>
                   <select
                     value={reviewForm.revieweeId}
                     onChange={(e) => setReviewForm({ ...reviewForm, revieweeId: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs"
+                    className="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs focus:bg-white focus:border-primary"
                     required
                   >
                     {workers.map((w) => (
@@ -793,11 +793,11 @@ export const EmployerProjectDetailPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Rating (1 - 5 Stars)</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Rating (1 - 5 Stars)</label>
                   <select
                     value={reviewForm.rating}
                     onChange={(e) => setReviewForm({ ...reviewForm, rating: Number(e.target.value) })}
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs"
+                    className="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs focus:bg-white focus:border-primary"
                   >
                     <option value="5">⭐⭐⭐⭐⭐ (5 - Excellent)</option>
                     <option value="4">⭐⭐⭐⭐ (4 - Good)</option>
@@ -808,49 +808,49 @@ export const EmployerProjectDetailPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Comments / Feedback</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Comments / Feedback</label>
                   <textarea
                     rows="3"
                     value={reviewForm.comment}
                     onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
                     placeholder="Write feedback about worker performance, discipline, and skill..."
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl p-2.5 text-xs"
+                    className="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl p-2.5 text-xs focus:bg-white focus:border-primary"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl"
+                  className="px-5 py-2 bg-primary hover:bg-primary/90 text-white font-bold text-xs rounded-xl shadow-sm"
                 >
                   Submit Worker Review
                 </button>
               </form>
             </div>
           ) : (
-            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 text-xs text-slate-400">
-              Reviews can be submitted after the project status is set to <strong>Completed</strong>.
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-600">
+              Reviews can be submitted after the project status is set to <strong className="text-slate-900">Completed</strong>.
             </div>
           )}
 
           {/* List of Published Reviews */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-slate-300">Submitted Reviews</h3>
+            <h3 className="text-sm font-bold text-slate-800">Submitted Reviews</h3>
             {reviews.length === 0 ? (
               <p className="text-xs text-slate-500">No reviews submitted yet.</p>
             ) : (
               <div className="space-y-3">
                 {reviews.map((rev) => (
-                  <div key={rev._id} className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-1">
+                  <div key={rev._id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
                     <div className="flex justify-between items-center">
-                      <span className="font-bold text-white text-xs">
+                      <span className="font-bold text-slate-900 text-xs">
                         {rev.reviewerId?.name || 'Participant'} ({rev.reviewerRole}) → {rev.revieweeId?.name || 'User'}
                       </span>
-                      <span className="text-amber-400 font-bold text-xs flex items-center gap-1">
+                      <span className="text-amber-600 font-bold text-xs flex items-center gap-1">
                         <Star className="w-3.5 h-3.5 fill-amber-400" /> {rev.rating} / 5
                       </span>
                     </div>
-                    {rev.comment && <p className="text-xs text-slate-300 italic">"{rev.comment}"</p>}
+                    {rev.comment && <p className="text-xs text-slate-700 italic">"{rev.comment}"</p>}
                     <span className="text-[10px] text-slate-500 block">
                       {new Date(rev.createdAt).toLocaleDateString()}
                     </span>

@@ -137,8 +137,8 @@ export const WorkerProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[50vh] flex flex-col items-center justify-center text-slate-400">
-        <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+      <div className="min-h-[50vh] flex flex-col items-center justify-center text-slate-600">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
         <p className="text-sm font-medium">Loading profile...</p>
       </div>
     );
@@ -147,25 +147,25 @@ export const WorkerProfilePage = () => {
   return (
     <div className="w-full max-w-4xl space-y-6">
       {/* Header & Language Switcher */}
-      <div className="bg-slate-850 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400">
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700">
             <User className="w-8 h-8" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">{t.pageTitle}</h1>
-            <p className="text-xs text-slate-400">{t.pageSubtitle}</p>
+            <h1 className="text-2xl font-bold text-slate-900">{t.pageTitle}</h1>
+            <p className="text-xs text-slate-600">{t.pageSubtitle}</p>
           </div>
         </div>
 
         {/* Multilingual Selector */}
-        <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 p-1.5 rounded-xl">
-          <Globe className="w-4 h-4 text-cyan-400 ml-1.5" />
+        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-1.5 rounded-xl shadow-xs">
+          <Globe className="w-4 h-4 text-primary ml-1.5" />
           <button
             type="button"
             onClick={() => setLang('en')}
             className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-              lang === 'en' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'
+              lang === 'en' ? 'bg-primary text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             English
@@ -174,7 +174,7 @@ export const WorkerProfilePage = () => {
             type="button"
             onClick={() => setLang('mr')}
             className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-              lang === 'mr' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'
+              lang === 'mr' ? 'bg-primary text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             मराठी
@@ -183,7 +183,7 @@ export const WorkerProfilePage = () => {
             type="button"
             onClick={() => setLang('hi')}
             className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-              lang === 'hi' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'
+              lang === 'hi' ? 'bg-primary text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             हिंदी
@@ -192,17 +192,17 @@ export const WorkerProfilePage = () => {
       </div>
 
       {/* Completion Meter */}
-      <div className="bg-slate-850 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-2">
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-2">
         <div className="flex items-center justify-between text-sm">
-          <span className="font-semibold text-slate-300 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-cyan-400" />
+          <span className="font-semibold text-slate-700 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" />
             <span>{t.profileCompletion}</span>
           </span>
-          <span className="font-extrabold text-cyan-400">{completionPercentage}%</span>
+          <span className="font-extrabold text-primary">{completionPercentage}%</span>
         </div>
-        <div className="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-700">
+        <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
           <div
-            className="h-full bg-gradient-to-r from-amber-500 to-cyan-500 transition-all duration-500 rounded-full"
+            className="h-full bg-gradient-to-r from-amber-500 to-primary transition-all duration-500 rounded-full"
             style={{ width: `${completionPercentage}%` }}
           ></div>
         </div>
@@ -210,25 +210,25 @@ export const WorkerProfilePage = () => {
 
       {/* Feedback Messages */}
       {successMsg && (
-        <div className="flex items-center gap-2 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-sm">
-          <CheckCircle2 className="w-5 h-5 shrink-0" />
+        <div className="flex items-center gap-2 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm shadow-xs">
+          <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {errorMsg && (
-        <div className="flex items-center gap-2 p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-sm">
-          <AlertCircle className="w-5 h-5 shrink-0" />
+        <div className="flex items-center gap-2 p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm shadow-xs">
+          <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {/* Profile Form */}
-      <form onSubmit={handleSubmit} className="bg-slate-850 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           {/* Full Name */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               {t.fullName} *
             </label>
             <input
@@ -238,20 +238,20 @@ export const WorkerProfilePage = () => {
               value={formData.fullName}
               onChange={handleChange}
               placeholder="Rahul Patil"
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             />
           </div>
 
           {/* Primary Skill */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               {t.primarySkill} *
             </label>
             <select
               name="primarySkill"
               value={formData.primarySkill}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             >
               {Object.entries(t.skillsList).map(([key, label]) => (
                 <option key={key} value={key}>
@@ -263,7 +263,7 @@ export const WorkerProfilePage = () => {
 
           {/* Other Skills */}
           <div className="sm:col-span-2">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               {t.otherSkills}
             </label>
             <input
@@ -272,13 +272,13 @@ export const WorkerProfilePage = () => {
               value={formData.skills}
               onChange={handleChange}
               placeholder="Wiring, Repair, Fitting, Maintenance"
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             />
           </div>
 
           {/* Experience & Daily Wage */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               {t.experienceYears}
             </label>
             <input
@@ -288,12 +288,12 @@ export const WorkerProfilePage = () => {
               max="70"
               value={formData.experienceYears}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               {t.dailyWage}
             </label>
             <input
@@ -303,20 +303,20 @@ export const WorkerProfilePage = () => {
               value={formData.dailyWage}
               onChange={handleChange}
               placeholder="e.g. 700"
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             />
           </div>
 
           {/* Availability & Preferred Work Type */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               {t.availability}
             </label>
             <select
               name="availability"
               value={formData.availability}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             >
               {Object.entries(t.availabilityStatus).map(([key, label]) => (
                 <option key={key} value={key}>
@@ -327,14 +327,14 @@ export const WorkerProfilePage = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               {t.preferredWorkType}
             </label>
             <select
               name="preferredWorkType"
               value={formData.preferredWorkType}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             >
               {Object.entries(t.workTypes).map(([key, label]) => (
                 <option key={key} value={key}>
@@ -346,7 +346,7 @@ export const WorkerProfilePage = () => {
 
           {/* Location: City & Area */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               {t.city}
             </label>
             <input
@@ -355,12 +355,12 @@ export const WorkerProfilePage = () => {
               value={formData.city}
               onChange={handleChange}
               placeholder="Mumbai / Pune / Nashik"
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               {t.area}
             </label>
             <input
@@ -369,13 +369,13 @@ export const WorkerProfilePage = () => {
               value={formData.area}
               onChange={handleChange}
               placeholder="Kothrud / Andheri / Shivaji Nagar"
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             />
           </div>
 
           {/* Languages Spoken (Toggle Chips) */}
           <div className="sm:col-span-2">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
               {t.languages}
             </label>
             <div className="flex gap-3">
@@ -392,8 +392,8 @@ export const WorkerProfilePage = () => {
                     onClick={() => handleLanguageToggle(langObj.code)}
                     className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all ${
                       isSelected
-                        ? 'bg-cyan-500/10 border-cyan-500 text-cyan-400'
-                        : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600'
+                        ? 'bg-blue-50 border-primary text-primary shadow-xs'
+                        : 'bg-slate-50 border-slate-300 text-slate-700 hover:border-slate-400'
                     }`}
                   >
                     {langObj.label}
@@ -405,7 +405,7 @@ export const WorkerProfilePage = () => {
 
           {/* Bio / Description */}
           <div className="sm:col-span-2">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               {t.bio}
             </label>
             <textarea
@@ -414,13 +414,13 @@ export const WorkerProfilePage = () => {
               value={formData.bio}
               onChange={handleChange}
               placeholder="Describe your work experience and specialization..."
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             ></textarea>
           </div>
 
           {/* Profile Photo URL */}
           <div className="sm:col-span-2">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
               {t.profilePhotoUrl}
             </label>
             <input
@@ -429,7 +429,7 @@ export const WorkerProfilePage = () => {
               value={formData.profilePhoto}
               onChange={handleChange}
               placeholder="https://example.com/photo.jpg"
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-primary transition-colors text-sm"
             />
           </div>
         </div>
@@ -438,7 +438,7 @@ export const WorkerProfilePage = () => {
         <button
           type="submit"
           disabled={saving}
-          className="w-full py-3 px-4 bg-gradient-to-r from-amber-500 to-cyan-500 hover:from-amber-400 hover:to-cyan-400 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+          className="w-full py-3 px-4 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-xs transition-all disabled:opacity-50"
         >
           {saving ? (
             <span>{t.saving}</span>
