@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext.jsx';
+import { getSocketBaseUrl } from '../services/api.js';
+import { getStoredToken } from '../services/tokenStorage.js';
 
 const SocketContext = createContext();
 
@@ -11,10 +13,21 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (user) {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const socketInstance = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
+      const token = getStoredToken();
+      if (!token) {
+        setIsConnected(false);
+        return;
+      }
+
+      const socketUrl = getSocketBaseUrl();
+      const socketInstance = io(socketUrl, {
         auth: { token },
         transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 15000,
       });
 
       socketInstance.on('connect', () => {
@@ -22,6 +35,11 @@ export const SocketProvider = ({ children }) => {
       });
 
       socketInstance.on('disconnect', () => {
+        setIsConnected(false);
+      });
+
+      socketInstance.on('connect_error', () => {
+        // Degrade safely without throwing unhandled UI exceptions
         setIsConnected(false);
       });
 

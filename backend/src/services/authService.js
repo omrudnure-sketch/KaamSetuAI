@@ -3,12 +3,15 @@ import jwt from 'jsonwebtoken';
 
 const SALT_ROUNDS = 10;
 
-// Resolve JWT secret with resilient fallback to prevent server crashes if unset in hosting dashboard
+// Resolve JWT secret; enforce explicit configuration in production mode
 const getJwtSecret = () => {
   if (process.env.JWT_SECRET && process.env.JWT_SECRET.trim() !== '') {
     return process.env.JWT_SECRET.trim();
   }
-  return 'kaamsetu-ai-production-jwt-fallback-secret-2026-min-32-chars-long';
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('[KaamSetu AI Security] Critical error: JWT_SECRET environment variable is missing in production environment');
+  }
+  return 'kaamsetu-ai-development-fallback-secret-2026-min-32-chars-long';
 };
 
 export const hashPassword = async (password) => {

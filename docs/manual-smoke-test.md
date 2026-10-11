@@ -117,4 +117,25 @@ Follow this step-by-step checklist after deploying the frontend to Vercel and th
 - [ ] **Expired / Missing Token Handling:**
   - Clear localStorage / auth cookie in browser DevTools.
   - Refresh a protected page (`/worker/jobs`).
-  - **Expected:** Redirected to login with clean prompt.
+  - **Expected:** Redirected to login with clean prompt: `"Your session has expired. Please log in again."`.
+
+---
+
+## 9. Cross-Browser, Device & Responsive Layout Validation
+- [ ] **Fresh Browser / Incognito Profile:**
+  - Open a brand-new Private / Incognito window or launch a separate browser (e.g. Firefox, Safari, Edge).
+  - Open `https://kaamsetuai.vercel.app/login`.
+  - **Expected:** Form renders completely clean with **zero** red error alerts (no `"Unauthorized: Authentication token missing"`).
+- [ ] **Mobile Viewport (Smartphones / 375px - 414px width):**
+  - Open browser DevTools Device Toolbar (`Ctrl+Shift+M` or `Cmd+Shift+M`) set to iPhone or Pixel.
+  - Navigate between Home, Jobs, Projects, and Profile.
+  - **Expected:** Fixed mobile bottom navigation bar displays properly with active tab icons; text wraps responsively without horizontal overflowing.
+- [ ] **Tablet Viewport (iPads / 768px - 1024px width):**
+  - Test portrait and landscape orientation.
+  - **Expected:** Bento grid cards collapse smoothly from 2-column to 1-column layouts; top navbar is accessible.
+- [ ] **Desktop Viewport (1280px+ width):**
+  - Test desktop navigation drawer, AI assistant trigger, and language switcher (English, Marathi, Hindi).
+  - **Expected:** Crisp typography, smooth modal animations, and sticky header backdrop blur.
+- [ ] **Different Networks & Render Cold Starts:**
+  - If backend is sleeping on Render free tier (takes ~30-45s to wake up), wait for the request to complete without client-side timeout (client timeout is configured to 60s).
+  - **Expected:** Displays loading state or retry prompt rather than abrupt crash.

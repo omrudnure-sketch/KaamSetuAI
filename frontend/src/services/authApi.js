@@ -17,7 +17,7 @@ export {
 export const authApiClient = axios.create({
   baseURL: getApiBaseUrl(),
   withCredentials: true,
-  timeout: 30000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -36,24 +36,25 @@ authApiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor: Catch 401 and broadcast session expiration
+// Response Interceptor: Catch 401 and broadcast session expiration ONLY for previously authenticated sessions
 authApiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      const url = error.config?.url || '';
       const isAuthRoute =
-        error.config?.url?.includes('/auth/login') ||
-        error.config?.url?.includes('/auth/register');
+        url.includes('/auth/login') ||
+        url.includes('/auth/register');
 
-      if (!isAuthRoute) {
+      // Only dispatch session expiration if the client actually had an active stored token
+      const hadToken = Boolean(getStoredToken());
+      if (!isAuthRoute && hadToken) {
         clearStoredToken();
         if (typeof window !== 'undefined') {
           window.dispatchEvent(
             new CustomEvent('kaamsetu:session-expired', {
               detail: {
-                message:
-                  error.response?.data?.error?.message ||
-                  'Your session has expired. Please log in again.',
+                message: 'Your session has expired. Please log in again.',
               },
             })
           );

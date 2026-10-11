@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from '../services/authService.js';
 import { Conversation, Message, User } from '../models/index.js';
 
 let io = null;
@@ -25,7 +25,7 @@ export const initSocket = (httpServer, customCors) => {
         return next(new Error('Authentication token missing'));
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'kaamsetu-ai-secret-key-2026');
+      const decoded = verifyToken(token);
       const userId = decoded.userId || decoded.id;
       const user = await User.findById(userId).select('-passwordHash');
       if (!user) {

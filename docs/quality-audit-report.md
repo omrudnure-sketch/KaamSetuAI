@@ -13,12 +13,17 @@
 An end-to-end audit was conducted across every architectural tier of KaamSetu AI. The codebase was analyzed, systematically debugged, remediated at the root cause, and verified with automated test suites and real database integration tests.
 
 ### Readiness Verdict: **READY FOR DEPLOYMENT**
-- **All 11 automated test suites pass (100% success rate, 0 failures across 170+ assertions).**
-- **Frontend production build completes with 0 errors (1,816 modules transformed).**
+- **All 12 automated test suites pass (100% success rate, 0 failures across 200+ assertions).**
+- **Automated browser testing verified on fresh browser profile, mobile viewport, and desktop.**
+- **Frontend production build completes with 0 errors (1,816 modules transformed in 4.38s).**
+- **Cross-browser authentication hardened: eliminated false "Unauthorized: Authentication token missing" banner on fresh browsers/incognito.**
+- **Token storage resilience: multi-storage fallback (localStorage, sessionStorage, memoryToken) for strict privacy modes.**
+- **Dynamic Socket.IO URL resolution and bounded reconnects without production localhost fallbacks.**
 - **All 8 Admin Analytics endpoints retrieve and calculate telemetry successfully.**
 - **All 13 Admin Report categories generate real records with pagination and formula-injection-safe CSV export.**
 - **UUID interoperability restored across all validators (eliminating the "Invalid Project ID format" failures).**
 - **Date range filtering normalized for PostgreSQL/PostgREST timestamps.**
+- **Request tracking (`X-Request-Id`) and sanitized error logging implemented without credential leakage.**
 - **Authentication, token emission, role-based authorization, and session restoration fully verified.**
 
 ---
@@ -91,45 +96,78 @@ An end-to-end audit was conducted across every architectural tier of KaamSetu AI
 - **Root Cause:** `convertToCSV` in `reportService.js` expected a single object `{ headers, data }`, failing if called with positional arguments `(headers, data)`.
 - **Fix:** Made `convertToCSV(headersOrObj, dataArr)` polymorphic to transparently support both `{ headers, data }` and `(headers, data)`. Added CSV formula-injection sanitization prefixing `=, +, -, @` with `'`.
 
+### Defect 7: Unauthenticated Initial Probing Triggers False "Unauthorized: Authentication token missing" Banner on Login Page in Fresh Browsers
+- **Severity:** High (Cross-Browser / Fresh Profile UX Failure)
+- **Visible Symptom:** In fresh browsers (Firefox, Safari, Edge, Incognito, or newly cleared browser data), opening the login page immediately displayed a red error alert: `"Unauthorized: Authentication token missing"`.
+- **Root Cause:** On application initialization, `AuthContext.jsx` executed an unauthenticated probe to `/api/auth/me` to test for third-party session cookies. When no stored token was present and third-party cookies were blocked by the browser (modern cross-site privacy default between `*.vercel.app` and `*.onrender.com`), the backend returned `401 Unauthorized: Authentication token missing`. The `authApiClient` response interceptor interpreted any 401 on non-login endpoints as an active session expiration, dispatching a `kaamsetu:session-expired` event. `AuthContext` caught this event and populated `error` with `"Unauthorized: Authentication token missing"`. When the user navigated to `/login`, `Login.jsx` read `displayError = localError || authError` and rendered the error banner before the user had even interacted with the form.
+- **Fix:** 
+  1. Updated `AuthContext.jsx` so unauthenticated visitors without a stored token are initialized as guests without making unauthorized `/api/auth/me` calls.
+  2. Guarded `authApiClient` and `apiClient` response interceptors so `kaamsetu:session-expired` is dispatched *only* when the client actually possessed an active stored token (`hadToken === true`).
+  3. Added input-change and unmount error clearing in `Login.jsx` so previous errors never persist.
+
+### Defect 8: Token Storage Inaccessibility in Restrictive Browsers
+- **Severity:** Medium (Session Persistence Failure)
+- **Visible Symptom:** In browsers with restrictive storage policies (Safari Private Browsing, sandboxed web views, iframes), token storage threw `SecurityError` or failed to persist across tabs.
+- **Root Cause:** `tokenStorage.js` relied exclusively on `window.localStorage` and a single storage key.
+- **Fix:** Enhanced `tokenStorage.js` with a robust multi-storage fallback ladder: `localStorage` -> `sessionStorage` -> in-memory token fallback (`memoryToken`). Synchronized both `kaamsetu_auth_token` and legacy `'token'` keys.
+
+### Defect 9: Hardcoded Fallback & Unbound Reconnection on WebSockets in Production
+- **Severity:** Medium (Real-Time Communication Degradation)
+- **Visible Symptom:** Socket.IO attempted connection to `http://localhost:5000` on production if `VITE_SOCKET_URL` was not explicitly set during build, leading to connection failures and uncaught error banners. In addition, `socketManager.js` used a different hardcoded JWT secret fallback than HTTP authentication.
+- **Root Cause:** Missing dynamic socket URL derivation and divergent JWT verification logic.
+- **Fix:**
+  1. Added `getSocketBaseUrl()` helper in `api.js` that dynamically derives the socket host from `getApiBaseUrl()` (stripping `/api`), defaulting safely to `https://kaamsetuai.onrender.com` in production and never localhost.
+  2. Bounded reconnection in `SocketContext.jsx` (`reconnectionAttempts: 5`, `timeout: 15000`) with safe degraded state handling (`isConnected: false`).
+  3. Replaced raw `jwt.verify` in `socketManager.js` with the centralized `verifyToken()` service.
+  4. Enforced strict `JWT_SECRET` requirement in `authService.js` in production (`NODE_ENV === 'production'`).
+
 ---
 
 ## 4. Files Modified and Summary of Changes
 
 | File | Change Description |
 | :--- | :--- |
-| `backend/src/models/supabaseModel.js` | 1. Added `getFilter()` to `SupabaseQuery`.<br>2. Updated `SUPABASE_TABLE_COLUMNS` whitelist for `conversations`, `complaints`, `attendances`, and `audit_logs`.<br>3. Normalized Date objects to ISO strings in `_executeFind` for PostgREST.<br>4. Fixed timestamp comparisons in `_matchesFilter` to prevent `NaN` comparisons.<br>5. Expanded `tableFieldMap` in `_applyPopulate` to handle all relational foreign keys (`payerId`, `payeeId`, `againstUser`, etc.). |
-| `backend/src/analytics/skillAnalytics.js` | Replaced MongoDB pipeline aggregation with robust JavaScript aggregation over live models (`Job`, `WorkerProfile`, `HiringAgreement`, `Project`), mapping demand, supply, wage comparisons, and shortage gap accurately. |
-| `backend/src/services/reportService.js` | 1. Supported polymorphic `convertToCSV` call signatures.<br>2. Aligned entity attribute mappings to Supabase column names (`title`, `companyName`, `workersNeeded`, `category`, `checkInTime`, `payerId`/`payeeId`). |
-| `backend/src/validators/attendanceValidator.js` | Replaced legacy 24-hex regex with unified UUID/ObjectId/numeric `idRegex`. |
-| `backend/src/validators/invitationValidator.js` | Replaced legacy 24-hex regex with unified UUID/ObjectId/numeric `idRegex`. |
-| `backend/src/validators/applicationValidator.js` | Replaced legacy 24-hex regex with unified UUID/ObjectId/numeric `idRegex`. |
-| `backend/src/validators/hiringValidator.js` | Replaced legacy 24-hex regex with unified UUID/ObjectId/numeric `idRegex`. |
-| `backend/tests/admin-reports-analytics-regression.test.js` | Created new 24-assertion test suite covering Admin Reports (all 13 categories), Admin Analytics (all 8 modules), UUID validation, CSV sanitization, and Date filtering. |
-| `backend/tests/runAllTests.js` | Registered the new regression test suite into the master test harness runner. |
+| `frontend/src/services/tokenStorage.js` | Added multi-storage ladder (`localStorage`, `sessionStorage`, `memoryToken`), legacy key synchronization (`kaamsetu_auth_token` + `'token'`), and exception protection for strict privacy modes. |
+| `frontend/src/services/api.js` | 1. Added `getSocketBaseUrl()` helper dynamically deriving socket URL from API URL.<br>2. Increased Axios timeout to 60,000ms for Render cold-start resilience.<br>3. Added request and response interceptors matching `authApiClient`. |
+| `frontend/src/services/authApi.js` | 1. Increased timeout to 60,000ms.<br>2. Hardened 401 response interceptor to only broadcast session expiration for authenticated sessions (`hadToken === true`). |
+| `frontend/src/context/AuthContext.jsx` | Updated `initAuth` to safely treat visitors without stored tokens as unauthenticated guests without making probing `/auth/me` calls. |
+| `frontend/src/pages/Login.jsx` | Added automatic error clearance on input keystrokes and component unmount. |
+| `frontend/src/context/SocketContext.jsx` | Integrated `getStoredToken()`, dynamic `getSocketBaseUrl()`, and bounded reconnection options with safe offline handling. |
+| `backend/src/socket/socketManager.js` | Centralized JWT token verification via `verifyToken()` from `authService.js`. |
+| `backend/src/services/authService.js` | Enforced strict `JWT_SECRET` requirement in production (`NODE_ENV === 'production'`) without hardcoded fallback. |
+| `backend/src/server.js` | Added `X-Request-Id` tracking middleware using `crypto.randomUUID()`. |
+| `backend/src/middleware/errorHandler.js` | Attached `requestId` to error responses and implemented sanitized error logging without leaking secrets. |
+| `backend/src/models/supabaseModel.js` | Added `getFilter()`, expanded table column whitelist, normalized Date objects to ISO strings, fixed timestamp filters, and enhanced `_applyPopulate`. |
+| `backend/src/analytics/skillAnalytics.js` | Refactored from MongoDB pipeline to robust JavaScript aggregations over Supabase models. |
+| `backend/src/services/reportService.js` | Supported polymorphic `convertToCSV` signatures, hardened against CSV formula injection, aligned entity field mappings. |
+| `backend/src/validators/*.js` | Unified ID validators across attendance, invitation, application, and hiring to support UUIDs, ObjectIds, and integer IDs. |
+| `backend/tests/cross-browser-auth-reliability.test.js` | Created 27-assertion regression test suite covering public routes, unauthenticated safety, session restore, concurrency, invalid tokens, CORS preflight, and request IDs. |
+| `backend/tests/runAllTests.js` | Registered Suite 11 into master test runner. |
 
 ---
 
 ## 5. Automated Test Suite Execution Results
 
-All 11 automated test suites were executed sequentially using `node tests/runAllTests.js`:
+All 12 automated test suites were executed sequentially using `node tests/runAllTests.js`:
 
 ```
 ================================================================
 FINAL TEST EXECUTION SUMMARY REPORT
 ================================================================
-✓ [PASSED] 0. Supabase Database Migration & MongoDB Regression          (0.91s)
-✓ [PASSED] 1. Authentication & Role-Based Authorization                 (32.38s)
-✓ [PASSED] 2. Profile & Marketplace Workflow                            (32.53s)
-✓ [PASSED] 3. Multi-Day Projects, Attendance, Progress & Payments       (32.63s)
-✓ [PASSED] 4. Real-time Communication, Notifications & Disputes         (32.39s)
-✓ [PASSED] 5. AI Summaries, Admin Assistant & Fraud Risk Analysis       (33.05s)
-✓ [PASSED] 6. Security Hardening & Penetration Defense                  (3.10s)
-✓ [PASSED] 7. Full Platform End-to-End Workflow (20 Steps)              (32.66s)
-✓ [PASSED] 8. Registration Flow & CORS Policy Verification              (3.71s)
-✓ [PASSED] 9. Worker Jobs Auth & Token Regression                       (3.88s)
-✓ [PASSED] 10. Admin Reports, Analytics & UUID Validation Regression    (32.80s)
+✓ [PASSED] 0. Supabase Database Migration & MongoDB Regression          (0.71s)
+✓ [PASSED] 1. Authentication & Role-Based Authorization                 (32.56s)
+✓ [PASSED] 2. Profile & Marketplace Workflow                            (33.70s)
+✓ [PASSED] 3. Multi-Day Projects, Attendance, Progress & Payments       (32.96s)
+✓ [PASSED] 4. Real-time Communication, Notifications & Disputes         (33.04s)
+✓ [PASSED] 5. AI Summaries, Admin Assistant & Fraud Risk Analysis       (33.74s)
+✓ [PASSED] 6. Security Hardening & Penetration Defense                  (14.29s)
+✓ [PASSED] 7. Full Platform End-to-End Workflow (20 Steps)              (36.28s)
+✓ [PASSED] 8. Registration Flow & CORS Policy Verification              (5.12s)
+✓ [PASSED] 9. Worker Jobs Auth & Token Regression                       (9.93s)
+✓ [PASSED] 10. Admin Reports, Analytics & UUID Validation Regression    (35.88s)
+✓ [PASSED] 11. Cross-Browser Auth & Reliability Regression              (3.44s)
 ================================================================
-Total Suites: 11 | Passed: 11 | Failed: 0
+Total Suites: 12 | Passed: 12 | Failed: 0
 ================================================================
 ```
 

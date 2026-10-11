@@ -15,16 +15,25 @@ export const getApiBaseUrl = () => {
   return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
 };
 
+export const getSocketBaseUrl = () => {
+  const rawUrl = (import.meta.env.VITE_SOCKET_URL || '').trim();
+  if (rawUrl) {
+    return rawUrl.replace(/\/+$/, '').replace(/\/api\/?$/, '');
+  }
+  const apiUrl = getApiBaseUrl();
+  return apiUrl.replace(/\/api\/?$/, '');
+};
+
 export const apiClient = axios.create({
   baseURL: getApiBaseUrl(),
   withCredentials: true,
-  timeout: 30000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-import { getStoredToken } from './tokenStorage.js';
+import { getStoredToken, clearStoredToken } from './tokenStorage.js';
 
 // Request Interceptor: Automatically inject Bearer token on requests
 apiClient.interceptors.request.use(
@@ -37,6 +46,34 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// Response Interceptor: Catch 401 on protected requests and dispatch session-expired
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      const url = error.config?.url || '';
+      const isAuthRoute =
+        url.includes('/auth/login') ||
+        url.includes('/auth/register');
+
+      const hadToken = Boolean(getStoredToken());
+      if (!isAuthRoute && hadToken) {
+        clearStoredToken();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('kaamsetu:session-expired', {
+              detail: {
+                message: 'Your session has expired. Please log in again.',
+              },
+            })
+          );
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
 );
 
 export const fetchHealthCheck = async () => {

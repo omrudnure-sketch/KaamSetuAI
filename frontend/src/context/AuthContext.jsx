@@ -20,25 +20,24 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       try {
         const storedToken = getStoredToken();
-        // If there's a stored token or potential auth cookie, verify current user
+        // If there's an existing token in storage, verify and hydrate the active session
         if (storedToken) {
-          const res = await fetchCurrentUser();
-          if (res.success && res.data) {
-            setUser(res.data);
-          } else {
-            clearStoredToken();
-            setUser(null);
-          }
-        } else {
-          // Attempt cookie-based auth check
           try {
             const res = await fetchCurrentUser();
             if (res.success && res.data) {
               setUser(res.data);
+            } else {
+              clearStoredToken();
+              setUser(null);
             }
-          } catch (_e) {
+          } catch (_err) {
+            clearStoredToken();
             setUser(null);
           }
+        } else {
+          // Fresh browser / unauthenticated guest: no stored token
+          // Do not invoke protected endpoints, ensuring clean visitor state with zero errors
+          setUser(null);
         }
       } catch (_err) {
         clearStoredToken();

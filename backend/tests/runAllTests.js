@@ -25,6 +25,7 @@ const suites = [
   { name: '8. Registration Flow & CORS Policy Verification', file: 'registration-fix.test.js' },
   { name: '9. Worker Jobs Auth & Token Regression', file: 'worker-jobs-auth-regression.test.js' },
   { name: '10. Admin Reports, Analytics & UUID Validation Regression', file: 'admin-reports-analytics-regression.test.js' },
+  { name: '11. Cross-Browser Auth & Reliability Regression', file: 'cross-browser-auth-reliability.test.js' },
 ];
 
 console.log('================================================================');

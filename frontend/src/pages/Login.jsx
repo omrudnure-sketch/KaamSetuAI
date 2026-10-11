@@ -12,7 +12,25 @@ export const Login = () => {
   const { login, error: authError, setError: setAuthError } = useAuth();
   const navigate = useNavigate();
 
+  React.useEffect(() => {
+    return () => {
+      if (setAuthError) setAuthError(null);
+    };
+  }, [setAuthError]);
+
   const displayError = localError || authError;
+
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
+    if (localError) setLocalError('');
+    if (authError && setAuthError) setAuthError(null);
+  };
+
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
+    if (localError) setLocalError('');
+    if (authError && setAuthError) setAuthError(null);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,7 +78,7 @@ export const Login = () => {
               type="text"
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={handleEmailChange}
               placeholder="rahul@example.com"
               className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
             />
@@ -77,7 +95,7 @@ export const Login = () => {
               type="password"
               required
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={handlePasswordChange}
               placeholder="••••••••"
               className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
             />

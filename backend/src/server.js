@@ -84,6 +84,16 @@ export const corsOptions = {
   optionsSuccessStatus: 204,
 };
 
+import crypto from 'crypto';
+
+// Request ID tracking middleware
+app.use((req, res, next) => {
+  const reqId = req.headers['x-request-id'] || crypto.randomUUID();
+  req.id = reqId;
+  res.setHeader('X-Request-Id', reqId);
+  next();
+});
+
 // Security & Parsing Middleware
 app.use(helmet());
 app.use(cors(corsOptions));
