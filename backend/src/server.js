@@ -155,7 +155,10 @@ const gracefulShutdown = async (signal) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-startServer();
+const isTestRun = process.env.NODE_ENV === 'test' || Boolean(process.env.TEST_MODE) || Boolean(process.argv[1]?.includes('test'));
+if (!isTestRun) {
+  startServer();
+}
 
 export { app, httpServer };
 export default app;

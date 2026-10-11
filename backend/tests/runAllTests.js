@@ -23,6 +23,7 @@ const suites = [
   { name: '6. Security Hardening & Penetration Defense', file: 'security-hardening.test.js' },
   { name: '7. Full Platform End-to-End Workflow (20 Steps)', file: 'e2e-workflow.test.js' },
   { name: '8. Registration Flow & CORS Policy Verification', file: 'registration-fix.test.js' },
+  { name: '9. Worker Jobs Auth & Token Regression', file: 'worker-jobs-auth-regression.test.js' },
 ];
 
 console.log('================================================================');

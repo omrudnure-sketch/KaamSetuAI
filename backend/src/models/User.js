@@ -11,7 +11,7 @@ const User = createModel('users', {
   preferredLanguage: 'en',
   status: 'active',
   isVerified: false,
-  passwordHash: null,
+  passwordHash: '',
   lastLoginAt: null,
 });
 

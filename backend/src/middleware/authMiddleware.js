@@ -5,13 +5,13 @@ export const requireAuth = async (req, res, next) => {
   try {
     let token = null;
 
-    // 1. Check HttpOnly cookie
-    if (req.cookies && req.cookies.token) {
-      token = req.cookies.token;
-    }
-    // 2. Check Authorization header as fallback
-    else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    // 1. Check Authorization Bearer header (primary for cross-site SPA requests)
+    if (req.headers && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
       token = req.headers.authorization.split(' ')[1];
+    }
+    // 2. Check HttpOnly cookie as fallback
+    else if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
     }
 
     if (!token) {

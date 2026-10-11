@@ -7,6 +7,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../deployment/render.env') });
 dotenv.config();
 
 const { Pool } = pg;
@@ -62,27 +64,33 @@ export const checkSupabaseConnection = async () => {
     error: null,
   };
 
-  // Check direct PostgreSQL pool
-  if (pgPool) {
-    try {
-      const res = await pgPool.query('SELECT 1 as connected');
-      status.postgres = res.rows?.[0]?.connected === 1;
-    } catch (err) {
-      status.error = err.message;
-    }
-  }
-
-  // Check Supabase SDK with an active test query
+  // Check Supabase SDK with an active test query first (HTTPS IPv4, fast and cloud-compatible)
   if (supabaseAdmin) {
     try {
       const { error } = await supabaseAdmin.from('users').select('id').limit(1);
       if (!error || error.code === 'PGRST116' || !error.message?.includes('fetch failed')) {
         status.supabaseClient = true;
       } else {
-        if (!status.error) status.error = error.message;
+        status.error = error.message;
       }
     } catch (err) {
-      if (!status.error) status.error = err.message;
+      status.error = err.message;
+    }
+  }
+
+  // Check direct PostgreSQL pool
+  if (pgPool) {
+    try {
+      const res = await pgPool.query('SELECT 1 as connected');
+      status.postgres = res.rows?.[0]?.connected === 1;
+      if (status.postgres) {
+        status.error = null;
+      }
+    } catch (err) {
+      // If supabaseClient is already healthy, do not flag direct pgPool failure as an overall error
+      if (!status.supabaseClient) {
+        status.error = err.message;
+      }
     }
   }
 

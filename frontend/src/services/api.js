@@ -17,11 +17,27 @@ export const getApiBaseUrl = () => {
 
 export const apiClient = axios.create({
   baseURL: getApiBaseUrl(),
+  withCredentials: true,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+import { getStoredToken } from './tokenStorage.js';
+
+// Request Interceptor: Automatically inject Bearer token on requests
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = getStoredToken();
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 export const fetchHealthCheck = async () => {
   const response = await apiClient.get('/health');

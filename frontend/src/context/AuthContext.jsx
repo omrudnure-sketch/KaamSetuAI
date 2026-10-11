@@ -1,5 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { fetchCurrentUser, loginUser, registerUser, logoutUser } from '../services/authApi.js';
+import {
+  fetchCurrentUser,
+  loginUser,
+  registerUser,
+  logoutUser,
+  getStoredToken,
+  setStoredToken,
+  clearStoredToken,
+} from '../services/authApi.js';
 
 const AuthContext = createContext(null);
 
@@ -11,11 +19,29 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const res = await fetchCurrentUser();
-        if (res.success && res.data) {
-          setUser(res.data);
+        const storedToken = getStoredToken();
+        // If there's a stored token or potential auth cookie, verify current user
+        if (storedToken) {
+          const res = await fetchCurrentUser();
+          if (res.success && res.data) {
+            setUser(res.data);
+          } else {
+            clearStoredToken();
+            setUser(null);
+          }
+        } else {
+          // Attempt cookie-based auth check
+          try {
+            const res = await fetchCurrentUser();
+            if (res.success && res.data) {
+              setUser(res.data);
+            }
+          } catch (_e) {
+            setUser(null);
+          }
         }
       } catch (_err) {
+        clearStoredToken();
         setUser(null);
       } finally {
         setLoading(false);
@@ -25,11 +51,32 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
+  // Listen for session expiration events dispatched by API interceptors
+  useEffect(() => {
+    const handleSessionExpired = (event) => {
+      clearStoredToken();
+      setUser(null);
+      setError(
+        event.detail?.message || 'Your session has expired. Please log in again.'
+      );
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('kaamsetu:session-expired', handleSessionExpired);
+      return () => {
+        window.removeEventListener('kaamsetu:session-expired', handleSessionExpired);
+      };
+    }
+  }, []);
+
   const login = async (credentials) => {
     setError(null);
     try {
       const res = await loginUser(credentials);
       if (res.success && res.data?.user) {
+        if (res.data.token) {
+          setStoredToken(res.data.token);
+        }
         setUser(res.data.user);
         return { success: true, user: res.data.user };
       }
@@ -52,6 +99,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await registerUser(userData);
       if (res.success && res.data?.user) {
+        if (res.data.token) {
+          setStoredToken(res.data.token);
+        }
         setUser(res.data.user);
         return { success: true, user: res.data.user };
       }
@@ -75,12 +125,25 @@ export const AuthProvider = ({ children }) => {
     } catch (_err) {
       // Ignore logout errors
     } finally {
+      clearStoredToken();
       setUser(null);
+      setError(null);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, register, logout, setUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        error,
+        setError,
+        login,
+        register,
+        logout,
+        setUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -93,3 +156,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

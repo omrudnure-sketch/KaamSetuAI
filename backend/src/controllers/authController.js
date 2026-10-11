@@ -4,14 +4,15 @@ import EmployerProfile from '../models/EmployerProfile.js';
 import { hashPassword, comparePassword, generateAccessToken } from '../services/authService.js';
 import { validateRegister, validateLogin } from '../validators/authValidator.js';
 
-const COOKIE_OPTIONS = {
+export const getCookieOptions = () => ({
   httpOnly: true,
-  sameSite: 'lax',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   secure: process.env.NODE_ENV === 'production',
-  maxAge: 15 * 60 * 1000, // 15 minutes
-};
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+});
 
 export const register = async (req, res, next) => {
+  let savedUser = null;
   try {
     const validation = validateRegister(req.body);
     if (!validation.isValid) {
@@ -63,17 +64,19 @@ export const register = async (req, res, next) => {
       isVerified: false,
     });
 
-    const savedUser = await user.save();
+    savedUser = await user.save();
 
-    // Auto-create initial profile for the registered user
+    // Auto-create initial profile for the registered user with verified Supabase columns
     try {
       if (savedUser.role === 'worker') {
         const existingProfile = await WorkerProfile.findOne({ userId: savedUser._id });
         if (!existingProfile) {
           await WorkerProfile.create({
             userId: savedUser._id,
-            fullName: savedUser.name,
-            languages: [savedUser.preferredLanguage || 'en'],
+            bio: '',
+            skills: [],
+            availability: 'available',
+            profileCompletion: 20,
           });
         }
       } else if (savedUser.role === 'employer') {
@@ -81,8 +84,9 @@ export const register = async (req, res, next) => {
         if (!existingProfile) {
           await EmployerProfile.create({
             userId: savedUser._id,
-            name: savedUser.name,
-            phone: savedUser.phone || '',
+            companyName: savedUser.name || '',
+            contactPerson: savedUser.name || '',
+            profileCompletion: 30,
           });
         }
       }
@@ -90,9 +94,20 @@ export const register = async (req, res, next) => {
       console.warn('[KaamSetu AI] Initial profile initialization notice:', profileErr.message);
     }
 
-    const token = generateAccessToken(savedUser);
+    let token;
+    try {
+      token = generateAccessToken(savedUser);
+    } catch (tokenErr) {
+      // Rollback user immediately if token generation fails
+      console.error('[KaamSetu AI] Token generation failed during registration, rolling back user record:', tokenErr.message);
+      if (savedUser?._id) {
+        await User.findByIdAndDelete(savedUser._id);
+        savedUser = null;
+      }
+      throw tokenErr;
+    }
 
-    res.cookie('token', token, COOKIE_OPTIONS);
+    res.cookie('token', token, getCookieOptions());
 
     const safeUserData = {
       id: savedUser._id.toString(),
@@ -115,6 +130,16 @@ export const register = async (req, res, next) => {
       },
     });
   } catch (error) {
+    // If registration failed after user record was inserted, roll back the newly created user to prevent orphaned records
+    if (savedUser?._id) {
+      try {
+        await User.findByIdAndDelete(savedUser._id);
+        console.warn(`[KaamSetu AI] Rolled back orphaned user record: ${savedUser._id}`);
+      } catch (rollbackErr) {
+        console.error('[KaamSetu AI] Failed to rollback orphaned user record:', rollbackErr.message);
+      }
+    }
+
     // 11000 = MongoDB duplicate key, 23505 = PostgreSQL / Supabase unique constraint violation
     if (error.code === 11000 || error.code === '23505' || String(error.code) === '23505') {
       return res.status(409).json({
@@ -124,9 +149,16 @@ export const register = async (req, res, next) => {
         },
       });
     }
+
     // Safe diagnostic log without leaking credentials or tokens
     console.error('[KaamSetu AI Registration Error]:', error.message || error);
-    next(error);
+
+    return res.status(500).json({
+      success: false,
+      error: {
+        message: 'Registration could not be completed. Please try again.',
+      },
+    });
   }
 };
 
@@ -182,7 +214,7 @@ export const login = async (req, res, next) => {
     await user.save();
 
     const token = generateAccessToken(user);
-    res.cookie('token', token, COOKIE_OPTIONS);
+    res.cookie('token', token, getCookieOptions());
 
     const safeUserData = {
       id: user._id.toString(),
@@ -224,10 +256,11 @@ export const getCurrentUser = async (req, res) => {
 };
 
 export const logout = async (_req, res) => {
+  const cookieOpts = getCookieOptions();
   res.clearCookie('token', {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    httpOnly: cookieOpts.httpOnly,
+    sameSite: cookieOpts.sameSite,
+    secure: cookieOpts.secure,
   });
 
   res.status(200).json({

@@ -3,20 +3,19 @@ import createModel from './supabaseModel.js';
 
 const WorkerProfile = createModel('worker_profiles', {
   userId: null,
-  fullName: '',
-  profilePhoto: null,
-  primarySkill: '',
+  bio: '',
   skills: [],
   experienceYears: 0,
   dailyWage: null,
-  languages: ['en'],
-  bio: '',
-  location: { city: '', area: '', coordinates: { type: 'Point', coordinates: [0, 0] } },
+  hourlyRate: null,
   availability: 'available',
-  preferredWorkType: 'both',
-  verificationStatus: 'pending',
+  location: '',
+  city: '',
+  latitude: null,
+  longitude: null,
+  profileCompletion: 20,
   rating: 0,
-  totalReviews: 0,
+  reviewCount: 0,
   completedProjects: 0,
 });
 

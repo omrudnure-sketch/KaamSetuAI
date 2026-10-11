@@ -4,6 +4,12 @@
 import crypto from 'crypto';
 import { supabaseAdmin } from '../config/supabase.js';
 
+export const shouldUseLiveSupabase = () => {
+  if (!supabaseAdmin) return false;
+  if (process.env.NODE_ENV === 'test' && !process.env.TEST_LIVE_DB) return false;
+  return true;
+};
+
 // Field name casing conversions
 export const camelToSnake = (str) =>
   str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
@@ -43,6 +49,43 @@ export const mapObjectToCamel = (obj) => {
   }
   return res;
 };
+
+// Verified column whitelist per Supabase table to prevent PostgREST PGRST204 errors
+export const SUPABASE_TABLE_COLUMNS = {
+  users: new Set(['id', 'name', 'email', 'phone', 'password_hash', 'role', 'admin_role', 'permissions', 'preferred_language', 'status', 'is_verified', 'last_login_at', 'created_at', 'updated_at']),
+  worker_profiles: new Set(['id', 'user_id', 'bio', 'skills', 'experience_years', 'daily_wage', 'hourly_rate', 'availability', 'location', 'city', 'latitude', 'longitude', 'profile_completion', 'rating', 'review_count', 'completed_projects', 'created_at', 'updated_at']),
+  employer_profiles: new Set(['id', 'user_id', 'company_name', 'business_type', 'contact_person', 'location', 'city', 'profile_completion', 'rating', 'review_count', 'created_at', 'updated_at']),
+  jobs: new Set(['id', 'employer_id', 'title', 'description', 'category', 'required_skills', 'wage_type', 'wage_amount', 'duration_days', 'location', 'latitude', 'longitude', 'workers_needed', 'status', 'ai_generated', 'created_at', 'updated_at']),
+  job_applications: new Set(['id', 'job_id', 'worker_id', 'proposed_wage', 'cover_note', 'status', 'applied_at', 'updated_at']),
+  job_invitations: new Set(['id', 'job_id', 'worker_id', 'employer_id', 'status', 'created_at', 'updated_at']),
+  hiring_agreements: new Set(['id', 'job_id', 'employer_id', 'worker_id', 'agreed_wage', 'wage_type', 'start_date', 'expected_end_date', 'terms', 'proposed_by', 'status', 'confirmed_at', 'created_at', 'updated_at']),
+  projects: new Set(['id', 'hiring_agreement_id', 'employer_id', 'title', 'description', 'location', 'start_date', 'expected_end_date', 'actual_end_date', 'payment_amount', 'status', 'completion_requested_by', 'created_at', 'updated_at']),
+  project_workers: new Set(['id', 'project_id', 'worker_id', 'hiring_agreement_id', 'agreed_wage', 'wage_type', 'status', 'joined_at']),
+  progress_updates: new Set(['id', 'project_id', 'worker_id', 'date', 'completion_percentage', 'summary', 'created_at']),
+  project_extensions: new Set(['id', 'project_id', 'requested_by', 'additional_days', 'reason', 'original_end_date', 'new_end_date', 'status', 'approved_by', 'created_at', 'updated_at']),
+  payments: new Set(['id', 'project_id', 'payer_id', 'payee_id', 'amount', 'wage_type', 'status', 'payment_date', 'transaction_ref', 'notes', 'created_at']),
+  reviews: new Set(['id', 'project_id', 'reviewer_id', 'reviewee_id', 'rating', 'comment', 'created_at']),
+  messages: new Set(['id', 'conversation_id', 'sender_id', 'content', 'is_read', 'read_at', 'created_at']),
+  conversations: new Set(['id', 'participants', 'created_at', 'updated_at']),
+  notifications: new Set(['id', 'user_id', 'type', 'title', 'message', 'is_read', 'data', 'created_at']),
+  complaints: new Set(['id', 'filed_by', 'against_user_id', 'project_id', 'category', 'description', 'status', 'assigned_admin_id', 'resolution_notes', 'resolved_at', 'created_at', 'updated_at']),
+  disputes: new Set(['id', 'complaint_id', 'project_id', 'claimant_id', 'respondent_id', 'assigned_admin_id', 'status', 'resolution_notes', 'resolved_at', 'created_at', 'updated_at']),
+  verification_records: new Set(['id', 'user_id', 'document_type', 'document_number', 'status', 'verified_by', 'verified_at', 'created_at']),
+  risk_flags: new Set(['id', 'user_id', 'risk_score', 'factors', 'flagged_at']),
+};
+
+export const filterValidColumns = (tableName, data) => {
+  const allowed = SUPABASE_TABLE_COLUMNS[tableName];
+  if (!allowed) return data;
+  const filtered = {};
+  for (const [key, val] of Object.entries(data)) {
+    if (allowed.has(key)) {
+      filtered[key] = val;
+    }
+  }
+  return filtered;
+};
+
 
 // Document Instance class
 export class SupabaseDocument {
@@ -234,23 +277,32 @@ export class SupabaseModel {
     };
 
     // If live Supabase client is connected, insert to Supabase table
-    if (supabaseAdmin) {
+    if (shouldUseLiveSupabase()) {
       try {
         const snakeData = mapObjectToSnake(docData);
         delete snakeData._id; // PostgreSQL uses 'id'
+        const validColumnsData = filterValidColumns(this.tableName, snakeData);
         const { data: inserted, error } = await supabaseAdmin
           .from(this.tableName)
-          .insert(snakeData)
+          .insert(validColumnsData)
           .select()
           .single();
 
-        if (!error && inserted) {
+        if (error) {
+          if (error.code === '23505' || error.message?.includes('duplicate key') || error.message?.includes('unique constraint')) {
+            const dupErr = new Error(error.message || 'Duplicate key constraint violation');
+            dupErr.code = '23505';
+            throw dupErr;
+          }
+          console.warn(`[Supabase ${this.tableName} Insert Notice]:`, error.message || error.code);
+        } else if (inserted) {
           const doc = new SupabaseDocument(mapObjectToCamel(inserted), this);
           getInMemoryStore(this.tableName).set(doc.id, doc);
           return doc;
         }
-      } catch (_err) {
-        // Fall back to memory store on connection or schema error
+      } catch (err) {
+        if (err.code === '23505') throw err;
+        console.warn(`[Supabase ${this.tableName} Fallback Notice]:`, err.message);
       }
     }
 
@@ -280,12 +332,13 @@ export class SupabaseModel {
     const updateFields = update.$set ? update.$set : update;
     const merged = { ...existing.toJSON(), ...updateFields, updatedAt: new Date().toISOString() };
 
-    if (supabaseAdmin) {
+    if (shouldUseLiveSupabase()) {
       try {
         const snakeData = mapObjectToSnake(updateFields);
+        const validColumnsData = filterValidColumns(this.tableName, snakeData);
         const { data: updated, error } = await supabaseAdmin
           .from(this.tableName)
-          .update(snakeData)
+          .update(validColumnsData)
           .eq('id', existing.id)
           .select()
           .single();
@@ -316,7 +369,7 @@ export class SupabaseModel {
     const existing = await this.findOne(filter);
     if (!existing) return null;
 
-    if (supabaseAdmin) {
+    if (shouldUseLiveSupabase()) {
       try {
         await supabaseAdmin.from(this.tableName).delete().eq('id', existing.id);
       } catch (_err) {
@@ -459,22 +512,40 @@ export class SupabaseModel {
 
     // Try querying live Supabase if available
     let queriedFromSupabase = false;
-    if (supabaseAdmin) {
+    if (shouldUseLiveSupabase()) {
       try {
         let sbQuery = supabaseAdmin.from(this.tableName).select('*');
-        const snakeFilter = mapObjectToSnake(filter);
 
-        for (const [col, val] of Object.entries(snakeFilter)) {
-          if (val !== undefined && val !== null) {
-            if (typeof val === 'object' && !Array.isArray(val)) {
-              if (val.$gte !== undefined) sbQuery = sbQuery.gte(col, val.$gte);
-              if (val.$lte !== undefined) sbQuery = sbQuery.lte(col, val.$lte);
-              if (val.$gt !== undefined) sbQuery = sbQuery.gt(col, val.$gt);
-              if (val.$lt !== undefined) sbQuery = sbQuery.lt(col, val.$lt);
-              if (val.$in !== undefined) sbQuery = sbQuery.in(col, val.$in);
-              if (val.$ne !== undefined) sbQuery = sbQuery.neq(col, val.$ne);
+        // PostgREST .or() filter handling
+        if (filter.$or && Array.isArray(filter.$or)) {
+          const orConditions = [];
+          for (const condition of filter.$or) {
+            for (const [k, v] of Object.entries(condition)) {
+              const snakeKey = k === '_id' ? 'id' : camelToSnake(k);
+              if (v !== undefined && v !== null) {
+                orConditions.push(`${snakeKey}.eq.${v}`);
+              }
+            }
+          }
+          if (orConditions.length > 0) {
+            sbQuery = sbQuery.or(orConditions.join(','));
+          }
+        }
+
+        // Apply remaining filters
+        for (const [k, v] of Object.entries(filter)) {
+          if (k === '$or') continue;
+          const snakeKey = k === '_id' ? 'id' : camelToSnake(k);
+          if (v !== undefined && v !== null) {
+            if (typeof v === 'object' && !Array.isArray(v)) {
+              if (v.$gte !== undefined) sbQuery = sbQuery.gte(snakeKey, v.$gte);
+              if (v.$lte !== undefined) sbQuery = sbQuery.lte(snakeKey, v.$lte);
+              if (v.$gt !== undefined) sbQuery = sbQuery.gt(snakeKey, v.$gt);
+              if (v.$lt !== undefined) sbQuery = sbQuery.lt(snakeKey, v.$lt);
+              if (v.$in !== undefined) sbQuery = sbQuery.in(snakeKey, v.$in);
+              if (v.$ne !== undefined) sbQuery = sbQuery.neq(snakeKey, v.$ne);
             } else {
-              sbQuery = sbQuery.eq(col, val);
+              sbQuery = sbQuery.eq(snakeKey, v);
             }
           }
         }

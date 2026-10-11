@@ -126,6 +126,7 @@ export async function runDatabaseMigrationTests() {
     name: 'Migration Test User',
     email: `mig_test_${Date.now()}@example.com`,
     phone: '9998887776',
+    passwordHash: '$2a$10$abcdefghijklmnopqrstuvwxyz123456',
     role: 'worker',
     status: 'active',
   });

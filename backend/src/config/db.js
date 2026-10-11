@@ -18,12 +18,8 @@ export const connectDB = async () => {
 
   try {
     const status = await checkSupabaseConnection();
-    if (status.postgres) {
-      console.log('[KaamSetu AI] Connected to Supabase PostgreSQL database successfully.');
-      isDbReady = true;
-      return true;
-    } else if (status.supabaseClient) {
-      console.log('[KaamSetu AI] Connected to Supabase via JavaScript Client API successfully.');
+    if (status.supabaseClient || status.postgres) {
+      console.log(`[KaamSetu AI] Connected to Supabase database successfully (${status.supabaseClient ? 'Supabase Client API' : 'PostgreSQL direct'}).`);
       isDbReady = true;
       return true;
     } else if (status.error) {

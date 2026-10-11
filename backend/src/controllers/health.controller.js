@@ -14,8 +14,21 @@ export const getReadinessStatus = async (req, res) => {
   let isDbConnected = false;
   let dbType = 'none';
 
-  // 1. Check Supabase / PostgreSQL direct connection
-  if (pgPool) {
+  // 1. Check Supabase SDK Client first (fast HTTPS IPv4, cloud-compatible)
+  if (supabaseAdmin) {
+    try {
+      const { error } = await supabaseAdmin.from('users').select('id').limit(1);
+      if (!error || error.code === 'PGRST116' || !error.message.includes('fetch failed')) {
+        isDbConnected = true;
+        dbType = 'supabase_client';
+      }
+    } catch (_err) {
+      // SDK check failed
+    }
+  }
+
+  // 2. Check direct PostgreSQL pool if not already verified
+  if (!isDbConnected && pgPool) {
     try {
       const result = await pgPool.query('SELECT 1 as connected');
       if (result.rows?.[0]?.connected === 1) {
@@ -24,20 +37,6 @@ export const getReadinessStatus = async (req, res) => {
       }
     } catch (_err) {
       // Postgres check failed
-    }
-  }
-
-  // 2. Check Supabase SDK Client
-  if (!isDbConnected && supabaseAdmin) {
-    try {
-      // Simple lightweight check against Supabase
-      const { error } = await supabaseAdmin.from('users').select('id').limit(1);
-      if (!error || error.code === 'PGRST116' || !error.message.includes('fetch failed')) {
-        isDbConnected = true;
-        dbType = 'supabase_client';
-      }
-    } catch (_err) {
-      // SDK check failed
     }
   }
 

@@ -9,12 +9,15 @@ export const Login = () => {
   const [localError, setLocalError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { login } = useAuth();
+  const { login, error: authError, setError: setAuthError } = useAuth();
   const navigate = useNavigate();
+
+  const displayError = localError || authError;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLocalError('');
+    if (setAuthError) setAuthError(null);
 
     if (!email || !password) {
       setLocalError('Please enter both email/phone and password');
@@ -39,10 +42,10 @@ export const Login = () => {
         <p className="text-sm text-slate-400">Access your KaamSetu AI account</p>
       </div>
 
-      {localError && (
+      {displayError && (
         <div className="flex items-center gap-2 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-sm">
           <AlertCircle className="w-5 h-5 shrink-0" />
-          <span>{localError}</span>
+          <span>{displayError}</span>
         </div>
       )}
 
