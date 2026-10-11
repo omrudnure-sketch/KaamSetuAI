@@ -26,6 +26,7 @@ const suites = [
   { name: '9. Worker Jobs Auth & Token Regression', file: 'worker-jobs-auth-regression.test.js' },
   { name: '10. Admin Reports, Analytics & UUID Validation Regression', file: 'admin-reports-analytics-regression.test.js' },
   { name: '11. Cross-Browser Auth & Reliability Regression', file: 'cross-browser-auth-reliability.test.js' },
+  { name: '12. Job Details, Application Submission & Notifications Regression', file: 'job-details-application-notifications.test.js' },
 ];
 
 console.log('================================================================');

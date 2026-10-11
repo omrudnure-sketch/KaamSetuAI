@@ -6,6 +6,7 @@ const JobApplication = createModel('job_applications', {
   workerId: null,
   employerId: null,
   message: '',
+  coverNote: '',
   proposedWage: 0,
   status: 'pending',
 });

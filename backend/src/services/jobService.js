@@ -144,15 +144,16 @@ export const getAvailableJobs = async (queryParams = {}) => {
 };
 
 export const getJobByIdForWorker = async (jobId) => {
-  const job = await Job.findOne({ _id: jobId, status: 'open' }).populate('employerId', 'name email phone');
+  const job = await Job.findById(jobId).populate('employerId', 'name email phone');
   if (!job) return null;
 
-  const jobObj = job.toJSON();
-  if (jobObj.employerId && jobObj.employerId._id) {
-    const empProfile = await EmployerProfile.findOne({ userId: jobObj.employerId._id }).select(
-      'name businessName businessType location description rating totalReviews'
+  const jobObj = job.toJSON ? job.toJSON() : { ...job };
+  const employerUserId = jobObj.employerId?._id || jobObj.employerId?.id || jobObj.employerId;
+  if (employerUserId) {
+    const empProfile = await EmployerProfile.findOne({ userId: employerUserId }).select(
+      'name companyName businessName businessType location description rating totalReviews'
     );
-    jobObj.employerProfile = empProfile || null;
+    jobObj.employerProfile = empProfile ? (empProfile.toJSON ? empProfile.toJSON() : empProfile) : null;
   }
 
   return jobObj;
