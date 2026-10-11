@@ -1,0 +1,134 @@
+[
+  {
+    "id": "a1000000-0000-4000-8000-000000000001",
+    "name": "Sunil Shinde",
+    "email": "worker01@example.com",
+    "phone": "9900000001",
+    "role": "worker",
+    "preferredLanguage": "mr",
+    "status": "active",
+    "isVerified": true
+  },
+  {
+    "id": "a1000000-0000-4000-8000-000000000002",
+    "name": "Rajesh Kumar",
+    "email": "worker02@example.com",
+    "phone": "9900000002",
+    "role": "worker",
+    "preferredLanguage": "hi",
+    "status": "active",
+    "isVerified": true
+  },
+  {
+    "id": "a1000000-0000-4000-8000-000000000003",
+    "name": "Ganesh Patil",
+    "email": "worker03@example.com",
+    "phone": "9900000003",
+    "role": "worker",
+    "preferredLanguage": "mr",
+    "status": "active",
+    "isVerified": true
+  },
+  {
+    "id": "a1000000-0000-4000-8000-000000000004",
+    "name": "Amit Sharma",
+    "email": "worker04@example.com",
+    "phone": "9900000004",
+    "role": "worker",
+    "preferredLanguage": "hi",
+    "status": "active",
+    "isVerified": true
+  },
+  {
+    "id": "a1000000-0000-4000-8000-000000000005",
+    "name": "Tukaram Jadhav",
+    "email": "worker05@example.com",
+    "phone": "9900000005",
+    "role": "worker",
+    "preferredLanguage": "mr",
+    "status": "active",
+    "isVerified": true
+  },
+  {
+    "id": "a1000000-0000-4000-8000-000000000006",
+    "name": "Vikas Verma",
+    "email": "worker06@example.com",
+    "phone": "9900000006",
+    "role": "worker",
+    "preferredLanguage": "en",
+    "status": "active",
+    "isVerified": true
+  },
+  {
+    "id": "a1000000-0000-4000-8000-000000000007",
+    "name": "Santosh Mane",
+    "email": "worker07@example.com",
+    "phone": "9900000007",
+    "role": "worker",
+    "preferredLanguage": "mr",
+    "status": "active",
+    "isVerified": true
+  },
+  {
+    "id": "a1000000-0000-4000-8000-000000000008",
+    "name": "Deepak Chauhan",
+    "email": "worker08@example.com",
+    "phone": "9900000008",
+    "role": "worker",
+    "preferredLanguage": "hi",
+    "status": "active",
+    "isVerified": true
+  },
+  {
+    "id": "a2000000-0000-4000-8000-000000000001",
+    "name": "Vikram Deshmukh",
+    "email": "employer01@example.com",
+    "phone": "9800000001",
+    "role": "employer",
+    "preferredLanguage": "en",
+    "status": "active",
+    "isVerified": true
+  },
+  {
+    "id": "a2000000-0000-4000-8000-000000000002",
+    "name": "Anand Kulkarni",
+    "email": "employer02@example.com",
+    "phone": "9800000002",
+    "role": "employer",
+    "preferredLanguage": "en",
+    "status": "active",
+    "isVerified": true
+  },
+  {
+    "id": "a2000000-0000-4000-8000-000000000003",
+    "name": "Pooja Bhosale",
+    "email": "employer03@example.com",
+    "phone": "9800000003",
+    "role": "employer",
+    "preferredLanguage": "en",
+    "status": "active",
+    "isVerified": true
+  },
+  {
+    "id": "a2000000-0000-4000-8000-000000000004",
+    "name": "Sanjay Joshi",
+    "email": "employer04@example.com",
+    "phone": "9800000004",
+    "role": "employer",
+    "preferredLanguage": "en",
+    "status": "active",
+    "isVerified": true
+  },
+  {
+    "id": "a3000000-0000-4000-8000-000000000001",
+    "name": "KaamSetu Admin",
+    "email": "admin01@example.com",
+    "phone": "9700000001",
+    "role": "admin",
+    "adminRole": "super_admin",
+    "permissions": ["*"],
+    "preferredLanguage": "en",
+    "status": "active",
+    "isVerified": true
+  }
+]

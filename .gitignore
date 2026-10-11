@@ -43,3 +43,7 @@ coverage/
 
 # OS generated files
 Thumbs.db
+
+# Test reports
+testing/reports/*.json
+!testing/reports/.gitkeep

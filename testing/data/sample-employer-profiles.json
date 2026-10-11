@@ -1,0 +1,50 @@
+[
+  {
+    "id": "e1000000-0000-4000-8000-000000000001",
+    "userId": "a2000000-0000-4000-8000-000000000001",
+    "companyName": "Deshmukh Infrastructure & Renovations",
+    "businessType": "Construction & Contracting",
+    "contactPerson": "Vikram Deshmukh",
+    "location": "Baner, Pune",
+    "city": "Pune",
+    "profileCompletion": 100,
+    "rating": 4.9,
+    "reviewCount": 28
+  },
+  {
+    "id": "e1000000-0000-4000-8000-000000000002",
+    "userId": "a2000000-0000-4000-8000-000000000002",
+    "companyName": "Kulkarni Agro Farms & Orchards",
+    "businessType": "Agriculture & Agro Services",
+    "contactPerson": "Anand Kulkarni",
+    "location": "Mohol, Solapur",
+    "city": "Solapur",
+    "profileCompletion": 85,
+    "rating": 4.8,
+    "reviewCount": 16
+  },
+  {
+    "id": "e1000000-0000-4000-8000-000000000003",
+    "userId": "a2000000-0000-4000-8000-000000000003",
+    "companyName": "Bhosale Home Decor & Interiors",
+    "businessType": "Interior Design & Fitouts",
+    "contactPerson": "Pooja Bhosale",
+    "location": "Tarabai Park, Kolhapur",
+    "city": "Kolhapur",
+    "profileCompletion": 95,
+    "rating": 4.95,
+    "reviewCount": 22
+  },
+  {
+    "id": "e1000000-0000-4000-8000-000000000004",
+    "userId": "a2000000-0000-4000-8000-000000000004",
+    "companyName": "Joshi Logistics & Warehousing Hub",
+    "businessType": "Logistics & Supply Chain",
+    "contactPerson": "Sanjay Joshi",
+    "location": "Vishrambag, Sangli",
+    "city": "Sangli",
+    "profileCompletion": 90,
+    "rating": 4.7,
+    "reviewCount": 19
+  }
+]

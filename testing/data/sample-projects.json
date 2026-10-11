@@ -1,0 +1,154 @@
+[
+  {
+    "id": "f1000000-0000-4000-8000-000000000001",
+    "hiringAgreementId": "ea000000-0000-4000-8000-000000000001",
+    "employerId": "a2000000-0000-4000-8000-000000000001",
+    "title": "Commercial Shop Rewiring - Kothrud",
+    "description": "Complete electrical rewiring of 600 sq.ft retail store including conduit cutting, 3-phase wiring, and distribution board setup.",
+    "location": "Kothrud, Pune",
+    "startDate": "2026-10-09",
+    "expectedEndDate": "2026-10-12",
+    "actualEndDate": null,
+    "paymentAmount": 2700.00,
+    "status": "in_progress",
+    "completionRequestedBy": null,
+    "hiringAgreement": {
+      "id": "ea000000-0000-4000-8000-000000000001",
+      "jobId": "b1000000-0000-4000-8000-000000000004",
+      "employerId": "a2000000-0000-4000-8000-000000000001",
+      "workerId": "a1000000-0000-4000-8000-000000000001",
+      "agreedWage": 900.00,
+      "wageType": "daily",
+      "startDate": "2026-10-09",
+      "expectedEndDate": "2026-10-12",
+      "terms": "Work hours 09:00 - 18:00. Safety equipment and ladder provided at site. Daily wage paid per verified attendance.",
+      "proposedBy": "employer",
+      "status": "confirmed",
+      "confirmedAt": "2026-10-08T14:30:00Z"
+    },
+    "projectWorkers": [
+      {
+        "id": "eb000000-0000-4000-8000-000000000001",
+        "workerId": "a1000000-0000-4000-8000-000000000001",
+        "hiringAgreementId": "ea000000-0000-4000-8000-000000000001",
+        "agreedWage": 900.00,
+        "wageType": "daily",
+        "status": "active"
+      }
+    ]
+  },
+  {
+    "id": "f1000000-0000-4000-8000-000000000002",
+    "hiringAgreementId": "ea000000-0000-4000-8000-000000000002",
+    "employerId": "a2000000-0000-4000-8000-000000000003",
+    "title": "Modular Kitchen Carcass & Fitting",
+    "description": "Assembly and alignment of base and overhead cabinets, soft-close hinges, and cutlery trays for luxury residence in Kolhapur.",
+    "location": "Rajarampuri, Kolhapur",
+    "startDate": "2026-10-10",
+    "expectedEndDate": "2026-10-13",
+    "actualEndDate": null,
+    "paymentAmount": 3400.00,
+    "status": "in_progress",
+    "completionRequestedBy": null,
+    "hiringAgreement": {
+      "id": "ea000000-0000-4000-8000-000000000002",
+      "jobId": "b1000000-0000-4000-8000-000000000006",
+      "employerId": "a2000000-0000-4000-8000-000000000003",
+      "workerId": "a1000000-0000-4000-8000-000000000005",
+      "agreedWage": 850.00,
+      "wageType": "daily",
+      "startDate": "2026-10-10",
+      "expectedEndDate": "2026-10-13",
+      "terms": "Precision alignment with laser level. Daily cleanup of wood shavings required.",
+      "proposedBy": "employer",
+      "status": "confirmed",
+      "confirmedAt": "2026-10-09T16:00:00Z"
+    },
+    "projectWorkers": [
+      {
+        "id": "eb000000-0000-4000-8000-000000000002",
+        "workerId": "a1000000-0000-4000-8000-000000000005",
+        "hiringAgreementId": "ea000000-0000-4000-8000-000000000002",
+        "agreedWage": 850.00,
+        "wageType": "daily",
+        "status": "active"
+      }
+    ]
+  },
+  {
+    "id": "f1000000-0000-4000-8000-000000000003",
+    "hiringAgreementId": "ea000000-0000-4000-8000-000000000003",
+    "employerId": "a2000000-0000-4000-8000-000000000003",
+    "title": "Emergency Bathroom Pipeline Leakage Fix",
+    "description": "Locate and repair concealed hot-water CPVC pipe burst in master bathroom, replace brass elbows, and pressure test.",
+    "location": "Shahupuri, Kolhapur",
+    "startDate": "2026-10-06",
+    "expectedEndDate": "2026-10-06",
+    "actualEndDate": "2026-10-06",
+    "paymentAmount": 800.00,
+    "status": "completed",
+    "completionRequestedBy": "a1000000-0000-4000-8000-000000000003",
+    "hiringAgreement": {
+      "id": "ea000000-0000-4000-8000-000000000003",
+      "jobId": "b1000000-0000-4000-8000-000000000005",
+      "employerId": "a2000000-0000-4000-8000-000000000003",
+      "workerId": "a1000000-0000-4000-8000-000000000003",
+      "agreedWage": 800.00,
+      "wageType": "daily",
+      "startDate": "2026-10-06",
+      "expectedEndDate": "2026-10-06",
+      "terms": "Single-day emergency service. Payment released upon zero-leak pressure verification.",
+      "proposedBy": "employer",
+      "status": "confirmed",
+      "confirmedAt": "2026-10-06T08:00:00Z"
+    },
+    "projectWorkers": [
+      {
+        "id": "eb000000-0000-4000-8000-000000000003",
+        "workerId": "a1000000-0000-4000-8000-000000000003",
+        "hiringAgreementId": "ea000000-0000-4000-8000-000000000003",
+        "agreedWage": 800.00,
+        "wageType": "daily",
+        "status": "completed"
+      }
+    ]
+  },
+  {
+    "id": "f1000000-0000-4000-8000-000000000004",
+    "hiringAgreementId": "ea000000-0000-4000-8000-000000000004",
+    "employerId": "a2000000-0000-4000-8000-000000000001",
+    "title": "Villa Renovation Demolition & Site Prep",
+    "description": "Multi-day renovation helper assistance for internal wall chipping, tile removal, and debris loading in Wakad.",
+    "location": "Wakad, Pune",
+    "startDate": "2026-10-09",
+    "expectedEndDate": "2026-10-19",
+    "actualEndDate": null,
+    "paymentAmount": 7000.00,
+    "status": "in_progress",
+    "completionRequestedBy": null,
+    "hiringAgreement": {
+      "id": "ea000000-0000-4000-8000-000000000004",
+      "jobId": "b1000000-0000-4000-8000-000000000015",
+      "employerId": "a2000000-0000-4000-8000-000000000001",
+      "workerId": "a1000000-0000-4000-8000-000000000008",
+      "agreedWage": 700.00,
+      "wageType": "daily",
+      "startDate": "2026-10-09",
+      "expectedEndDate": "2026-10-19",
+      "terms": "10-day multi-day contract. Attendance tracked daily. Saturday half-day, Sunday off.",
+      "proposedBy": "employer",
+      "status": "confirmed",
+      "confirmedAt": "2026-10-08T18:00:00Z"
+    },
+    "projectWorkers": [
+      {
+        "id": "eb000000-0000-4000-8000-000000000004",
+        "workerId": "a1000000-0000-4000-8000-000000000008",
+        "hiringAgreementId": "ea000000-0000-4000-8000-000000000004",
+        "agreedWage": 700.00,
+        "wageType": "daily",
+        "status": "active"
+      }
+    ]
+  }
+]

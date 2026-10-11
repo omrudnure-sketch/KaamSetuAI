@@ -1,0 +1,13 @@
+[
+  {
+    "id": "be000000-0000-4000-8000-000000000001",
+    "complaintId": "bd000000-0000-4000-8000-000000000001",
+    "projectId": "f1000000-0000-4000-8000-000000000004",
+    "claimantId": "a2000000-0000-4000-8000-000000000001",
+    "respondentId": "a1000000-0000-4000-8000-000000000008",
+    "assignedAdminId": "a3000000-0000-4000-8000-000000000001",
+    "status": "investigating",
+    "resolutionNotes": "Admin reviewing attendance logs and medical documentation submitted by worker. Mediation hearing scheduled.",
+    "resolvedAt": null
+  }
+]

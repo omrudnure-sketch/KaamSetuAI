@@ -1,0 +1,61 @@
+[
+  {
+    "id": "bc000000-0000-4000-8000-000000000001",
+    "userId": "a1000000-0000-4000-8000-000000000001",
+    "type": "HIRING_CONFIRMED",
+    "title": "Hiring Agreement Confirmed",
+    "message": "Vikram Deshmukh confirmed your agreement for Commercial Shop Rewiring at Rs 900/day.",
+    "isRead": true,
+    "data": {
+      "projectId": "f1000000-0000-4000-8000-000000000001",
+      "hiringAgreementId": "ea000000-0000-4000-8000-000000000001"
+    }
+  },
+  {
+    "id": "bc000000-0000-4000-8000-000000000002",
+    "userId": "a1000000-0000-4000-8000-000000000001",
+    "type": "EXTENSION_APPROVED",
+    "title": "Project Extension Approved",
+    "message": "Your 2-day extension request for Commercial Shop Rewiring was approved by employer Vikram Deshmukh.",
+    "isRead": false,
+    "data": {
+      "projectId": "f1000000-0000-4000-8000-000000000001",
+      "additionalDays": 2
+    }
+  },
+  {
+    "id": "bc000000-0000-4000-8000-000000000003",
+    "userId": "a2000000-0000-4000-8000-000000000001",
+    "type": "ATTENDANCE_CHECKIN",
+    "title": "Worker Checked In",
+    "message": "Sunil Shinde logged morning check-in at 09:00 AM on project Commercial Shop Rewiring.",
+    "isRead": false,
+    "data": {
+      "projectId": "f1000000-0000-4000-8000-000000000001",
+      "workerId": "a1000000-0000-4000-8000-000000000001"
+    }
+  },
+  {
+    "id": "bc000000-0000-4000-8000-000000000004",
+    "userId": "a1000000-0000-4000-8000-000000000003",
+    "type": "PAYMENT_RECEIVED",
+    "title": "Payment Settlement Received",
+    "message": "Payment of Rs 800.00 was transferred by Pooja Bhosale for Emergency Bathroom Leakage Fix.",
+    "isRead": true,
+    "data": {
+      "projectId": "f1000000-0000-4000-8000-000000000003",
+      "amount": 800.00
+    }
+  },
+  {
+    "id": "bc000000-0000-4000-8000-000000000005",
+    "userId": "a1000000-0000-4000-8000-000000000008",
+    "type": "COMPLAINT_FILED",
+    "title": "Complaint Notice",
+    "message": "An employer filed an attendance grievance regarding unnotified absence on Villa Renovation Phase 1.",
+    "isRead": false,
+    "data": {
+      "projectId": "f1000000-0000-4000-8000-000000000004"
+    }
+  }
+]

@@ -1,0 +1,42 @@
+[
+  {
+    "id": "ed000000-0000-4000-8000-000000000001",
+    "projectId": "f1000000-0000-4000-8000-000000000001",
+    "workerId": "a1000000-0000-4000-8000-000000000001",
+    "date": "2026-10-09",
+    "completionPercentage": 35,
+    "summary": "Completed concealed wall grooving, PVC conduit installation, and back-boxes for main switchboards."
+  },
+  {
+    "id": "ed000000-0000-4000-8000-000000000002",
+    "projectId": "f1000000-0000-4000-8000-000000000001",
+    "workerId": "a1000000-0000-4000-8000-000000000001",
+    "date": "2026-10-10",
+    "completionPercentage": 70,
+    "summary": "Pulled copper wiring circuits through conduits, completed sub-panel distribution wiring, and grounded earthing line."
+  },
+  {
+    "id": "ed000000-0000-4000-8000-000000000003",
+    "projectId": "f1000000-0000-4000-8000-000000000002",
+    "workerId": "a1000000-0000-4000-8000-000000000005",
+    "date": "2026-10-10",
+    "completionPercentage": 40,
+    "summary": "Assembled 6 bottom carcass boxes, leveled floor legs, and affixed laminate edge-banding on base cabinets."
+  },
+  {
+    "id": "ed000000-0000-4000-8000-000000000004",
+    "projectId": "f1000000-0000-4000-8000-000000000003",
+    "workerId": "a1000000-0000-4000-8000-000000000003",
+    "date": "2026-10-06",
+    "completionPercentage": 100,
+    "summary": "Chipped out cracked elbow, solvent-welded new heavy-duty CPVC line, sealed with waterproof compound, tested under 6 bar water pressure with zero leaks."
+  },
+  {
+    "id": "ed000000-0000-4000-8000-000000000005",
+    "projectId": "f1000000-0000-4000-8000-000000000004",
+    "workerId": "a1000000-0000-4000-8000-000000000008",
+    "date": "2026-10-09",
+    "completionPercentage": 15,
+    "summary": "Cleared first-floor demolition rubble into bags and stacked bricks for masonry work."
+  }
+]

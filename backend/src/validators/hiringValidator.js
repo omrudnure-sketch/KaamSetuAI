@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+const idRegex = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-fA-F]{24}|\d+)$/i;
 
 const workingHoursSchema = z.object({
   start: z.string().optional().default('09:00'),
@@ -15,7 +15,7 @@ const createHiringAgreementSchema = z
     }),
     sourceId: z
       .string({ required_error: 'Source ID is required' })
-      .regex(objectIdRegex, 'Invalid Source ID format'),
+      .regex(idRegex, 'Invalid Source ID format'),
     durationType: z.enum(['single_day', 'fixed_duration', 'until_completion'], {
       required_error: 'Valid duration type is required',
     }),

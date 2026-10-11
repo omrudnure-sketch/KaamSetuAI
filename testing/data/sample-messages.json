@@ -1,0 +1,53 @@
+[
+  {
+    "conversationId": "ca000000-0000-4000-8000-000000000001",
+    "participantA": "a2000000-0000-4000-8000-000000000001",
+    "participantB": "a1000000-0000-4000-8000-000000000001",
+    "relatedProjectId": "f1000000-0000-4000-8000-000000000001",
+    "messages": [
+      {
+        "id": "bb000000-0000-4000-8000-000000000001",
+        "senderId": "a2000000-0000-4000-8000-000000000001",
+        "content": "Namaste Sunil, please bring your heavy hammer drill tomorrow for the 3-phase meter board anchor bolts.",
+        "isRead": true,
+        "readAt": "2026-10-09T08:15:00Z"
+      },
+      {
+        "id": "bb000000-0000-4000-8000-000000000002",
+        "senderId": "a1000000-0000-4000-8000-000000000001",
+        "content": "Namaste Vikram sir. Yes, I have packed the hammer drill along with 10mm and 12mm masonry bits.",
+        "isRead": true,
+        "readAt": "2026-10-09T08:20:00Z"
+      },
+      {
+        "id": "bb000000-0000-4000-8000-000000000003",
+        "senderId": "a2000000-0000-4000-8000-000000000001",
+        "content": "Great, the site supervisor will be there at 09:00 AM sharp to unlock the shop.",
+        "isRead": false,
+        "readAt": null
+      }
+    ]
+  },
+  {
+    "conversationId": "ca000000-0000-4000-8000-000000000002",
+    "participantA": "a2000000-0000-4000-8000-000000000003",
+    "participantB": "a1000000-0000-4000-8000-000000000005",
+    "relatedProjectId": "f1000000-0000-4000-8000-000000000002",
+    "messages": [
+      {
+        "id": "bb000000-0000-4000-8000-000000000004",
+        "senderId": "a2000000-0000-4000-8000-000000000003",
+        "content": "Hello Tukaram, the 1mm laminate sheets and Fevicol have been delivered to the flat.",
+        "isRead": true,
+        "readAt": "2026-10-10T09:30:00Z"
+      },
+      {
+        "id": "bb000000-0000-4000-8000-000000000005",
+        "senderId": "a1000000-0000-4000-8000-000000000005",
+        "content": "Received madam. I have checked the shade numbers, they match the interior drawing. Starting carcass pressing now.",
+        "isRead": true,
+        "readAt": "2026-10-10T09:35:00Z"
+      }
+    ]
+  }
+]

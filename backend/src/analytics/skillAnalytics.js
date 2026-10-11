@@ -4,134 +4,19 @@ import { parseDateRange } from '../utils/dateFilter.js';
 export const getSkillAnalytics = async (query = {}) => {
   const { dateRangeLabel } = parseDateRange(query);
 
-  const [
-    openJobsBySkill,
-    totalRelevantWorkers,
-    availableWorkersBySkill,
-    hiresBySkill,
-    completedProjectsBySkill,
-    avgJobWagesBySkill,
-    avgAgreedWagesBySkill,
-  ] = await Promise.all([
-    // 1. Open jobs by skill
-    Job.aggregate([
-      { $match: { status: 'open' } },
-      { $group: { _id: { $toLower: '$skillRequired' }, openJobs: { $sum: 1 } } },
-    ]),
-
-    // 2. Relevant workers by skill (primarySkill or skills array)
-    WorkerProfile.aggregate([
-      {
-        $project: {
-          allSkills: {
-            $setUnion: [
-              { $cond: [{ $ifNull: ['$primarySkill', false] }, [{ $toLower: '$primarySkill' }], []] },
-              {
-                $map: {
-                  input: { $ifNull: ['$skills', []] },
-                  as: 's',
-                  in: { $toLower: '$$s' },
-                },
-              },
-            ],
-          },
-        },
-      },
-      { $unwind: '$allSkills' },
-      { $group: { _id: '$allSkills', relevantWorkers: { $sum: 1 } } },
-    ]),
-
-    // 3. Currently AVAILABLE workers by skill (availability === 'available')
-    WorkerProfile.aggregate([
-      { $match: { availability: 'available' } },
-      {
-        $project: {
-          allSkills: {
-            $setUnion: [
-              { $cond: [{ $ifNull: ['$primarySkill', false] }, [{ $toLower: '$primarySkill' }], []] },
-              {
-                $map: {
-                  input: { $ifNull: ['$skills', []] },
-                  as: 's',
-                  in: { $toLower: '$$s' },
-                },
-              },
-            ],
-          },
-        },
-      },
-      { $unwind: '$allSkills' },
-      { $group: { _id: '$allSkills', availableWorkers: { $sum: 1 } } },
-    ]),
-
-    // 4. Number of confirmed hires by skill (via Job skillRequired)
-    HiringAgreement.aggregate([
-      { $match: { status: 'confirmed' } },
-      {
-        $lookup: {
-          from: 'jobs',
-          localField: 'jobId',
-          foreignField: '_id',
-          as: 'jobDoc',
-        },
-      },
-      { $unwind: '$jobDoc' },
-      { $group: { _id: { $toLower: '$jobDoc.skillRequired' }, hiresCount: { $sum: 1 } } },
-    ]),
-
-    // 5. Completed projects by skill
-    Project.aggregate([
-      { $match: { status: 'completed' } },
-      {
-        $lookup: {
-          from: 'jobs',
-          localField: 'jobId',
-          foreignField: '_id',
-          as: 'jobDoc',
-        },
-      },
-      { $unwind: '$jobDoc' },
-      { $group: { _id: { $toLower: '$jobDoc.skillRequired' }, completedCount: { $sum: 1 } } },
-    ]),
-
-    // 6. Average advertised wage from Jobs (by skill)
-    Job.aggregate([
-      { $match: { status: 'open', wageAmount: { $gt: 0 } } },
-      {
-        $group: {
-          _id: { $toLower: '$skillRequired' },
-          avgAdvertisedWage: { $avg: '$wageAmount' },
-        },
-      },
-    ]),
-
-    // 7. Average agreed wage from confirmed HiringAgreements
-    HiringAgreement.aggregate([
-      { $match: { status: 'confirmed', agreedWage: { $gt: 0 } } },
-      {
-        $lookup: {
-          from: 'jobs',
-          localField: 'jobId',
-          foreignField: '_id',
-          as: 'jobDoc',
-        },
-      },
-      { $unwind: '$jobDoc' },
-      {
-        $group: {
-          _id: { $toLower: '$jobDoc.skillRequired' },
-          avgAgreedWage: { $avg: '$agreedWage' },
-        },
-      },
-    ]),
+  const [allJobs, allWorkers, allAgreements, allProjects] = await Promise.all([
+    Job.find({}).lean(),
+    WorkerProfile.find({}).lean(),
+    HiringAgreement.find({}).lean(),
+    Project.find({}).lean(),
   ]);
 
-  // Aggregate by skill
   const skillMap = {};
 
   const ensureSkill = (skill) => {
-    if (!skill) return null;
+    if (!skill || typeof skill !== 'string') return null;
     const key = skill.trim().toLowerCase();
+    if (!key) return null;
     if (!skillMap[key]) {
       skillMap[key] = {
         skill: key,
@@ -140,53 +25,147 @@ export const getSkillAnalytics = async (query = {}) => {
         availableWorkers: 0,
         hires: 0,
         completedProjects: 0,
-        avgAdvertisedWage: null,
-        avgAgreedWage: null,
+        advertisedWages: [],
+        agreedWages: [],
       };
     }
     return skillMap[key];
   };
 
-  openJobsBySkill.forEach((j) => {
-    const s = ensureSkill(j._id);
-    if (s) s.openJobs = j.openJobs;
-  });
+  const jobMap = new Map();
+  for (const j of allJobs) {
+    const jId = String(j.id || j._id);
+    jobMap.set(jId, j);
 
-  totalRelevantWorkers.forEach((w) => {
-    const s = ensureSkill(w._id);
-    if (s) s.relevantWorkers = w.relevantWorkers;
-  });
+    const skills = new Set();
+    if (j.skillRequired && typeof j.skillRequired === 'string') {
+      skills.add(j.skillRequired.trim().toLowerCase());
+    }
+    if (j.category && typeof j.category === 'string') {
+      skills.add(j.category.trim().toLowerCase());
+    }
+    if (Array.isArray(j.requiredSkills)) {
+      for (const s of j.requiredSkills) {
+        if (typeof s === 'string' && s.trim()) skills.add(s.trim().toLowerCase());
+      }
+    }
 
-  availableWorkersBySkill.forEach((w) => {
-    const s = ensureSkill(w._id);
-    if (s) s.availableWorkers = w.availableWorkers;
-  });
+    if (j.status === 'open') {
+      for (const skillName of skills) {
+        const s = ensureSkill(skillName);
+        if (s) {
+          s.openJobs++;
+          if (j.wageAmount && Number(j.wageAmount) > 0) {
+            s.advertisedWages.push(Number(j.wageAmount));
+          }
+        }
+      }
+    }
+  }
 
-  hiresBySkill.forEach((h) => {
-    const s = ensureSkill(h._id);
-    if (s) s.hires = h.hiresCount;
-  });
+  for (const w of allWorkers) {
+    const workerSkills = new Set();
+    if (w.primarySkill && typeof w.primarySkill === 'string') {
+      workerSkills.add(w.primarySkill.trim().toLowerCase());
+    }
+    if (Array.isArray(w.skills)) {
+      for (const s of w.skills) {
+        if (typeof s === 'string' && s.trim()) workerSkills.add(s.trim().toLowerCase());
+      }
+    }
 
-  completedProjectsBySkill.forEach((p) => {
-    const s = ensureSkill(p._id);
-    if (s) s.completedProjects = p.completedCount;
-  });
+    const isAvailable = w.availability === 'available';
+    for (const skillName of workerSkills) {
+      const s = ensureSkill(skillName);
+      if (s) {
+        s.relevantWorkers++;
+        if (isAvailable) {
+          s.availableWorkers++;
+        }
+      }
+    }
+  }
 
-  avgJobWagesBySkill.forEach((w) => {
-    const s = ensureSkill(w._id);
-    if (s) s.avgAdvertisedWage = Math.round(w.avgAdvertisedWage);
-  });
+  const agreementMap = new Map();
+  for (const h of allAgreements) {
+    const hId = String(h.id || h._id);
+    agreementMap.set(hId, h);
 
-  avgAgreedWagesBySkill.forEach((w) => {
-    const s = ensureSkill(w._id);
-    if (s) s.avgAgreedWage = Math.round(w.avgAgreedWage);
-  });
+    if (h.status === 'confirmed') {
+      const jobId = String(h.jobId?._id || h.jobId?.id || h.jobId || '');
+      const job = jobMap.get(jobId);
+      if (job) {
+        const jobSkills = new Set();
+        if (job.skillRequired && typeof job.skillRequired === 'string') {
+          jobSkills.add(job.skillRequired.trim().toLowerCase());
+        }
+        if (job.category && typeof job.category === 'string') {
+          jobSkills.add(job.category.trim().toLowerCase());
+        }
+        if (Array.isArray(job.requiredSkills)) {
+          for (const s of job.requiredSkills) {
+            if (typeof s === 'string') jobSkills.add(s.trim().toLowerCase());
+          }
+        }
+        for (const skillName of jobSkills) {
+          const s = ensureSkill(skillName);
+          if (s) {
+            s.hires++;
+            if (h.agreedWage && Number(h.agreedWage) > 0) {
+              s.agreedWages.push(Number(h.agreedWage));
+            }
+          }
+        }
+      }
+    }
+  }
 
-  // Calculate Demand, Supply, and Gap
+  for (const p of allProjects) {
+    if (p.status === 'completed') {
+      let job = null;
+      if (p.jobId) {
+        job = jobMap.get(String(p.jobId._id || p.jobId.id || p.jobId));
+      } else if (p.hiringAgreementId) {
+        const ag = agreementMap.get(String(p.hiringAgreementId._id || p.hiringAgreementId.id || p.hiringAgreementId));
+        if (ag && ag.jobId) {
+          job = jobMap.get(String(ag.jobId._id || ag.jobId.id || ag.jobId));
+        }
+      }
+      if (job) {
+        const jobSkills = new Set();
+        if (job.skillRequired && typeof job.skillRequired === 'string') {
+          jobSkills.add(job.skillRequired.trim().toLowerCase());
+        }
+        if (job.category && typeof job.category === 'string') {
+          jobSkills.add(job.category.trim().toLowerCase());
+        }
+        if (Array.isArray(job.requiredSkills)) {
+          for (const s of job.requiredSkills) {
+            if (typeof s === 'string') jobSkills.add(s.trim().toLowerCase());
+          }
+        }
+        for (const skillName of jobSkills) {
+          const s = ensureSkill(skillName);
+          if (s) s.completedProjects++;
+        }
+      }
+    }
+  }
+
   const skills = Object.values(skillMap).map((item) => {
     const demand = item.openJobs;
-    const supply = item.availableWorkers; // Only currently available workers count as supply!
+    const supply = item.availableWorkers;
     const gap = Math.max(0, demand - supply);
+
+    const avgAdvertised =
+      item.advertisedWages.length > 0
+        ? Math.round(item.advertisedWages.reduce((a, b) => a + b, 0) / item.advertisedWages.length)
+        : null;
+
+    const avgAgreed =
+      item.agreedWages.length > 0
+        ? Math.round(item.agreedWages.reduce((a, b) => a + b, 0) / item.agreedWages.length)
+        : null;
 
     return {
       skill: item.skill,
@@ -195,14 +174,14 @@ export const getSkillAnalytics = async (query = {}) => {
       availableWorkers: item.availableWorkers,
       hires: item.hires,
       completedProjects: item.completedProjects,
-      avgAdvertisedWage: item.avgAdvertisedWage ? `₹${item.avgAdvertisedWage}` : 'N/A',
-      avgAgreedWage: item.avgAgreedWage ? `₹${item.avgAgreedWage}` : 'N/A',
+      avgAdvertisedWage: avgAdvertised ? `₹${avgAdvertised}` : 'N/A',
+      avgAgreedWage: avgAgreed ? `₹${avgAgreed}` : 'N/A',
       demand,
       supply,
       gap,
       wageComparison: {
-        advertised: item.avgAdvertisedWage || 0,
-        agreed: item.avgAgreedWage || 0,
+        advertised: avgAdvertised || 0,
+        agreed: avgAgreed || 0,
         source: 'Advertised wage from Job.wageAmount; agreed wage from HiringAgreement.agreedWage',
       },
     };

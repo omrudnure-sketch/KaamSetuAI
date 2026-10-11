@@ -30,8 +30,15 @@ export const sanitizeForCSV = (value) => {
   return str.replace(/"/g, '""');
 };
 
-export const convertToCSV = ({ headers, data }) => {
-  if (!data || data.length === 0) return headers.join(',') + '\n';
+export const convertToCSV = (headersOrObj, dataArr) => {
+  let headers = headersOrObj;
+  let data = dataArr;
+  if (headersOrObj && typeof headersOrObj === 'object' && !Array.isArray(headersOrObj)) {
+    headers = headersOrObj.headers;
+    data = headersOrObj.data;
+  }
+  if (!headers || !Array.isArray(headers)) return '';
+  if (!data || data.length === 0) return headers.map((h) => `"${sanitizeForCSV(h)}"`).join(',') + '\n';
   const csvRows = [];
   csvRows.push(headers.map((h) => `"${sanitizeForCSV(h)}"`).join(','));
 
@@ -106,12 +113,12 @@ export const generateReportData = async (reportType, query = {}) => {
         'Worker ID': String(w._id),
         Name: w.fullName || w.userId?.name || 'N/A',
         Phone: w.userId?.phone || 'N/A',
-        'Primary Skill': w.primarySkill || 'N/A',
+        'Primary Skill': w.primarySkill || (Array.isArray(w.skills) && w.skills.length > 0 ? w.skills.join(', ') : 'N/A'),
         'Experience (Yrs)': w.experienceYears || 0,
         'Daily Wage': w.dailyWage ? `₹${w.dailyWage}` : 'N/A',
         Status: w.userId?.status || 'active',
-        Verified: w.verificationStatus === 'verified' ? 'Yes' : 'No',
-        City: w.location?.city || 'Unspecified',
+        Verified: (w.isVerified || w.userId?.isVerified || w.verificationStatus === 'verified') ? 'Yes' : 'No',
+        City: w.city || (typeof w.location === 'string' ? w.location : w.location?.city) || 'Unspecified',
         'Created Date': w.createdAt ? new Date(w.createdAt).toISOString().split('T')[0] : 'N/A',
       }));
       break;
@@ -141,10 +148,10 @@ export const generateReportData = async (reportType, query = {}) => {
       data = raw.map((e) => ({
         'Employer ID': String(e._id),
         Name: e.name || e.userId?.name || 'N/A',
-        'Business Name': e.businessName || 'N/A',
+        'Business Name': e.companyName || e.businessName || 'N/A',
         'Business Type': e.businessType || 'other',
-        City: e.location?.city || 'Unspecified',
-        Verified: e.verificationStatus === 'verified' ? 'Yes' : 'No',
+        City: e.city || (typeof e.location === 'string' ? e.location : e.location?.city) || 'Unspecified',
+        Verified: (e.isVerified || e.userId?.isVerified || e.verificationStatus === 'verified') ? 'Yes' : 'No',
         'Created Date': e.createdAt ? new Date(e.createdAt).toISOString().split('T')[0] : 'N/A',
       }));
       break;
@@ -154,13 +161,14 @@ export const generateReportData = async (reportType, query = {}) => {
       headers = ['Job ID', 'Title', 'Skill Required', 'Workers Needed', 'Wage Type', 'Wage Amount', 'Status', 'City', 'Created Date'];
       const match = {};
       if (status) match.status = status;
-      if (city) match['location.city'] = new RegExp(city, 'i');
+      if (city) match.city = new RegExp(city, 'i');
       if (startDate) match.createdAt = { $gte: startDate, $lte: endDate };
       if (search) {
         match.$or = [
           { title: new RegExp(search, 'i') },
+          { category: new RegExp(search, 'i') },
           { skillRequired: new RegExp(search, 'i') },
-          { 'location.city': new RegExp(search, 'i') },
+          { city: new RegExp(search, 'i') },
         ];
       }
 
@@ -174,12 +182,12 @@ export const generateReportData = async (reportType, query = {}) => {
       data = raw.map((j) => ({
         'Job ID': String(j._id),
         Title: j.title,
-        'Skill Required': j.skillRequired,
-        'Workers Needed': j.workersRequired,
+        'Skill Required': j.category || j.skillRequired || (Array.isArray(j.requiredSkills) ? j.requiredSkills.join(', ') : 'N/A'),
+        'Workers Needed': j.workersNeeded || j.workersRequired || 1,
         'Wage Type': j.wageType,
         'Wage Amount': `₹${j.wageAmount}`,
         Status: j.status,
-        City: j.location?.city || 'Unspecified',
+        City: j.city || (typeof j.location === 'string' ? j.location : j.location?.city) || 'Unspecified',
         'Created Date': j.createdAt ? new Date(j.createdAt).toISOString().split('T')[0] : 'N/A',
       }));
       break;
@@ -267,14 +275,14 @@ export const generateReportData = async (reportType, query = {}) => {
 
       data = raw.map((p) => ({
         'Project ID': String(p._id),
-        Title: p.name,
+        Title: p.title || p.name || 'N/A',
         Employer: p.employerId?.name || 'N/A',
         Status: p.status,
-        'Daily Wage': `₹${p.paymentAmount}`,
+        'Daily Wage': `₹${p.paymentAmount || 0}`,
         Progress: `${p.progressPercentage || 0}%`,
         'Start Date': p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : 'N/A',
-        'Expected End': p.currentExpectedEndDate ? new Date(p.currentExpectedEndDate).toISOString().split('T')[0] : 'N/A',
-        City: p.location?.city || 'Unspecified',
+        'Expected End': p.expectedEndDate ? new Date(p.expectedEndDate).toISOString().split('T')[0] : (p.currentExpectedEndDate ? new Date(p.currentExpectedEndDate).toISOString().split('T')[0] : 'N/A'),
+        City: p.city || (typeof p.location === 'string' ? p.location : p.location?.city) || 'Unspecified',
       }));
       break;
     }
@@ -293,7 +301,7 @@ export const generateReportData = async (reportType, query = {}) => {
       totalCount = await Attendance.countDocuments(match);
       const raw = await Attendance.find(match)
         .populate('workerId', 'name')
-        .populate('projectId', 'name')
+        .populate('projectId', 'title name')
         .sort({ date: sortDirection })
         .skip(skip)
         .limit(parsedLimit)
@@ -302,11 +310,11 @@ export const generateReportData = async (reportType, query = {}) => {
       data = raw.map((att) => ({
         'Attendance ID': String(att._id),
         Date: att.date,
-        Project: att.projectId?.name || 'N/A',
+        Project: att.projectId?.title || att.projectId?.name || 'N/A',
         Worker: att.workerId?.name || 'N/A',
         Status: att.status,
-        'Check In': att.checkIn ? new Date(att.checkIn).toLocaleTimeString() : 'N/A',
-        'Check Out': att.checkOut ? new Date(att.checkOut).toLocaleTimeString() : 'N/A',
+        'Check In': att.checkInTime ? new Date(att.checkInTime).toLocaleTimeString() : (att.checkIn ? new Date(att.checkIn).toLocaleTimeString() : 'N/A'),
+        'Check Out': att.checkOutTime ? new Date(att.checkOutTime).toLocaleTimeString() : (att.checkOut ? new Date(att.checkOut).toLocaleTimeString() : 'N/A'),
       }));
       break;
     }
@@ -319,9 +327,11 @@ export const generateReportData = async (reportType, query = {}) => {
 
       totalCount = await Payment.countDocuments(match);
       const raw = await Payment.find(match)
+        .populate('payeeId', 'name')
+        .populate('payerId', 'name')
         .populate('workerId', 'name')
         .populate('employerId', 'name')
-        .populate('projectId', 'name')
+        .populate('projectId', 'title name')
         .sort({ paymentDate: sortDirection })
         .skip(skip)
         .limit(parsedLimit)
@@ -329,12 +339,12 @@ export const generateReportData = async (reportType, query = {}) => {
 
       data = raw.map((pm) => ({
         'Payment ID': String(pm._id),
-        Project: pm.projectId?.name || 'N/A',
-        Worker: pm.workerId?.name || 'N/A',
-        Employer: pm.employerId?.name || 'N/A',
+        Project: pm.projectId?.title || pm.projectId?.name || 'N/A',
+        Worker: pm.payeeId?.name || pm.workerId?.name || 'N/A',
+        Employer: pm.payerId?.name || pm.employerId?.name || 'N/A',
         Amount: `₹${pm.amount}`,
-        Type: pm.type,
-        Method: pm.method,
+        Type: pm.wageType || pm.type || 'daily',
+        Method: pm.transactionRef ? 'bank/transfer' : (pm.method || 'cash'),
         Status: pm.status,
         'Payment Date': pm.paymentDate ? new Date(pm.paymentDate).toISOString().split('T')[0] : 'N/A',
       }));

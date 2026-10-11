@@ -1,15 +1,15 @@
 import { z } from 'zod';
 
-const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+const idRegex = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-fA-F]{24}|\d+)$/i;
 
 const createInvitationSchema = z
   .object({
     jobId: z
       .string({ required_error: 'Job ID is required' })
-      .regex(objectIdRegex, 'Invalid Job ID format'),
+      .regex(idRegex, 'Invalid Job ID format'),
     workerId: z
       .string({ required_error: 'Worker ID is required' })
-      .regex(objectIdRegex, 'Invalid Worker ID format'),
+      .regex(idRegex, 'Invalid Worker ID format'),
     proposedWage: z
       .number({ required_error: 'Proposed wage is required' })
       .positive('Proposed wage must be greater than 0'),

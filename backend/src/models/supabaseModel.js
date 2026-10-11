@@ -66,12 +66,14 @@ export const SUPABASE_TABLE_COLUMNS = {
   payments: new Set(['id', 'project_id', 'payer_id', 'payee_id', 'amount', 'wage_type', 'status', 'payment_date', 'transaction_ref', 'notes', 'created_at']),
   reviews: new Set(['id', 'project_id', 'reviewer_id', 'reviewee_id', 'rating', 'comment', 'created_at']),
   messages: new Set(['id', 'conversation_id', 'sender_id', 'content', 'is_read', 'read_at', 'created_at']),
-  conversations: new Set(['id', 'participants', 'created_at', 'updated_at']),
+  conversations: new Set(['id', 'participant_a', 'participant_b', 'related_project_id', 'last_message_at', 'participants', 'created_at', 'updated_at']),
   notifications: new Set(['id', 'user_id', 'type', 'title', 'message', 'is_read', 'data', 'created_at']),
-  complaints: new Set(['id', 'filed_by', 'against_user_id', 'project_id', 'category', 'description', 'status', 'assigned_admin_id', 'resolution_notes', 'resolved_at', 'created_at', 'updated_at']),
+  complaints: new Set(['id', 'filed_by', 'against_user', 'against_user_id', 'project_id', 'category', 'description', 'status', 'assigned_admin_id', 'resolution_notes', 'resolved_at', 'created_at', 'updated_at']),
   disputes: new Set(['id', 'complaint_id', 'project_id', 'claimant_id', 'respondent_id', 'assigned_admin_id', 'status', 'resolution_notes', 'resolved_at', 'created_at', 'updated_at']),
   verification_records: new Set(['id', 'user_id', 'document_type', 'document_number', 'status', 'verified_by', 'verified_at', 'created_at']),
   risk_flags: new Set(['id', 'user_id', 'risk_score', 'factors', 'flagged_at']),
+  attendances: new Set(['id', 'project_id', 'worker_id', 'date', 'check_in_time', 'check_out_time', 'status', 'created_at']),
+  audit_logs: new Set(['id', 'admin_id', 'action', 'entity_type', 'entity_id', 'details', 'created_at']),
 };
 
 export const filterValidColumns = (tableName, data) => {
@@ -206,6 +208,10 @@ export class SupabaseQuery {
   lean() {
     this.isLean = true;
     return this;
+  }
+
+  getFilter() {
+    return this.filter;
   }
 
   async exec() {
@@ -537,15 +543,16 @@ export class SupabaseModel {
           if (k === '$or') continue;
           const snakeKey = k === '_id' ? 'id' : camelToSnake(k);
           if (v !== undefined && v !== null) {
-            if (typeof v === 'object' && !Array.isArray(v)) {
-              if (v.$gte !== undefined) sbQuery = sbQuery.gte(snakeKey, v.$gte);
-              if (v.$lte !== undefined) sbQuery = sbQuery.lte(snakeKey, v.$lte);
-              if (v.$gt !== undefined) sbQuery = sbQuery.gt(snakeKey, v.$gt);
-              if (v.$lt !== undefined) sbQuery = sbQuery.lt(snakeKey, v.$lt);
-              if (v.$in !== undefined) sbQuery = sbQuery.in(snakeKey, v.$in);
-              if (v.$ne !== undefined) sbQuery = sbQuery.neq(snakeKey, v.$ne);
+            const formatVal = (val) => (val instanceof Date ? val.toISOString() : val);
+            if (typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date) && !(v instanceof RegExp)) {
+              if (v.$gte !== undefined) sbQuery = sbQuery.gte(snakeKey, formatVal(v.$gte));
+              if (v.$lte !== undefined) sbQuery = sbQuery.lte(snakeKey, formatVal(v.$lte));
+              if (v.$gt !== undefined) sbQuery = sbQuery.gt(snakeKey, formatVal(v.$gt));
+              if (v.$lt !== undefined) sbQuery = sbQuery.lt(snakeKey, formatVal(v.$lt));
+              if (v.$in !== undefined) sbQuery = sbQuery.in(snakeKey, Array.isArray(v.$in) ? v.$in.map(formatVal) : v.$in);
+              if (v.$ne !== undefined) sbQuery = sbQuery.neq(snakeKey, formatVal(v.$ne));
             } else {
-              sbQuery = sbQuery.eq(snakeKey, v);
+              sbQuery = sbQuery.eq(snakeKey, formatVal(v));
             }
           }
         }
@@ -621,15 +628,28 @@ export class SupabaseModel {
       employerId: 'users',
       workerId: 'users',
       userId: 'users',
+      reviewerId: 'users',
       reviewedBy: 'users',
       revieweeId: 'users',
+      againstUser: 'users',
       againstUserId: 'users',
       filedBy: 'users',
       senderId: 'users',
       requestedBy: 'users',
+      approvedBy: 'users',
+      verifiedBy: 'users',
+      payerId: 'users',
+      payeeId: 'users',
+      claimantId: 'users',
+      respondentId: 'users',
+      initiatedBy: 'users',
+      assignedAdminId: 'users',
+      participantA: 'users',
+      participantB: 'users',
       participants: 'users',
       jobId: 'jobs',
       projectId: 'projects',
+      relatedProjectId: 'projects',
       hiringAgreementId: 'hiring_agreements',
       projectWorkerId: 'project_workers',
       conversationId: 'conversations',
@@ -756,10 +776,24 @@ export class SupabaseModel {
           if (!inList.includes(String(docVal))) return false;
         }
         if (expected.$ne !== undefined && String(docVal) === String(this._extractIdOrPrimitive(expected.$ne))) return false;
-        if (expected.$gte !== undefined && Number(docVal) < Number(expected.$gte)) return false;
-        if (expected.$lte !== undefined && Number(docVal) > Number(expected.$lte)) return false;
-        if (expected.$gt !== undefined && Number(docVal) <= Number(expected.$gt)) return false;
-        if (expected.$lt !== undefined && Number(docVal) >= Number(expected.$lt)) return false;
+        const toComparable = (val) => {
+          if (val === undefined || val === null) return val;
+          if (val instanceof Date) return val.getTime();
+          if (typeof val === 'string') {
+            const parsed = Date.parse(val);
+            if (!isNaN(parsed) && (val.includes('-') || val.includes(':'))) {
+              return parsed;
+            }
+            const num = Number(val);
+            if (!isNaN(num) && val.trim() !== '') return num;
+          }
+          if (typeof val === 'number') return val;
+          return val;
+        };
+        if (expected.$gte !== undefined && toComparable(docVal) < toComparable(expected.$gte)) return false;
+        if (expected.$lte !== undefined && toComparable(docVal) > toComparable(expected.$lte)) return false;
+        if (expected.$gt !== undefined && toComparable(docVal) <= toComparable(expected.$gt)) return false;
+        if (expected.$lt !== undefined && toComparable(docVal) >= toComparable(expected.$lt)) return false;
         if (expected.$regex) {
           const reg = expected.$regex instanceof RegExp
             ? expected.$regex

@@ -1,0 +1,24 @@
+[
+  {
+    "id": "ee000000-0000-4000-8000-000000000001",
+    "projectId": "f1000000-0000-4000-8000-000000000001",
+    "requestedBy": "a1000000-0000-4000-8000-000000000001",
+    "additionalDays": 2,
+    "reason": "Wholesaler delayed three-phase industrial circuit breaker shipment by 48 hours.",
+    "originalEndDate": "2026-10-12",
+    "newEndDate": "2026-10-14",
+    "status": "approved",
+    "approvedBy": "a2000000-0000-4000-8000-000000000001"
+  },
+  {
+    "id": "ee000000-0000-4000-8000-000000000002",
+    "projectId": "f1000000-0000-4000-8000-000000000004",
+    "requestedBy": "a1000000-0000-4000-8000-000000000008",
+    "additionalDays": 3,
+    "reason": "Sudden heavy rainfall prevented external debris transportation and disposal truck entry.",
+    "originalEndDate": "2026-10-19",
+    "newEndDate": "2026-10-22",
+    "status": "pending",
+    "approvedBy": null
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "name": "kaamsetu-ai-testing-toolkit",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "node scripts/seed-test-data.js --allow-seed",
+    "seed:dry-run": "node scripts/seed-test-data.js --dry-run",
+    "cleanup": "node scripts/cleanup-test-data.js --confirm",
+    "cleanup:dry-run": "node scripts/cleanup-test-data.js --dry-run"
+  }
+}

@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
-const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+const idRegex = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-fA-F]{24}|\d+)$/i;
 
 const checkInSchema = z
   .object({
     projectId: z
       .string({ required_error: 'Project ID is required' })
-      .regex(objectIdRegex, 'Invalid Project ID format'),
+      .regex(idRegex, 'Invalid Project ID format'),
     date: z.string().optional(),
     notes: z.string().max(500, 'Notes cannot exceed 500 characters').optional().default(''),
     location: z
@@ -22,7 +22,7 @@ const checkOutSchema = z
   .object({
     projectId: z
       .string({ required_error: 'Project ID is required' })
-      .regex(objectIdRegex, 'Invalid Project ID format'),
+      .regex(idRegex, 'Invalid Project ID format'),
     date: z.string().optional(),
     notes: z.string().max(500, 'Notes cannot exceed 500 characters').optional().default(''),
     location: z

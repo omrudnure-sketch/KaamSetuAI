@@ -1,0 +1,62 @@
+[
+  {
+    "id": "ef000000-0000-4000-8000-000000000001",
+    "projectId": "f1000000-0000-4000-8000-000000000003",
+    "payerId": "a2000000-0000-4000-8000-000000000003",
+    "payeeId": "a1000000-0000-4000-8000-000000000003",
+    "amount": 800.00,
+    "wageType": "daily",
+    "status": "completed",
+    "paymentDate": "2026-10-06T16:30:00Z",
+    "transactionRef": "TEST-UPI-20261006-0001",
+    "notes": "Full wage settlement for emergency bathroom CPVC pipe repair upon zero-leak verification."
+  },
+  {
+    "id": "ef000000-0000-4000-8000-000000000002",
+    "projectId": "f1000000-0000-4000-8000-000000000001",
+    "payerId": "a2000000-0000-4000-8000-000000000001",
+    "payeeId": "a1000000-0000-4000-8000-000000000001",
+    "amount": 900.00,
+    "wageType": "daily",
+    "status": "completed",
+    "paymentDate": "2026-10-09T18:30:00Z",
+    "transactionRef": "TEST-IMPS-20261009-0002",
+    "notes": "Day 1 wage disbursement following verified attendance and conduit grooving completion."
+  },
+  {
+    "id": "ef000000-0000-4000-8000-000000000003",
+    "projectId": "f1000000-0000-4000-8000-000000000001",
+    "payerId": "a2000000-0000-4000-8000-000000000001",
+    "payeeId": "a1000000-0000-4000-8000-000000000001",
+    "amount": 900.00,
+    "wageType": "daily",
+    "status": "pending",
+    "paymentDate": null,
+    "transactionRef": null,
+    "notes": "Day 2 wage milestone scheduled for release upon sub-panel wiring inspection."
+  },
+  {
+    "id": "ef000000-0000-4000-8000-000000000004",
+    "projectId": "f1000000-0000-4000-8000-000000000004",
+    "payerId": "a2000000-0000-4000-8000-000000000001",
+    "payeeId": "a1000000-0000-4000-8000-000000000008",
+    "amount": 700.00,
+    "wageType": "daily",
+    "status": "completed",
+    "paymentDate": "2026-10-09T18:00:00Z",
+    "transactionRef": "TEST-CASH-20261009-0003",
+    "notes": "Day 1 advance wage recorded on platform ledger."
+  },
+  {
+    "id": "ef000000-0000-4000-8000-000000000005",
+    "projectId": "f1000000-0000-4000-8000-000000000004",
+    "payerId": "a2000000-0000-4000-8000-000000000001",
+    "payeeId": "a1000000-0000-4000-8000-000000000008",
+    "amount": 700.00,
+    "wageType": "daily",
+    "status": "pending",
+    "paymentDate": null,
+    "transactionRef": null,
+    "notes": "Day 2 wage withheld due to unnotified worker absence."
+  }
+]

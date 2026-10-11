@@ -13,7 +13,11 @@
     "test:api": "npm run test:api --prefix backend",
     "test:e2e": "npm run test:e2e --prefix backend",
     "lint": "npm run lint --prefix backend && npm run lint --prefix frontend",
-    "install:all": "npm install && npm install --prefix frontend && npm install --prefix backend"
+    "install:all": "npm install && npm install --prefix frontend && npm install --prefix backend",
+    "test:seed": "node testing/scripts/seed-test-data.js --allow-seed",
+    "test:seed:dry-run": "node testing/scripts/seed-test-data.js --dry-run",
+    "test:cleanup": "node testing/scripts/cleanup-test-data.js --confirm",
+    "test:cleanup:dry-run": "node testing/scripts/cleanup-test-data.js --dry-run"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

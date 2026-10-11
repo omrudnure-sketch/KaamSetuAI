@@ -1,0 +1,50 @@
+[
+  {
+    "id": "c1000000-0000-4000-8000-000000000001",
+    "jobId": "b1000000-0000-4000-8000-000000000001",
+    "workerId": "a1000000-0000-4000-8000-000000000008",
+    "proposedWage": 650,
+    "coverNote": "Namaste, I have 3 years of slab casting and construction helper experience in Pune. Ready to join immediately.",
+    "status": "pending"
+  },
+  {
+    "id": "c1000000-0000-4000-8000-000000000002",
+    "jobId": "b1000000-0000-4000-8000-000000000004",
+    "workerId": "a1000000-0000-4000-8000-000000000001",
+    "proposedWage": 900,
+    "coverNote": "Certified electrician with all wiring tools, clamp meters, and conduit cutters. Previously wired several commercial showrooms.",
+    "status": "selected"
+  },
+  {
+    "id": "c1000000-0000-4000-8000-000000000003",
+    "jobId": "b1000000-0000-4000-8000-000000000002",
+    "workerId": "a1000000-0000-4000-8000-000000000002",
+    "proposedWage": 950,
+    "coverNote": "Skilled mason available in Hadapsar. Can bring own trowel, spirit level, and plumb line.",
+    "status": "selected"
+  },
+  {
+    "id": "c1000000-0000-4000-8000-000000000004",
+    "jobId": "b1000000-0000-4000-8000-000000000003",
+    "workerId": "a1000000-0000-4000-8000-000000000004",
+    "proposedWage": 850,
+    "coverNote": "I do luxury emulsion paint work with airless sprayer or rollers.",
+    "status": "rejected"
+  },
+  {
+    "id": "c1000000-0000-4000-8000-000000000005",
+    "jobId": "b1000000-0000-4000-8000-000000000007",
+    "workerId": "a1000000-0000-4000-8000-000000000007",
+    "proposedWage": 600,
+    "coverNote": "10 years farm harvesting experience in Solapur region. Can lead a crew of sugarcane cutters.",
+    "status": "pending"
+  },
+  {
+    "id": "c1000000-0000-4000-8000-000000000006",
+    "jobId": "b1000000-0000-4000-8000-000000000011",
+    "workerId": "a1000000-0000-4000-8000-000000000006",
+    "proposedWage": 850,
+    "coverNote": "Live in Bhosari near industrial area. Expert in ARC welding and safety grills.",
+    "status": "pending"
+  }
+]
