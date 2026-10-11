@@ -1,6 +1,7 @@
 import {
   createHiringAgreement,
   getHiringAgreement,
+  getAgreementContactDetails,
   getWorkerHiringAgreements,
   getEmployerHiringAgreements,
   acceptHiringAgreement,
@@ -33,10 +34,23 @@ export const handleCreateHiringAgreement = async (req, res, next) => {
 export const handleGetHiringAgreement = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const agreement = await getHiringAgreement(req.user.id, id);
+    const agreement = await getHiringAgreement(req.user, id);
     res.status(200).json({
       success: true,
       data: agreement,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const handleGetAgreementContact = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const contact = await getAgreementContactDetails(req.user, id);
+    res.status(200).json({
+      success: true,
+      data: contact,
     });
   } catch (error) {
     next(error);

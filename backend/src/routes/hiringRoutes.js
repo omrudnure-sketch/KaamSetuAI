@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   handleCreateHiringAgreement,
   handleGetHiringAgreement,
+  handleGetAgreementContact,
   handleGetWorkerHiringAgreements,
   handleGetEmployerHiringAgreements,
   handleAcceptHiringAgreement,
@@ -21,6 +22,7 @@ router.post('/', handleCreateHiringAgreement);
 router.get('/my', requireRole('worker'), handleGetWorkerHiringAgreements);
 router.get('/employer', requireRole('employer'), handleGetEmployerHiringAgreements);
 router.get('/:id', handleGetHiringAgreement);
+router.get('/:id/contact', handleGetAgreementContact);
 router.patch('/:id/accept', handleAcceptHiringAgreement);
 router.patch('/:id/reject', handleRejectHiringAgreement);
 router.patch('/:id/counter', handleCounterOffer);

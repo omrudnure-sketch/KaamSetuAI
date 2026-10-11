@@ -36,7 +36,8 @@ export const RecommendedWorkersSection = ({ job }) => {
   const [inviteStatus, setInviteStatus] = useState({ type: '', message: '' });
 
   const fetchRecommendations = async () => {
-    if (!job?._id || job.status !== 'open') {
+    const jobId = job?.id || job?._id;
+    if (!jobId || job?.status !== 'open') {
       setLoading(false);
       return;
     }
@@ -44,7 +45,7 @@ export const RecommendedWorkersSection = ({ job }) => {
     try {
       setLoading(true);
       setError('');
-      const res = await getRecommendedWorkersForJob(job._id, {
+      const res = await getRecommendedWorkersForJob(jobId, {
         page,
         limit: 6,
         minScore,

@@ -86,7 +86,7 @@ export const EmployerJobDetailPage = () => {
 
         <div className="flex items-center gap-2">
           <Link
-            to={`/employer/jobs/${job._id}/applications`}
+            to={`/employer/jobs/${job.id || job._id}/applications`}
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-extrabold rounded-xl transition-all shadow-md"
           >
             <UsersRound className="w-4 h-4" />
@@ -94,7 +94,7 @@ export const EmployerJobDetailPage = () => {
           </Link>
 
           <Link
-            to={`/employer/jobs/${job._id}/edit`}
+            to={`/employer/jobs/${job.id || job._id}/edit`}
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-bold rounded-xl transition-all border border-slate-200"
           >
             <Edit3 className="w-4 h-4" />
@@ -120,22 +120,24 @@ export const EmployerJobDetailPage = () => {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-md">
-                {job.skillRequired}
+                {job.skillRequired || job.category || (Array.isArray(job.requiredSkills) ? job.requiredSkills[0] : 'General Work')}
               </span>
               <span className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md ${
                 job.status === 'open' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
               }`}>
-                {job.status}
+                {job.status || 'open'}
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{job.title}</h1>
-            <p className="text-xs text-slate-500 mt-1">Posted on {new Date(job.createdAt).toLocaleDateString()}</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{job.title || 'Untitled Job'}</h1>
+            <p className="text-xs text-slate-500 mt-1">
+              Posted on {job.createdAt && !isNaN(new Date(job.createdAt).getTime()) ? new Date(job.createdAt).toLocaleDateString() : 'Recently'}
+            </p>
           </div>
 
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-right sm:text-right">
             <p className="text-xs text-slate-600 uppercase font-semibold">Offered Wage</p>
-            <p className="text-2xl font-extrabold text-emerald-700">₹{job.wageAmount}</p>
-            <p className="text-xs text-slate-600">{job.wageType} wage</p>
+            <p className="text-2xl font-extrabold text-emerald-700">₹{job.wageAmount ?? 0}</p>
+            <p className="text-xs text-slate-600 capitalize">{(job.wageType || 'daily')} wage</p>
           </div>
         </div>
 
@@ -143,35 +145,50 @@ export const EmployerJobDetailPage = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm">
           <div>
             <span className="text-xs text-slate-600 flex items-center gap-1 mb-1"><Users className="w-3.5 h-3.5 text-amber-700" /> Workers</span>
-            <span className="font-bold text-slate-900">{job.workersRequired} required</span>
+            <span className="font-bold text-slate-900">{job.workersRequired || job.workersNeeded || 1} required</span>
           </div>
           <div>
             <span className="text-xs text-slate-600 flex items-center gap-1 mb-1"><MapPin className="w-3.5 h-3.5 text-rose-600" /> Location</span>
-            <span className="font-bold text-slate-900">{job.location?.city || 'N/A'}</span>
+            <span className="font-bold text-slate-900">
+              {typeof job.location === 'object'
+                ? (job.location?.city || job.location?.area || 'N/A')
+                : (job.location || 'N/A')}
+            </span>
           </div>
           <div>
             <span className="text-xs text-slate-600 flex items-center gap-1 mb-1"><Calendar className="w-3.5 h-3.5 text-blue-600" /> Duration</span>
-            <span className="font-bold text-slate-900 capitalize">{job.durationType.replace('_', ' ')}</span>
+            <span className="font-bold text-slate-900 capitalize">
+              {job.durationType
+                ? String(job.durationType).replace(/_/g, ' ')
+                : (job.durationDays ? `${job.durationDays} Days` : 'Fixed Term')}
+            </span>
           </div>
           <div>
             <span className="text-xs text-slate-600 flex items-center gap-1 mb-1"><Clock className="w-3.5 h-3.5 text-purple-600" /> Start Date</span>
-            <span className="font-bold text-slate-900">{new Date(job.startDate).toLocaleDateString()}</span>
+            <span className="font-bold text-slate-900">
+              {job.startDate && !isNaN(new Date(job.startDate).getTime())
+                ? new Date(job.startDate).toLocaleDateString()
+                : 'Immediate'}
+            </span>
           </div>
         </div>
 
         {/* Job Description */}
         <div className="space-y-2">
           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">Job Description</h3>
-          <p className="text-slate-800 text-sm leading-relaxed whitespace-pre-line">{job.description}</p>
+          <p className="text-slate-800 text-sm leading-relaxed whitespace-pre-line">{job.description || 'No description provided.'}</p>
         </div>
 
         {/* Location Details */}
         <div className="space-y-2 pt-4 border-t border-slate-100">
           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">Location Details</h3>
           <p className="text-slate-700 text-sm">
-            <strong className="text-slate-900">City & Area:</strong> {job.location?.city || ''}{job.location?.area ? `, ${job.location.area}` : ''}
+            <strong className="text-slate-900">City & Area:</strong>{' '}
+            {typeof job.location === 'object'
+              ? `${job.location?.city || ''}${job.location?.area ? `, ${job.location.area}` : ''}` || 'Not specified'
+              : (job.location || 'Not specified')}
           </p>
-          {job.location?.address && (
+          {typeof job.location === 'object' && job.location?.address && (
             <p className="text-slate-600 text-sm">
               <strong className="text-slate-900">Address:</strong> {job.location.address}
             </p>
@@ -183,9 +200,11 @@ export const EmployerJobDetailPage = () => {
           <div className="space-y-2">
             <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">Working Hours</h3>
             <p className="text-slate-700 text-sm">
-              {job.workingHours?.start} - {job.workingHours?.end}
+              {typeof job.workingHours === 'object' && job.workingHours?.start && job.workingHours?.end
+                ? `${job.workingHours.start} - ${job.workingHours.end}`
+                : (typeof job.workingHours === 'string' ? job.workingHours : '09:00 - 18:00 (Standard Shift)')}
             </p>
-            {job.workingHours?.description && (
+            {typeof job.workingHours === 'object' && job.workingHours?.description && (
               <p className="text-slate-600 text-xs">{job.workingHours.description}</p>
             )}
           </div>
@@ -205,7 +224,7 @@ export const EmployerJobDetailPage = () => {
         </div>
       </div>
 
-      {/* Recommended Workers Section (Step 22) */}
+      {/* Recommended Workers Section */}
       <RecommendedWorkersSection job={job} />
     </div>
   );

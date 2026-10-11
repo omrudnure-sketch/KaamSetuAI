@@ -39,3 +39,8 @@ export const cancelHiringAgreement = async (id) => {
   const response = await authApiClient.patch(`/hiring-agreements/${id}/cancel`);
   return response.data;
 };
+
+export const getAgreementContact = async (id) => {
+  const response = await authApiClient.get(`/hiring-agreements/${id}/contact`);
+  return response.data;
+};

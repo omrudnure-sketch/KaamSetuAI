@@ -19,8 +19,27 @@ export const getEmployerJobs = async (employerId, queryParams = {}) => {
   return await Job.find(filter).sort({ createdAt: -1 });
 };
 
-export const getEmployerJobById = async (employerId, jobId) => {
-  return await Job.findOne({ _id: jobId, employerId });
+export const getEmployerJobById = async (employerId, jobId, isAdmin = false) => {
+  const filter = { _id: jobId };
+  if (!isAdmin) {
+    filter.employerId = employerId;
+  }
+  const job = await Job.findOne(filter);
+  if (!job) return null;
+
+  const jobObj = job.toJSON ? job.toJSON() : { ...job };
+
+  if (!jobObj.skillRequired && jobObj.category) {
+    jobObj.skillRequired = jobObj.category;
+  }
+  const days = Number(jobObj.durationDays || jobObj.duration_days);
+  if (!jobObj.durationType) {
+    jobObj.durationType = days ? (days === 1 ? 'single_day' : 'fixed_duration') : 'single_day';
+  }
+  if (!jobObj.workersRequired) {
+    jobObj.workersRequired = jobObj.workersNeeded || jobObj.workers_needed;
+  }
+  return jobObj;
 };
 
 export const updateEmployerJob = async (employerId, jobId, updateData) => {

@@ -110,10 +110,17 @@ export const EmployerJobApplicationsPage = () => {
 
   const openHiringModal = (app) => {
     setSelectedAppForHiring(app);
+    const validStart = app.jobId?.startDate && !isNaN(new Date(app.jobId.startDate).getTime())
+      ? new Date(app.jobId.startDate).toISOString().split('T')[0]
+      : new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    const validEnd = app.jobId?.estimatedEndDate && !isNaN(new Date(app.jobId.estimatedEndDate).getTime())
+      ? new Date(app.jobId.estimatedEndDate).toISOString().split('T')[0]
+      : '';
+
     setHiringForm({
       durationType: app.jobId?.durationType || 'fixed_duration',
-      startDate: app.jobId?.startDate ? new Date(app.jobId.startDate).toISOString().split('T')[0] : new Date(Date.now() + 86400000).toISOString().split('T')[0],
-      estimatedEndDate: app.jobId?.estimatedEndDate ? new Date(app.jobId.estimatedEndDate).toISOString().split('T')[0] : '',
+      startDate: validStart,
+      estimatedEndDate: validEnd,
       wageType: app.jobId?.wageType || 'daily',
       proposedWage: app.proposedWage || app.jobId?.wageAmount || '',
       workingHours: app.jobId?.workingHours || { start: '09:00', end: '18:00', description: '' },
@@ -128,9 +135,10 @@ export const EmployerJobApplicationsPage = () => {
       setHiringSubmitting(true);
       setHiringError('');
 
+      const appId = selectedAppForHiring.id || selectedAppForHiring._id;
       const payload = {
         sourceType: 'application',
-        sourceId: selectedAppForHiring._id,
+        sourceId: appId,
         durationType: hiringForm.durationType,
         startDate: hiringForm.startDate,
         estimatedEndDate: hiringForm.estimatedEndDate || null,
@@ -143,7 +151,7 @@ export const EmployerJobApplicationsPage = () => {
       const res = await createHiringAgreement(payload);
       if (res.success && res.data) {
         setSelectedAppForHiring(null);
-        navigate(`/employer/hiring/${res.data._id}`);
+        navigate(`/employer/hiring/${res.data.id || res.data._id}`);
       } else {
         setHiringError(res.error?.message || 'Failed to create hiring agreement');
       }

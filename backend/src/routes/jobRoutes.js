@@ -24,7 +24,7 @@ router.post('/', requireAuth, requireRole('employer'), createJob);
 router.get('/my-jobs', requireAuth, requireRole('employer'), getEmployerJobs);
 
 // GET /api/jobs/my-jobs/:id - Get specific job owned by employer
-router.get('/my-jobs/:id', requireAuth, requireRole('employer'), getEmployerJobById);
+router.get('/my-jobs/:id', requireAuth, requireRole('employer', 'admin'), getEmployerJobById);
 
 // PUT /api/jobs/:id - Edit own job
 router.put('/:id', requireAuth, requireRole('employer'), updateJob);

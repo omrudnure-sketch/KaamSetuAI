@@ -47,7 +47,8 @@ export const getEmployerJobs = async (req, res, next) => {
 export const getEmployerJobById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const job = await fetchEmployerJobById(req.user.id, id);
+    const isAdmin = req.user?.role === 'admin' || Boolean(req.user?.adminRole);
+    const job = await fetchEmployerJobById(req.user.id, id, isAdmin);
     if (!job) {
       return res.status(404).json({
         success: false,

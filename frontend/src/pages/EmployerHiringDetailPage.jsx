@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   getHiringAgreement,
+  getAgreementContact,
   acceptHiringAgreement,
   rejectHiringAgreement,
   counterOffer,
@@ -24,6 +25,8 @@ import {
   History,
   Trash2,
   Briefcase,
+  Phone,
+  Mail,
 } from 'lucide-react';
 
 export const EmployerHiringDetailPage = () => {
@@ -31,6 +34,7 @@ export const EmployerHiringDetailPage = () => {
   const navigate = useNavigate();
 
   const [agreement, setAgreement] = useState(null);
+  const [workerContact, setWorkerContact] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionMessage, setActionMessage] = useState('');
@@ -55,8 +59,25 @@ export const EmployerHiringDetailPage = () => {
       setLoading(true);
       setError('');
       const res = await getHiringAgreement(id);
-      if (res.success) {
+      if (res.success && res.data) {
         setAgreement(res.data);
+        if (res.data.status === 'confirmed') {
+          if (res.data.workerContact) {
+            setWorkerContact(res.data.workerContact);
+          } else {
+            try {
+              const cRes = await getAgreementContact(id);
+              if (cRes.success && cRes.data?.worker) {
+                setWorkerContact(cRes.data.worker);
+              }
+            } catch (_err) {
+              // Ignore
+            }
+          }
+        } else {
+          setWorkerContact(null);
+        }
+
         setCounterForm({
           wageType: res.data.wageType || 'daily',
           proposedWage: res.data.proposedWage || '',
@@ -253,7 +274,14 @@ export const EmployerHiringDetailPage = () => {
             {agreement.workerId?.name && (
               <div className="flex items-center gap-2 mt-2 text-slate-600 text-sm">
                 <Users className="w-4 h-4 text-primary" />
-                <span>Worker: <strong className="text-slate-800">{agreement.workerId.name}</strong> ({agreement.workerId.phone || agreement.workerId.email})</span>
+                <span>
+                  Worker: <strong className="text-slate-800">{agreement.workerId.name}</strong>
+                  {agreement.status === 'confirmed' && (workerContact?.phone || agreement.workerId?.phone) && (
+                    <span className="text-emerald-700 font-semibold ml-1">
+                      • {workerContact?.phone || agreement.workerId?.phone}
+                    </span>
+                  )}
+                </span>
               </div>
             )}
           </div>
@@ -268,6 +296,79 @@ export const EmployerHiringDetailPage = () => {
             <p className="text-xs text-slate-500">{agreement.wageType}</p>
           </div>
         </div>
+
+        {/* Worker Contact Information Card (Confirmed Agreements Only) */}
+        {agreement.status === 'confirmed' ? (
+          <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-5 sm:p-6 space-y-4 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-200/80 pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-700 flex-shrink-0" />
+                <h3 className="text-base font-extrabold text-emerald-950">Worker Contact Details</h3>
+              </div>
+              <span className="text-[11px] font-bold px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full border border-emerald-300 w-fit">
+                Unlocked for Confirmed Agreement
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-sm">
+              <div className="p-3.5 bg-white border border-emerald-100 rounded-xl space-y-1 shadow-2xs">
+                <span className="text-xs text-slate-500 font-semibold block">Full Name</span>
+                <span className="font-bold text-slate-900 block truncate">
+                  {workerContact?.name || agreement.workerId?.name || 'Worker'}
+                </span>
+              </div>
+
+              <div className="p-3.5 bg-white border border-emerald-100 rounded-xl space-y-1 shadow-2xs">
+                <span className="text-xs text-slate-500 font-semibold block">Phone Number</span>
+                {workerContact?.phone || agreement.workerId?.phone ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-slate-900 truncate">
+                      {workerContact?.phone || agreement.workerId?.phone}
+                    </span>
+                    <a
+                      href={`tel:${workerContact?.phone || agreement.workerId?.phone}`}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors shadow-2xs flex-shrink-0"
+                    >
+                      <Phone className="w-3 h-3" /> Call
+                    </a>
+                  </div>
+                ) : (
+                  <span className="text-slate-400 font-medium">Not provided</span>
+                )}
+              </div>
+
+              <div className="p-3.5 bg-white border border-emerald-100 rounded-xl space-y-1 shadow-2xs">
+                <span className="text-xs text-slate-500 font-semibold block">Email Address</span>
+                {workerContact?.email || agreement.workerId?.email ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-slate-900 truncate max-w-[130px]">
+                      {workerContact?.email || agreement.workerId?.email}
+                    </span>
+                    <a
+                      href={`mailto:${workerContact?.email || agreement.workerId?.email}`}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors border border-slate-200 flex-shrink-0"
+                    >
+                      <Mail className="w-3 h-3" /> Email
+                    </a>
+                  </div>
+                ) : (
+                  <span className="text-slate-400 font-medium">Not provided</span>
+                )}
+              </div>
+            </div>
+
+            {(workerContact?.preferredLanguage || workerContact?.contactPreference) && (
+              <p className="text-xs text-emerald-800 font-medium pt-1">
+                Preferred Language / Channel: <strong className="font-bold">{workerContact.preferredLanguage || 'English'} ({workerContact.contactPreference || 'Phone'})</strong>
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-600 text-xs flex items-center gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-slate-400 flex-shrink-0" />
+            <span>Worker direct contact details will be automatically unlocked once both parties mutually confirm the agreement.</span>
+          </div>
+        )}
 
         {/* Action Panel for Employer */}
         {agreement.status === 'confirmed' ? (
