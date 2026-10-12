@@ -83,9 +83,81 @@ export const WorkerJobMapPage = () => {
   const [minWage, setMinWage] = useState('');
   const [durationType, setDurationType] = useState('');
 
+  // Location search states
+  const [coords, setCoords] = useState(null);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState('');
+  const [distance, setDistance] = useState(25); // km
+
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersLayerRef = useRef(null);
+  const userCircleRef = useRef(null);
+  const userMarkerRef = useRef(null);
+
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setGeoError(
+        lang === 'mr'
+          ? 'आपला ब्राउझर भौगोलिक स्थान समर्थन करत नाही.'
+          : lang === 'hi'
+          ? 'आपका ब्राउज़र जियोलोकेशन का समर्थन नहीं करता।'
+          : 'Geolocation is not supported by your browser.'
+      );
+      return;
+    }
+    setGeoLoading(true);
+    setGeoError('');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const userCoords = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        };
+        setCoords(userCoords);
+        setGeoLoading(false);
+
+        // Center map on user location
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.setView([userCoords.lat, userCoords.lng], 12);
+        }
+      },
+      (err) => {
+        setGeoLoading(false);
+        if (err.code === 1) {
+          setGeoError(
+            lang === 'mr'
+              ? 'स्थान परवानगी नाकारली. आपण शहरानुसार शोधू शकता.'
+              : lang === 'hi'
+              ? 'स्थान अनुमति अस्वीकृत। आप शहर द्वारा खोज सकते हैं।'
+              : 'Location permission denied. You can search by city or area below.'
+          );
+        } else {
+          setGeoError(
+            lang === 'mr'
+              ? 'स्थान मिळवण्यात अडचण आली.'
+              : lang === 'hi'
+              ? 'स्थान प्राप्त करने में असमर्थ।'
+              : 'Unable to acquire location.'
+          );
+        }
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  };
+
+  const handleClearLocation = () => {
+    setCoords(null);
+    setGeoError('');
+    if (userCircleRef.current && mapInstanceRef.current) {
+      mapInstanceRef.current.removeLayer(userCircleRef.current);
+      userCircleRef.current = null;
+    }
+    if (userMarkerRef.current && mapInstanceRef.current) {
+      mapInstanceRef.current.removeLayer(userMarkerRef.current);
+      userMarkerRef.current = null;
+    }
+  };
 
   // Fetch jobs from backend
   const fetchJobs = async () => {
@@ -97,6 +169,7 @@ export const WorkerJobMapPage = () => {
         ...(skill ? { skill } : {}),
         ...(minWage ? { minWage } : {}),
         ...(durationType ? { durationType } : {}),
+        ...(coords ? { lat: coords.lat, lng: coords.lng, distance } : {}),
       };
 
       const res = await authApiClient.get('/jobs/map', { params });
@@ -113,7 +186,7 @@ export const WorkerJobMapPage = () => {
 
   useEffect(() => {
     fetchJobs();
-  }, []);
+  }, [coords, distance]);
 
   // Initialize and update Leaflet Map
   useEffect(() => {
@@ -191,6 +264,39 @@ export const WorkerJobMapPage = () => {
           validPoints.push([lat, lng]);
         }
       });
+
+      // Add user location marker & radius circle if coords available
+      if (coords && mapInstanceRef.current) {
+        if (userCircleRef.current) {
+          mapInstanceRef.current.removeLayer(userCircleRef.current);
+        }
+        if (userMarkerRef.current) {
+          mapInstanceRef.current.removeLayer(userMarkerRef.current);
+        }
+
+        userCircleRef.current = L.circle([coords.lat, coords.lng], {
+          radius: distance * 1000,
+          color: '#0284c7',
+          fillColor: '#38bdf8',
+          fillOpacity: 0.15,
+        }).addTo(mapInstanceRef.current);
+
+        const userPinIcon = L.divIcon({
+          className: 'custom-user-marker',
+          html: `
+            <div style="background-color: #0284c7; color: white; width: 18px; height: 18px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(2,132,199,0.8); display: flex; align-items: center; justify-content: center;">
+            </div>
+          `,
+          iconSize: [18, 18],
+          iconAnchor: [9, 9],
+        });
+
+        userMarkerRef.current = L.marker([coords.lat, coords.lng], { icon: userPinIcon })
+          .bindPopup('<b>Your Search Location</b>')
+          .addTo(mapInstanceRef.current);
+
+        validPoints.push([coords.lat, coords.lng]);
+      }
 
       // Fit map bounds if markers exist
       if (validPoints.length > 0 && mapInstanceRef.current) {
@@ -281,7 +387,68 @@ export const WorkerJobMapPage = () => {
       </div>
 
       {/* Filter Bar */}
-      <div className="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-xs space-y-2">
+      <div className="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-xs space-y-3">
+        {/* Geolocation Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-surface-container-low rounded-lg text-xs">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleUseMyLocation}
+              disabled={geoLoading}
+              className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all text-xs shadow-2xs ${
+                coords ? 'bg-emerald-600 text-white' : 'bg-primary text-white hover:opacity-90'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]">my_location</span>
+              <span>
+                {geoLoading
+                  ? 'Detecting GPS...'
+                  : coords
+                  ? 'My Location Active ✓'
+                  : lang === 'mr'
+                  ? 'माझे स्थान वापरा'
+                  : lang === 'hi'
+                  ? 'मेरा स्थान उपयोग करें'
+                  : 'Use My Location'}
+              </span>
+            </button>
+
+            {coords && (
+              <button
+                type="button"
+                onClick={handleClearLocation}
+                className="text-xs text-rose-600 hover:text-rose-700 font-semibold underline"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {coords ? (
+            <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
+              <span className="font-semibold text-[11px]">Radius:</span>
+              {[10, 25, 50, 100].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDistance(d)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-all ${
+                    distance === d
+                      ? 'bg-primary text-white border-primary'
+                      : 'bg-surface-container-lowest text-on-surface border-outline-variant/40'
+                  }`}
+                >
+                  {d} km
+                </button>
+              ))}
+            </div>
+          ) : (
+            <span className="text-[11px] text-on-surface-variant">
+              {geoError || (lang === 'mr' ? 'नकाशावर जवळची कामे शोधण्यासाठी स्थान वापरा' : lang === 'hi' ? 'मानचित्र पर नजदीकी काम खोजने के लिए स्थान का उपयोग करें' : 'Use location to discover jobs nearest to you on map')}
+            </span>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-xs">
           <input
             type="text"
@@ -371,6 +538,11 @@ export const WorkerJobMapPage = () => {
                             {job.skillRequired}
                           </span>
                           <span>• {job.location.city}</span>
+                          {job.distanceKm !== null && job.distanceKm !== undefined && (
+                            <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                              ~{job.distanceKm} km
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -420,6 +592,11 @@ export const WorkerJobMapPage = () => {
                         <span className="px-2 py-0.5 rounded-md bg-surface-container-low font-semibold text-on-surface-variant">
                           {job.workersRequired} workers needed
                         </span>
+                        {job.distanceKm !== null && job.distanceKm !== undefined && (
+                          <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold border border-blue-200">
+                            ~{job.distanceKm} km away
+                          </span>
+                        )}
                       </div>
 
                       <button

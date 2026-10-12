@@ -19,6 +19,10 @@ export const workerTranslations = {
     saving: 'Saving Profile...',
     successMsg: 'Profile saved successfully!',
     errorMsg: 'Failed to save profile. Please check the fields.',
+    readyForWork: 'Ready for Work',
+    notAvailable: 'Not Available',
+    availabilityToggleDesc: 'Mark yourself ready to accept new work opportunities or pause incoming inquiries.',
+    availabilityUpdated: 'Availability status updated successfully!',
     workTypes: {
       daily: 'Daily Wage',
       multi_day: 'Multi-day Contracts',
@@ -60,6 +64,10 @@ export const workerTranslations = {
     saving: 'जतन करत आहे...',
     successMsg: 'प्रोफाइल यशस्वीरित्या जतन केली!',
     errorMsg: 'प्रोफाइल जतन करण्यात अयशस्वी. कृपया तपशील तपासा.',
+    readyForWork: 'कामासाठी तयार (Ready for Work)',
+    notAvailable: 'उपलब्ध नाही (Not Available)',
+    availabilityToggleDesc: 'नवीन काम स्वीकारण्यासाठी स्वतःला तयार चिन्हांकित करा किंवा चौकशी थांबवा.',
+    availabilityUpdated: 'उपलब्धता स्थिती यशस्वीरित्या अद्यतनित झाली!',
     workTypes: {
       daily: 'रोजंदारी (Daily Wage)',
       multi_day: 'अनेक दिवसांचे कंत्राट (Multi-day)',
@@ -101,6 +109,10 @@ export const workerTranslations = {
     saving: 'सहेजा जा रहा है...',
     successMsg: 'प्रोफाइल सफलतापूर्वक सहेजी गई!',
     errorMsg: 'प्रोफाइल सहेजने में विफल। कृपया फ़ील्ड जांचें।',
+    readyForWork: 'काम के लिए तैयार (Ready for Work)',
+    notAvailable: 'उपलब्ध नहीं (Not Available)',
+    availabilityToggleDesc: 'नए काम के अवसरों को स्वीकार करने के लिए खुद को तैयार चिह्नित करें या पूछताछ रोकें।',
+    availabilityUpdated: 'उपलब्धता स्थिति सफलतापूर्वक अपडेट हो गई!',
     workTypes: {
       daily: 'दैनिक मजदूरी (Daily Wage)',
       multi_day: 'बहु-दिवसीय अनुबंध (Multi-day)',

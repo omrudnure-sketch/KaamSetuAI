@@ -84,7 +84,7 @@ const jobBaseSchema = z.object({
 });
 
 export const createJobSchema = jobBaseSchema
-  .strict()
+  .passthrough()
   .superRefine((val, ctx) => {
     if (val.durationType === 'fixed_duration') {
       if (!val.estimatedEndDate) {

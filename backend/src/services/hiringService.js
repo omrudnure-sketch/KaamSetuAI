@@ -366,6 +366,26 @@ export const getAgreementContactDetails = async (user, agreementId) => {
     };
   }
 
+  const jobId = agreement.jobId?._id || agreement.jobId?.id || agreement.jobId;
+  if (jobId) {
+    const job = await Job.findById(jobId);
+    if (job) {
+      const jObj = job.toJSON ? job.toJSON() : { ...job };
+      result.job = {
+        id: jObj.id || jObj._id,
+        title: jObj.title,
+        city: jObj.city || jObj.location?.city || '',
+        area: jObj.area || jObj.location?.area || '',
+        address: jObj.address || jObj.location?.address || (typeof jObj.location === 'string' ? jObj.location : ''),
+        location: jObj.location,
+        latitude: jObj.latitude ?? (jObj.location?.coordinates?.coordinates?.[1] ?? null),
+        longitude: jObj.longitude ?? (jObj.location?.coordinates?.coordinates?.[0] ?? null),
+        startDate: agreement.startDate || jObj.startDate,
+        expectedEndDate: agreement.expectedEndDate || agreement.estimatedEndDate || jObj.estimatedEndDate,
+      };
+    }
+  }
+
   return result;
 };
 

@@ -6,13 +6,19 @@ import { checkSupabaseConnection, pgPool, supabaseAdmin } from './supabase.js';
 let isDbReady = false;
 
 export const connectDB = async () => {
+  const isProduction = process.env.NODE_ENV === 'production';
   const hasPgConfig = Boolean(process.env.DATABASE_URL || process.env.SUPABASE_DATABASE_URL || process.env.SUPABASE_DB_URL);
-  const hasSdkConfig = Boolean(process.env.SUPABASE_URL && (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY));
+  const hasSdkConfig = Boolean(process.env.SUPABASE_URL && (process.env.SUPABASE_SERVICE_ROLE_KEY || (!isProduction && process.env.SUPABASE_ANON_KEY)));
 
   if (!hasPgConfig && !hasSdkConfig) {
+    if (isProduction) {
+      console.error('[KaamSetu AI] FATAL: Production environment missing database credentials (DATABASE_URL or SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).');
+      isDbReady = false;
+      return false;
+    }
     console.warn('[KaamSetu AI] Supabase configuration notice: DATABASE_URL and SUPABASE_URL are not set in environment.');
-    console.warn('[KaamSetu AI] Operating with in-memory data access layer for test/isolated mode.');
-    isDbReady = true;
+    console.warn('[KaamSetu AI] Operating with in-memory data access layer for test/isolated development mode only.');
+    isDbReady = process.env.NODE_ENV === 'test';
     return false;
   }
 
@@ -25,6 +31,9 @@ export const connectDB = async () => {
     } else if (status.error) {
       console.error(`[KaamSetu AI] Supabase connection check failed: ${status.error}`);
       isDbReady = false;
+      if (isProduction) {
+        console.error('[KaamSetu AI] Database readiness failed in production.');
+      }
       return false;
     }
   } catch (error) {
@@ -33,8 +42,8 @@ export const connectDB = async () => {
     return false;
   }
 
-  isDbReady = true;
-  return true;
+  isDbReady = false;
+  return false;
 };
 
 export const getDbStatus = () => isDbReady;

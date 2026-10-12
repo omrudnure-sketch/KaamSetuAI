@@ -23,8 +23,10 @@ const connectionString =
 export const pgPool = connectionString
   ? new Pool({
       connectionString,
-      ssl: connectionString.includes('localhost') ? false : { rejectUnauthorized: false },
-      max: 20,
+      ssl: connectionString.includes('localhost') || connectionString.includes('127.0.0.1')
+        ? false
+        : (process.env.DB_SSL_REJECT_UNAUTHORIZED === 'false' ? { rejectUnauthorized: false } : true),
+      max: parseInt(process.env.DB_POOL_MAX || '20', 10),
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
     })
@@ -40,10 +42,11 @@ export const query = async (text, params) => {
 
 // 2. Supabase Client SDK (Service Role for backend operations)
 const supabaseUrl = process.env.SUPABASE_URL || null;
+// Never substitute anonymous key for required privileged backend service key in production
 const supabaseServiceKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.SUPABASE_SERVICE_KEY ||
-  process.env.SUPABASE_ANON_KEY ||
+  (process.env.NODE_ENV !== 'production' ? process.env.SUPABASE_ANON_KEY : null) ||
   null;
 
 export const supabaseAdmin =
@@ -68,7 +71,7 @@ export const checkSupabaseConnection = async () => {
   if (supabaseAdmin) {
     try {
       const { error } = await supabaseAdmin.from('users').select('id').limit(1);
-      if (!error || error.code === 'PGRST116' || !error.message?.includes('fetch failed')) {
+      if (!error || error.code === 'PGRST116') {
         status.supabaseClient = true;
       } else {
         status.error = error.message;

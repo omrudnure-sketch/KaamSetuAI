@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { searchWorkersWithNL } from '../services/aiService.js';
 import { inviteWorker } from '../services/invitationService.js';
 import { getEmployerJobs } from '../services/jobApi.js';
+import { fetchWorkersForEmployer } from '../services/profileApi.js';
 import {
   Search,
   Sparkles,
@@ -23,7 +24,24 @@ import {
   ChevronRight,
   Info,
   Map,
+  Zap,
 } from 'lucide-react';
+
+const COMMON_SKILLS = [
+  'All Skills',
+  'Mason',
+  'Carpenter',
+  'Electrician',
+  'Plumber',
+  'Painter',
+  'Welder',
+  'Tile Mason',
+  'Bar Bender',
+  'Construction Worker',
+  'General Labor',
+];
+
+const MAHARASHTRA_CITIES = ['All Cities', 'Pune', 'Mumbai', 'Nagpur', 'Nashik', 'Kolhapur', 'Thane', 'Aurangabad'];
 
 const EXAMPLE_QUERIES = [
   'Electrician in Pune under ₹1,000/day',
@@ -33,9 +51,23 @@ const EXAMPLE_QUERIES = [
 ];
 
 export const EmployerWorkersPage = () => {
+  // Discovery mode: 'area' (direct area & trade filters) vs 'ai' (natural-language search)
+  const [discoveryMode, setDiscoveryMode] = useState('area');
+
+  // Structured area & availability filter states
+  const [selectedCity, setSelectedCity] = useState('');
+  const [selectedArea, setSelectedArea] = useState('');
+  const [selectedSkill, setSelectedSkill] = useState('');
+  const [availabilityOnly, setAvailabilityOnly] = useState(true); // default: Ready for Work only
+  const [minExp, setMinExp] = useState('');
+  const [maxWageFilter, setMaxWageFilter] = useState('');
+
+  // AI search states
   const [searchQuery, setSearchQuery] = useState('');
   const [activeQuery, setActiveQuery] = useState('');
   const [interpretedFilters, setInterpretedFilters] = useState(null);
+
+  // Common result & pagination states
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -56,7 +88,7 @@ export const EmployerWorkersPage = () => {
   // Initial load
   useEffect(() => {
     fetchEmployerJobs();
-    handleSearch('Available skilled workers in Pune or Mumbai');
+    handleStructuredSearch();
   }, []);
 
   const fetchEmployerJobs = async () => {
@@ -72,6 +104,75 @@ export const EmployerWorkersPage = () => {
     } catch (_err) {}
   };
 
+  const normalizeWorker = (worker) => {
+    const isAvail =
+      worker.isAvailableForWork !== undefined
+        ? worker.isAvailableForWork
+        : worker.availability === 'available' || worker.availability === 'ready';
+
+    return {
+      workerId: worker.workerId || worker.id || worker._id,
+      workerName: worker.workerName || worker.fullName || 'Skilled Worker',
+      primarySkill: worker.primarySkill || (Array.isArray(worker.skills) && worker.skills[0]) || 'General Worker',
+      skills: Array.isArray(worker.skills) ? worker.skills : [],
+      experienceYears: worker.experienceYears || 0,
+      dailyWage: worker.dailyWage || 0,
+      hourlyRate: worker.hourlyRate || 0,
+      rating: worker.rating || 0,
+      totalReviews: worker.totalReviews || worker.reviewCount || 0,
+      location: {
+        city: worker.city || worker.location?.city || 'Unspecified',
+        area: worker.area || worker.location?.area || '',
+      },
+      isAvailableForWork: isAvail,
+      availability: isAvail ? 'available' : 'unavailable',
+      distanceKm: worker.distanceKm ?? null,
+      profilePhoto: worker.profilePhoto || '',
+    };
+  };
+
+  const handleStructuredSearch = async (overrideParams = {}) => {
+    try {
+      setLoading(true);
+      setError('');
+      setDiscoveryMode('area');
+
+      const cityVal = overrideParams.city !== undefined ? overrideParams.city : selectedCity;
+      const areaVal = overrideParams.area !== undefined ? overrideParams.area : selectedArea;
+      const skillVal = overrideParams.skill !== undefined ? overrideParams.skill : selectedSkill;
+      const availVal = overrideParams.availabilityOnly !== undefined ? overrideParams.availabilityOnly : availabilityOnly;
+      const pageVal = overrideParams.page !== undefined ? overrideParams.page : page;
+      const sortVal = overrideParams.sort !== undefined ? overrideParams.sort : sort;
+
+      const params = {
+        city: cityVal && cityVal !== 'All Cities' ? cityVal : undefined,
+        area: areaVal || undefined,
+        skill: skillVal && skillVal !== 'All Skills' ? skillVal : undefined,
+        availability: availVal ? 'available' : 'any',
+        minExperience: minExp ? Number(minExp) : undefined,
+        maxWage: maxWageFilter ? Number(maxWageFilter) : undefined,
+        sort: sortVal,
+        page: pageVal,
+        limit: 10,
+      };
+
+      const res = await fetchWorkersForEmployer(params);
+      if (res.success && res.data) {
+        const rawList = res.data.workers || [];
+        setResults(rawList.map(normalizeWorker));
+        if (res.data.pagination) {
+          setPagination(res.data.pagination);
+        }
+      } else {
+        setError(res.error?.message || 'Failed to fetch workers for area');
+      }
+    } catch (err) {
+      setError(err.response?.data?.error?.message || 'Error discovering workers in selected area');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSearch = async (queryText = searchQuery) => {
     const q = queryText.trim();
     if (!q) return;
@@ -79,6 +180,7 @@ export const EmployerWorkersPage = () => {
     try {
       setLoading(true);
       setError('');
+      setDiscoveryMode('ai');
       setActiveQuery(q);
 
       const res = await searchWorkersWithNL({
@@ -89,7 +191,8 @@ export const EmployerWorkersPage = () => {
       });
 
       if (res.success && res.data) {
-        setResults(res.data.results || []);
+        const rawList = res.data.results || [];
+        setResults(rawList.map(normalizeWorker));
         setInterpretedFilters(res.data.filters || {});
         if (res.data.pagination) {
           setPagination(res.data.pagination);
@@ -110,12 +213,27 @@ export const EmployerWorkersPage = () => {
     handleSearch(searchQuery);
   };
 
-  const handleClearFilters = () => {
-    setSearchQuery('');
-    setActiveQuery('');
-    setInterpretedFilters(null);
+  const handleStructuredFormSubmit = (e) => {
+    e.preventDefault();
     setPage(1);
-    handleSearch('Available workers in Maharashtra');
+    handleStructuredSearch({ page: 1 });
+  };
+
+  const handleClearFilters = () => {
+    setSelectedCity('');
+    setSelectedArea('');
+    setSelectedSkill('');
+    setAvailabilityOnly(false);
+    setMinExp('');
+    setMaxWageFilter('');
+    setPage(1);
+    handleStructuredSearch({
+      city: '',
+      area: '',
+      skill: '',
+      availabilityOnly: false,
+      page: 1,
+    });
   };
 
   const handleRemoveFilterKey = (key) => {
@@ -124,7 +242,6 @@ export const EmployerWorkersPage = () => {
     delete updated[key];
     setInterpretedFilters(updated);
 
-    // Re-construct query from remaining filters
     const parts = [];
     if (updated.skill) parts.push(updated.skill);
     if (updated.city) parts.push(`in ${updated.city}`);
@@ -193,10 +310,10 @@ export const EmployerWorkersPage = () => {
             <span className="p-1.5 bg-primary/10 text-primary rounded-lg">
               <Sparkles className="w-5 h-5" />
             </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">Find Workers with AI Search</h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">Discover Skilled Workers</h1>
           </div>
           <p className="text-slate-600 text-xs sm:text-sm">
-            Describe what you need in plain English. Our AI extracts structured criteria and matches real MongoDB workers.
+            Find verified workers by city, locality, trade, and immediate availability across Maharashtra.
           </p>
         </div>
 
@@ -209,125 +326,283 @@ export const EmployerWorkersPage = () => {
         </Link>
       </div>
 
-      {/* Natural-Language Search Box */}
+      {/* Mode Selector Tabs */}
+      <div className="flex border-b border-slate-200 gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            setDiscoveryMode('area');
+            handleStructuredSearch({ page: 1 });
+          }}
+          className={`px-4 py-2.5 text-xs font-bold rounded-t-xl transition-colors border-t border-x flex items-center gap-2 ${
+            discoveryMode === 'area'
+              ? 'bg-white border-slate-200 text-primary border-b-transparent shadow-sm'
+              : 'bg-slate-50 border-transparent text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <MapPin className="w-4 h-4 text-primary" />
+          <span>Area & Trade Discovery</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setDiscoveryMode('ai');
+            if (activeQuery) {
+              handleSearch(activeQuery);
+            }
+          }}
+          className={`px-4 py-2.5 text-xs font-bold rounded-t-xl transition-colors border-t border-x flex items-center gap-2 ${
+            discoveryMode === 'ai'
+              ? 'bg-white border-slate-200 text-primary border-b-transparent shadow-sm'
+              : 'bg-slate-50 border-transparent text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-amber-500" />
+          <span>AI Smart Search</span>
+        </button>
+      </div>
+
+      {/* Discovery Controls Container */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-        <form onSubmit={handleFormSubmit} className="space-y-3">
-          <div className="relative">
-            <Search className="w-5 h-5 text-slate-400 absolute left-4 top-3.5" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Describe the worker you need (e.g. Find an electrician in Pune under ₹1,000 with 3+ years experience)..."
-              className="w-full bg-slate-50 border border-slate-300 focus:border-primary focus:bg-white rounded-xl pl-12 pr-28 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition-colors"
-            />
-            <button
-              type="submit"
-              disabled={loading || !searchQuery.trim()}
-              className="absolute right-2 top-2 px-4 py-1.5 bg-primary hover:bg-primary/90 text-white font-bold text-xs rounded-lg transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Search</span>
-            </button>
-          </div>
+        {discoveryMode === 'area' ? (
+          /* Structured Area & Trade Discovery Form */
+          <form onSubmit={handleStructuredFormSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+              {/* City Selection */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">City / Region</label>
+                <select
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-primary"
+                >
+                  {MAHARASHTRA_CITIES.map((c) => (
+                    <option key={c} value={c === 'All Cities' ? '' : c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          {/* 1-Click Example Queries */}
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <span className="text-[11px] font-semibold text-slate-500">Try asking:</span>
-            {EXAMPLE_QUERIES.map((eg, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => {
-                  setSearchQuery(eg);
-                  setPage(1);
-                  handleSearch(eg);
-                }}
-                className="text-[11px] px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 rounded-lg border border-slate-200 transition-colors"
-              >
-                "{eg}"
-              </button>
-            ))}
-          </div>
-        </form>
+              {/* Locality / Area */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Locality / Area</label>
+                <input
+                  type="text"
+                  value={selectedArea}
+                  onChange={(e) => setSelectedArea(e.target.value)}
+                  placeholder="e.g. Kothrud, Andheri, Hinjewadi"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-primary"
+                />
+              </div>
 
-        {/* Interpreted Filter Chips Display & Editing (Section 24.6) */}
-        {interpretedFilters && (
-          <div className="pt-3 border-t border-slate-200 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                Interpreted Structured Filters
-              </span>
-              <button
-                onClick={handleClearFilters}
-                className="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>Reset</span>
-              </button>
+              {/* Trade / Skill */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Trade / Skill</label>
+                <select
+                  value={selectedSkill}
+                  onChange={(e) => setSelectedSkill(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-primary"
+                >
+                  {COMMON_SKILLS.map((s) => (
+                    <option key={s} value={s === 'All Skills' ? '' : s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Max Daily Wage */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Max Wage (₹/day)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="50"
+                  value={maxWageFilter}
+                  onChange={(e) => setMaxWageFilter(e.target.value)}
+                  placeholder="e.g. 1200"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-primary"
+                />
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {interpretedFilters.skill && (
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-lg text-xs font-semibold">
-                  <span>Skill: <strong>{interpretedFilters.skill}</strong></span>
-                  <button onClick={() => handleRemoveFilterKey('skill')} className="hover:text-slate-900 ml-1">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
+            {/* Quick Filters & Availability Toggle */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Availability Filter Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() => setAvailabilityOnly(!availabilityOnly)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all ${
+                    availabilityOnly
+                      ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                      : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                  }`}
+                >
+                  <Zap className={`w-3.5 h-3.5 ${availabilityOnly ? 'text-amber-300' : 'text-slate-400'}`} />
+                  <span>{availabilityOnly ? '✓ Ready for Work Only' : 'All Availability Statuses'}</span>
+                </button>
 
-              {interpretedFilters.city && (
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-lg text-xs font-semibold">
-                  <MapPin className="w-3 h-3" />
-                  <span>City: <strong>{interpretedFilters.city}</strong></span>
-                  <button onClick={() => handleRemoveFilterKey('city')} className="hover:text-slate-900 ml-1">
-                    <X className="w-3 h-3" />
+                {/* Quick City Chips */}
+                <span className="text-[11px] text-slate-400 ml-1">Quick:</span>
+                {['Pune', 'Mumbai', 'Kolhapur', 'Nagpur'].map((cityChip) => (
+                  <button
+                    key={cityChip}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCity(cityChip);
+                      handleStructuredSearch({ city: cityChip, page: 1 });
+                    }}
+                    className={`text-[11px] px-2.5 py-1 rounded-lg border transition-colors ${
+                      selectedCity === cityChip
+                        ? 'bg-primary text-white border-primary'
+                        : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                    }`}
+                  >
+                    {cityChip}
                   </button>
-                </span>
-              )}
+                ))}
+              </div>
 
-              {interpretedFilters.maxDailyWage && (
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold">
-                  <DollarSign className="w-3 h-3" />
-                  <span>Max: <strong>₹{interpretedFilters.maxDailyWage}/day</strong></span>
-                  <button onClick={() => handleRemoveFilterKey('maxDailyWage')} className="hover:text-slate-900 ml-1">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-
-              {interpretedFilters.minExperienceYears && (
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-50 text-purple-800 border border-purple-200 rounded-lg text-xs font-semibold">
-                  <Briefcase className="w-3 h-3" />
-                  <span>Exp: <strong>≥ {interpretedFilters.minExperienceYears} yrs</strong></span>
-                  <button onClick={() => handleRemoveFilterKey('minExperienceYears')} className="hover:text-slate-900 ml-1">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-
-              {interpretedFilters.minRating && (
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-semibold">
-                  <Star className="w-3 h-3" />
-                  <span>Rating: <strong>≥ {interpretedFilters.minRating}★</strong></span>
-                  <button onClick={() => handleRemoveFilterKey('minRating')} className="hover:text-slate-900 ml-1">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-
-              {interpretedFilters.durationDays && (
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold">
-                  <Clock className="w-3 h-3" />
-                  <span>Duration: <strong>{interpretedFilters.durationDays} days</strong></span>
-                  <button onClick={() => handleRemoveFilterKey('durationDays')} className="hover:text-slate-900 ml-1">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleClearFilters}
+                  className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 font-semibold"
+                >
+                  Reset
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>Apply Filters</span>
+                </button>
+              </div>
             </div>
+          </form>
+        ) : (
+          /* Natural-Language Search Box */
+          <div className="space-y-4">
+            <form onSubmit={handleFormSubmit} className="space-y-3">
+              <div className="relative">
+                <Search className="w-5 h-5 text-slate-400 absolute left-4 top-3.5" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Describe the worker you need (e.g. Find an electrician in Pune under ₹1,000 with 3+ years experience)..."
+                  className="w-full bg-slate-50 border border-slate-300 focus:border-primary focus:bg-white rounded-xl pl-12 pr-28 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition-colors"
+                />
+                <button
+                  type="submit"
+                  disabled={loading || !searchQuery.trim()}
+                  className="absolute right-2 top-2 px-4 py-1.5 bg-primary hover:bg-primary/90 text-white font-bold text-xs rounded-lg transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Search</span>
+                </button>
+              </div>
+
+              {/* 1-Click Example Queries */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="text-[11px] font-semibold text-slate-500">Try asking:</span>
+                {EXAMPLE_QUERIES.map((eg, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery(eg);
+                      setPage(1);
+                      handleSearch(eg);
+                    }}
+                    className="text-[11px] px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 rounded-lg border border-slate-200 transition-colors"
+                  >
+                    "{eg}"
+                  </button>
+                ))}
+              </div>
+            </form>
+
+            {/* Interpreted Filter Chips Display */}
+            {interpretedFilters && (
+              <div className="pt-3 border-t border-slate-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                    Interpreted Structured Filters
+                  </span>
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setActiveQuery('');
+                      setInterpretedFilters(null);
+                      setPage(1);
+                      handleSearch('Available workers in Maharashtra');
+                    }}
+                    className="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Reset</span>
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {interpretedFilters.skill && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-lg text-xs font-semibold">
+                      <span>Skill: <strong>{interpretedFilters.skill}</strong></span>
+                      <button onClick={() => handleRemoveFilterKey('skill')} className="hover:text-slate-900 ml-1">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+
+                  {interpretedFilters.city && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-lg text-xs font-semibold">
+                      <MapPin className="w-3 h-3" />
+                      <span>City: <strong>{interpretedFilters.city}</strong></span>
+                      <button onClick={() => handleRemoveFilterKey('city')} className="hover:text-slate-900 ml-1">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+
+                  {interpretedFilters.maxDailyWage && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold">
+                      <DollarSign className="w-3 h-3" />
+                      <span>Max: <strong>₹{interpretedFilters.maxDailyWage}/day</strong></span>
+                      <button onClick={() => handleRemoveFilterKey('maxDailyWage')} className="hover:text-slate-900 ml-1">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+
+                  {interpretedFilters.minExperienceYears && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-50 text-purple-800 border border-purple-200 rounded-lg text-xs font-semibold">
+                      <Briefcase className="w-3 h-3" />
+                      <span>Exp: <strong>≥ {interpretedFilters.minExperienceYears} yrs</strong></span>
+                      <button onClick={() => handleRemoveFilterKey('minExperienceYears')} className="hover:text-slate-900 ml-1">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+
+                  {interpretedFilters.minRating && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-semibold">
+                      <Star className="w-3 h-3" />
+                      <span>Rating: <strong>≥ {interpretedFilters.minRating}★</strong></span>
+                      <button onClick={() => handleRemoveFilterKey('minRating')} className="hover:text-slate-900 ml-1">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -338,7 +613,7 @@ export const EmployerWorkersPage = () => {
         <div className="flex items-center justify-between text-xs text-slate-500 px-1">
           <span>
             {pagination.total > 0 ? (
-              <>Showing {results.length} of <strong className="text-slate-700">{pagination.total}</strong> eligible workers found in database</>
+              <>Showing {results.length} of <strong className="text-slate-700">{pagination.total}</strong> verified workers found in database</>
             ) : (
               <>0 workers found</>
             )}
@@ -349,9 +624,14 @@ export const EmployerWorkersPage = () => {
             <select
               value={sort}
               onChange={(e) => {
-                setSort(e.target.value);
+                const newSort = e.target.value;
+                setSort(newSort);
                 setPage(1);
-                handleSearch(activeQuery || searchQuery);
+                if (discoveryMode === 'area') {
+                  handleStructuredSearch({ sort: newSort, page: 1 });
+                } else {
+                  handleSearch(activeQuery || searchQuery);
+                }
               }}
               className="bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-2.5 py-1 focus:outline-none focus:border-primary"
             >
@@ -368,7 +648,7 @@ export const EmployerWorkersPage = () => {
         {loading && (
           <div className="p-12 text-center bg-white border border-slate-200 rounded-2xl shadow-sm">
             <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
-            <p className="text-slate-600 text-sm font-medium">Interpreting query and finding matching workers...</p>
+            <p className="text-slate-600 text-sm font-medium">Finding matching workers in database...</p>
           </div>
         )}
 
@@ -380,7 +660,10 @@ export const EmployerWorkersPage = () => {
               <p className="text-sm font-medium">{error}</p>
             </div>
             <button
-              onClick={() => handleSearch()}
+              onClick={() => {
+                if (discoveryMode === 'area') handleStructuredSearch();
+                else handleSearch();
+              }}
               className="px-4 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-semibold rounded-lg transition-all"
             >
               Retry
@@ -394,13 +677,13 @@ export const EmployerWorkersPage = () => {
             <Info className="w-10 h-10 text-primary mx-auto opacity-75" />
             <p className="text-lg font-bold text-slate-900">No workers found matching these criteria</p>
             <p className="text-slate-600 text-sm max-w-md mx-auto">
-              Try broadening your location, increasing the maximum wage limit, or describing alternative skills.
+              Try broadening your location, clearing the trade filter, or allowing all availability statuses.
             </p>
             <button
               onClick={handleClearFilters}
               className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-primary text-xs font-bold rounded-xl border border-slate-200"
             >
-              View All Available Workers
+              View All Workers
             </button>
           </div>
         )}
@@ -414,11 +697,17 @@ export const EmployerWorkersPage = () => {
                 className="bg-white border border-slate-200 hover:border-slate-300 rounded-2xl p-6 transition-all space-y-4 flex flex-col justify-between shadow-sm hover:shadow-md"
               >
                 <div className="space-y-3">
-                  {/* Top: Photo/Avatar & Name */}
+                  {/* Top: Photo/Avatar & Name & Availability Badge */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-primary font-extrabold text-base overflow-hidden flex-shrink-0">
-                        {worker.workerName ? worker.workerName.charAt(0).toUpperCase() : <User className="w-5 h-5 text-slate-500" />}
+                        {worker.profilePhoto ? (
+                          <img src={worker.profilePhoto} alt={worker.workerName} className="w-full h-full object-cover" />
+                        ) : worker.workerName ? (
+                          worker.workerName.charAt(0).toUpperCase()
+                        ) : (
+                          <User className="w-5 h-5 text-slate-500" />
+                        )}
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">
@@ -433,9 +722,17 @@ export const EmployerWorkersPage = () => {
                       </div>
                     </div>
 
-                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 capitalize">
-                      {worker.availability}
-                    </span>
+                    {/* Prominent Availability Pill */}
+                    {worker.isAvailableForWork ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>Ready for Work</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                        Not Available
+                      </span>
+                    )}
                   </div>
 
                   {/* Metadata Row */}
@@ -467,6 +764,16 @@ export const EmployerWorkersPage = () => {
                       </span>
                     </div>
                   </div>
+
+                  {/* Distance Pill if available */}
+                  {worker.distanceKm !== null && (
+                    <div className="pt-1">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
+                        <MapPin className="w-3 h-3 text-blue-600" />
+                        <span>~{worker.distanceKm} km away</span>
+                      </span>
+                    </div>
+                  )}
 
                   {/* Additional Skills Tags */}
                   {worker.skills && worker.skills.length > 0 && (
@@ -517,8 +824,13 @@ export const EmployerWorkersPage = () => {
               <button
                 disabled={pagination.page <= 1}
                 onClick={() => {
-                  setPage((p) => p - 1);
-                  handleSearch(activeQuery || searchQuery);
+                  const newPage = pagination.page - 1;
+                  setPage(newPage);
+                  if (discoveryMode === 'area') {
+                    handleStructuredSearch({ page: newPage });
+                  } else {
+                    handleSearch(activeQuery || searchQuery);
+                  }
                 }}
                 className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 rounded-lg font-semibold border border-slate-200 transition-colors"
               >
@@ -527,8 +839,13 @@ export const EmployerWorkersPage = () => {
               <button
                 disabled={pagination.page >= pagination.totalPages}
                 onClick={() => {
-                  setPage((p) => p + 1);
-                  handleSearch(activeQuery || searchQuery);
+                  const newPage = pagination.page + 1;
+                  setPage(newPage);
+                  if (discoveryMode === 'area') {
+                    handleStructuredSearch({ page: newPage });
+                  } else {
+                    handleSearch(activeQuery || searchQuery);
+                  }
                 }}
                 className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 rounded-lg font-semibold border border-slate-200 transition-colors"
               >

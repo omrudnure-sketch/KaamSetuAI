@@ -33,6 +33,7 @@ router.use('/jobs', jobRoutes);
 router.use('/applications', applicationRoutes);
 router.use('/invitations', invitationRoutes);
 router.use('/hiring-agreements', hiringRoutes);
+router.use('/hiring', hiringRoutes);
 router.use('/projects', projectRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/progress', progressRoutes);

@@ -28,6 +28,8 @@ import {
   Phone,
   Mail,
   Briefcase,
+  MapPin,
+  Navigation,
 } from 'lucide-react';
 
 export const WorkerHiringDetailPage = () => {
@@ -39,6 +41,7 @@ export const WorkerHiringDetailPage = () => {
 
   const [agreement, setAgreement] = useState(null);
   const [employerContact, setEmployerContact] = useState(null);
+  const [confirmedJobSite, setConfirmedJobSite] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionMessage, setActionMessage] = useState('');
@@ -68,18 +71,23 @@ export const WorkerHiringDetailPage = () => {
         if (res.data.status === 'confirmed') {
           if (res.data.employerContact) {
             setEmployerContact(res.data.employerContact);
-          } else {
-            try {
-              const cRes = await getAgreementContact(id);
-              if (cRes.success && cRes.data?.employer) {
+          }
+          try {
+            const cRes = await getAgreementContact(id);
+            if (cRes.success && cRes.data) {
+              if (cRes.data.employer) {
                 setEmployerContact(cRes.data.employer);
               }
-            } catch (_err) {
-              // Ignore
+              if (cRes.data.job) {
+                setConfirmedJobSite(cRes.data.job);
+              }
             }
+          } catch (_err) {
+            // Ignore
           }
         } else {
           setEmployerContact(null);
+          setConfirmedJobSite(null);
         }
 
         setCounterForm({
@@ -316,13 +324,13 @@ export const WorkerHiringDetailPage = () => {
           </div>
         </div>
 
-        {/* Employer Contact Information Card (Confirmed Agreements Only) */}
+        {/* Employer Contact Information & Job Site Card (Confirmed Agreements Only) */}
         {agreement.status === 'confirmed' ? (
           <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-5 sm:p-6 space-y-4 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-200/80 pb-3">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-emerald-700 flex-shrink-0" />
-                <h3 className="text-base font-extrabold text-emerald-950">Employer Contact Details</h3>
+                <h3 className="text-base font-extrabold text-emerald-950">Authorized Employer Contact & Job Location</h3>
               </div>
               <span className="text-[11px] font-bold px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full border border-emerald-300 w-fit">
                 Unlocked for Confirmed Agreement
@@ -376,6 +384,52 @@ export const WorkerHiringDetailPage = () => {
               </div>
             </div>
 
+            {/* Confirmed Job Site Address & Navigation */}
+            <div className="p-4 bg-white border border-emerald-100 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-start gap-2.5">
+                <MapPin className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-xs text-slate-500 font-semibold block">Confirmed Job Site Location</span>
+                  <p className="text-sm font-bold text-slate-900">
+                    {confirmedJobSite?.address ||
+                      agreement.jobId?.address ||
+                      (agreement.jobId?.location?.address) ||
+                      (confirmedJobSite?.city ? `${confirmedJobSite.city}, ${confirmedJobSite.area || ''}` : 'Job site location shared by employer')}
+                  </p>
+                  {(confirmedJobSite?.city || agreement.jobId?.city) && (
+                    <p className="text-xs text-slate-600">
+                      {confirmedJobSite?.city || agreement.jobId?.city} {confirmedJobSite?.area ? `• ${confirmedJobSite.area}` : ''}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {(() => {
+                const lat = confirmedJobSite?.latitude ?? agreement.jobId?.latitude;
+                const lng = confirmedJobSite?.longitude ?? agreement.jobId?.longitude;
+                const addr = confirmedJobSite?.address || agreement.jobId?.address || confirmedJobSite?.city || agreement.jobId?.city;
+                const hasCoords = lat !== null && lng !== null && !isNaN(Number(lat)) && !isNaN(Number(lng));
+                const destUrl = hasCoords
+                  ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+                  : addr
+                  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`
+                  : null;
+
+                if (!destUrl) return null;
+                return (
+                  <a
+                    href={destUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm self-start sm:self-auto flex-shrink-0"
+                  >
+                    <Navigation className="w-3.5 h-3.5" />
+                    <span>Get Directions</span>
+                  </a>
+                );
+              })()}
+            </div>
+
             {(employerContact?.preferredLanguage || employerContact?.contactPreference) && (
               <p className="text-xs text-emerald-800 font-medium pt-1">
                 Preferred Language / Channel: <strong className="font-bold">{employerContact.preferredLanguage || 'English'} ({employerContact.contactPreference || 'Phone'})</strong>
@@ -385,7 +439,7 @@ export const WorkerHiringDetailPage = () => {
         ) : (
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-600 text-xs flex items-center gap-2.5">
             <ShieldCheck className="w-4 h-4 text-slate-400 flex-shrink-0" />
-            <span>Employer direct contact details will be automatically unlocked once both parties mutually confirm the agreement.</span>
+            <span>Employer direct contact details and exact job location will be automatically unlocked once both parties mutually confirm the agreement.</span>
           </div>
         )}
 

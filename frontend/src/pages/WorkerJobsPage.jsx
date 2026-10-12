@@ -48,6 +48,67 @@ export const WorkerJobsPage = () => {
   const [sort, setSort] = useState('newest');
   const [page, setPage] = useState(1);
 
+  // Consent-based location search states
+  const [coords, setCoords] = useState(null);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState('');
+  const [radius, setRadius] = useState(50);
+
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setGeoError(
+        lang === 'mr'
+          ? 'आपला ब्राउझर भौगोलिक स्थान समर्थन करत नाही.'
+          : lang === 'hi'
+          ? 'आपका ब्राउज़र जियोलोकेशन का समर्थन नहीं करता।'
+          : 'Geolocation is not supported by your browser.'
+      );
+      return;
+    }
+    setGeoLoading(true);
+    setGeoError('');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const userCoords = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        };
+        setCoords(userCoords);
+        setSort('nearest');
+        setPage(1);
+        setGeoLoading(false);
+      },
+      (err) => {
+        setGeoLoading(false);
+        if (err.code === 1) {
+          setGeoError(
+            lang === 'mr'
+              ? 'स्थान परवानगी नाकारली. आपण खाली शहर किंवा परिसरानुसार शोधू शकता.'
+              : lang === 'hi'
+              ? 'स्थान अनुमति अस्वीकृत। आप नीचे शहर या क्षेत्र के अनुसार खोज सकते हैं।'
+              : 'Location permission denied. You can search by city or area below.'
+          );
+        } else {
+          setGeoError(
+            lang === 'mr'
+              ? 'स्थान मिळवण्यात अडचण आली. कृपया खाली शहरानुसार शोधा.'
+              : lang === 'hi'
+              ? 'स्थान प्राप्त करने में असमर्थ। कृपया नीचे शहर के अनुसार खोजें।'
+              : 'Unable to acquire location. Please search by city or area below.'
+          );
+        }
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  };
+
+  const handleClearLocation = () => {
+    setCoords(null);
+    setGeoError('');
+    setSort('newest');
+    setPage(1);
+  };
+
   const fetchJobs = async () => {
     try {
       setLoading(true);
@@ -57,11 +118,17 @@ export const WorkerJobsPage = () => {
         limit: 6,
         sort,
       };
-      if (search.trim()) params.skill = search.trim(); // search query param fallback
+      if (search.trim()) params.skill = search.trim();
       if (skill) params.skill = skill;
       if (city.trim()) params.city = city.trim();
       if (minWage) params.minWage = minWage;
       if (durationType) params.durationType = durationType;
+
+      if (coords?.lat && coords?.lng) {
+        params.lat = coords.lat;
+        params.lng = coords.lng;
+        params.radius = radius;
+      }
 
       const res = await getAvailableJobs(params);
       if (res.success && res.data) {
@@ -229,6 +296,83 @@ export const WorkerJobsPage = () => {
               </button>
             </form>
 
+            {/* Location Awareness Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleUseMyLocation}
+                  disabled={geoLoading}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all shadow-2xs ${
+                    coords
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-white border border-slate-300 hover:border-primary text-slate-800'
+                  }`}
+                >
+                  <MapPin className={`w-3.5 h-3.5 ${coords ? 'text-white' : 'text-primary'}`} />
+                  <span>
+                    {geoLoading
+                      ? 'Detecting Location...'
+                      : coords
+                      ? 'Location Active ✓'
+                      : lang === 'mr'
+                      ? 'माझे स्थान वापरा (Use Location)'
+                      : lang === 'hi'
+                      ? 'मेरा स्थान उपयोग करें (Use Location)'
+                      : 'Use My Location'}
+                  </span>
+                </button>
+
+                {coords && (
+                  <button
+                    type="button"
+                    onClick={handleClearLocation}
+                    className="text-xs text-rose-600 hover:text-rose-700 underline font-semibold"
+                  >
+                    Clear Location
+                  </button>
+                )}
+              </div>
+
+              {coords ? (
+                <div className="flex items-center gap-1.5 text-slate-700">
+                  <span className="font-semibold text-[11px]">Radius:</span>
+                  {[10, 25, 50, 100].map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => {
+                        setRadius(r);
+                        setPage(1);
+                      }}
+                      className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-all ${
+                        radius === r
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'
+                      }`}
+                    >
+                      {r} km
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-[11px] text-slate-500">
+                  {lang === 'mr'
+                    ? 'जवळची कामे शोधण्यासाठी स्थान परवानगी द्या किंवा खाली शहर निवडा'
+                    : lang === 'hi'
+                    ? 'नजदीकी काम खोजने के लिए स्थान अनुमति दें या नीचे शहर चुनें'
+                    : 'Allow location to discover nearby jobs sorted by distance, or filter by city below'}
+                </span>
+              )}
+            </div>
+
+            {geoError && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <span>{geoError}</span>
+              </div>
+            )}
+
             {/* Filter Controls Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 pt-3 border-t border-slate-200">
               {/* Skill Filter */}
@@ -310,6 +454,7 @@ export const WorkerJobsPage = () => {
                   }}
                   className="w-full bg-slate-50 border border-slate-300 focus:border-primary rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:bg-white"
                 >
+                  {coords && <option value="nearest">Nearest First (जवळचे)</option>}
                   <option value="newest">{t.sortNewest}</option>
                   <option value="oldest">{t.sortOldest}</option>
                   <option value="wage_high">{t.sortWageHigh}</option>
@@ -392,6 +537,14 @@ export const WorkerJobsPage = () => {
                     </div>
 
                     <p className="text-slate-600 text-sm line-clamp-2">{job.description}</p>
+
+                    {/* Proximity / Distance Badge */}
+                    {job.distanceKm !== null && job.distanceKm !== undefined && (
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 w-fit">
+                        <MapPin className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+                        <span>~{job.distanceKm} km {lang === 'mr' ? 'अंतरावर' : lang === 'hi' ? 'दूर' : 'away'}</span>
+                      </div>
+                    )}
 
                     {/* Job Metadata Grid */}
                     <div className="grid grid-cols-2 gap-2 text-xs text-slate-700 pt-2 border-t border-slate-100">

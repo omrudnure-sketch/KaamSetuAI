@@ -28,6 +28,7 @@ const suites = [
   { name: '11. Cross-Browser Auth & Reliability Regression', file: 'cross-browser-auth-reliability.test.js' },
   { name: '12. Job Details, Application Submission & Notifications Regression', file: 'job-details-application-notifications.test.js' },
   { name: '13. Employer Job Details, Agreement Creation & Worker Contact Security', file: 'employer-jobs-agreements-contacts.test.js' },
+  { name: '14. Security Hardening, Persistence, Worker Availability & Location Search', file: 'security-persistence-availability-location.test.js' },
 ];
 
 console.log('================================================================');

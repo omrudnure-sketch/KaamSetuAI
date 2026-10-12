@@ -21,7 +21,6 @@ export const workerProfileSchema = z
     profilePhoto: z
       .string()
       .trim()
-      .url({ message: 'Profile photo must be a valid URL' })
       .optional()
       .or(z.literal(''))
       .nullable(),
@@ -44,8 +43,13 @@ export const workerProfileSchema = z
       .min(0, { message: 'Daily wage must be a positive number' })
       .optional()
       .nullable(),
+    hourlyRate: z
+      .number({ invalid_type_error: 'Hourly rate must be a number' })
+      .min(0, { message: 'Hourly rate must be a positive number' })
+      .optional()
+      .nullable(),
     languages: z
-      .array(z.enum(['en', 'mr', 'hi'], { errorMap: () => ({ message: 'Worker languages can only be en, mr, hi' }) }))
+      .array(z.string().trim())
       .optional()
       .default(['en']),
     bio: z
@@ -58,13 +62,14 @@ export const workerProfileSchema = z
       .object({
         city: z.string().trim().optional().default(''),
         area: z.string().trim().optional().default(''),
-        coordinates: z
-          .object({
-            type: z.literal('Point').optional().default('Point'),
-            coordinates: z.tuple([z.number(), z.number()]).optional().default([0, 0]),
-          })
-          .optional(),
+        address: z.string().trim().optional().default(''),
+        pincode: z.string().trim().optional().default(''),
+        state: z.string().trim().optional().default('Maharashtra'),
+        latitude: z.number().optional(),
+        longitude: z.number().optional(),
+        coordinates: z.any().optional(),
       })
+      .passthrough()
       .optional(),
     availability: z
       .enum(['available', 'unavailable', 'busy'], {
@@ -72,6 +77,14 @@ export const workerProfileSchema = z
       })
       .optional()
       .default('available'),
+    isAvailableForWork: z.boolean().optional(),
+    serviceRadiusKm: z.number().min(1).max(200).optional(),
+    address: z.string().trim().max(300).optional(),
+    pincode: z.string().trim().max(10).optional(),
+    state: z.string().trim().optional(),
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
+    documents: z.array(z.any()).optional().default([]),
     preferredWorkType: z
       .enum(['daily', 'multi_day', 'both'], {
         errorMap: () => ({ message: 'Preferred work type must be daily, multi_day, or both' }),
@@ -79,9 +92,16 @@ export const workerProfileSchema = z
       .optional()
       .default('both'),
   })
-  .strict();
+  .passthrough();
 
-export const validateWorkerProfile = (data) => {
+export const workerProfileUpdateSchema = workerProfileSchema.partial();
+
+export const workerAvailabilitySchema = z.object({
+  isAvailableForWork: z.boolean().optional(),
+  availability: z.enum(['available', 'unavailable', 'busy']).optional(),
+});
+
+export const validateWorkerProfile = (data, isUpdate = false) => {
   if (data && typeof data === 'object') {
     for (const field of FORBIDDEN_FIELDS) {
       if (field in data) {
@@ -93,7 +113,8 @@ export const validateWorkerProfile = (data) => {
     }
   }
 
-  const result = workerProfileSchema.safeParse(data);
+  const schema = isUpdate ? workerProfileUpdateSchema : workerProfileSchema;
+  const result = schema.safeParse(data);
   if (!result.success) {
     const errorMessages = result.error.errors.map((err) => err.message).join('; ');
     return {

@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { WorkerAvailabilityControl } from '../components/WorkerAvailabilityControl.jsx';
 
 export const WorkerPage = () => {
   const { user } = useAuth();
+  const [isAvailable, setIsAvailable] = useState(true);
 
   return (
     <div className="w-full space-y-space-md py-2">
@@ -12,7 +14,7 @@ export const WorkerPage = () => {
         <div className="flex items-start justify-between gap-space-sm relative z-10">
           <div className="flex flex-col min-w-0">
             <div className="inline-flex items-center gap-space-xs mb-1">
-              <span className="w-2 h-2 rounded-full bg-secondary-container animate-pulse" />
+              <span className={`w-2 h-2 rounded-full ${isAvailable ? 'bg-secondary-container animate-pulse' : 'bg-rose-400'}`} />
               <span className="font-label-sm text-xs tracking-wider uppercase text-primary-fixed">
                 Active Site • कामगार पोर्टल
               </span>
@@ -26,7 +28,10 @@ export const WorkerPage = () => {
               </span>
               <span>•</span>
               <span className="flex items-center gap-1">
-                <span className="material-symbols-outlined text-[15px]">location_on</span> Available for Hire
+                <span className="material-symbols-outlined text-[15px]">
+                  {isAvailable ? 'check_circle' : 'do_not_disturb_on'}
+                </span>{' '}
+                {isAvailable ? 'Ready for Work • कामासाठी उपलब्ध' : 'Not Available • अनुपलब्ध'}
               </span>
             </div>
           </div>
@@ -40,11 +45,21 @@ export const WorkerPage = () => {
           <span className="flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px]">verified_user</span> Escrow Protection
           </span>
-          <span className="bg-primary-container px-2.5 py-1 rounded-full text-surface-lowest font-bold text-[11px]">
-            Ready for Work
+          <span
+            className={`px-2.5 py-1 rounded-full text-surface-lowest font-bold text-[11px] ${
+              isAvailable ? 'bg-emerald-600' : 'bg-rose-600'
+            }`}
+          >
+            {isAvailable ? '● Ready for Work' : '○ Not Available'}
           </span>
         </div>
       </div>
+
+      {/* Prominent Worker Availability Status Control */}
+      <WorkerAvailabilityControl
+        lang={user?.preferredLanguage || 'en'}
+        onStatusChange={(newStatus) => setIsAvailable(newStatus)}
+      />
 
       {/* Main Action Bento Cards */}
       <div className="grid grid-cols-2 gap-space-sm">

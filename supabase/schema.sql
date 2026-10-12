@@ -106,14 +106,26 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS worker_profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+    full_name VARCHAR(255),
+    primary_skill VARCHAR(100),
     bio TEXT,
     skills TEXT[] DEFAULT '{}',
     experience_years INT DEFAULT 0,
     daily_wage NUMERIC(10, 2),
     hourly_rate NUMERIC(10, 2),
     availability VARCHAR(50) DEFAULT 'available',
+    is_available_for_work BOOLEAN NOT NULL DEFAULT true,
+    availability_updated_at TIMESTAMPTZ DEFAULT NOW(),
+    preferred_work_type VARCHAR(50) DEFAULT 'both',
+    service_radius_km INT DEFAULT 15,
+    languages TEXT[] DEFAULT '{"en"}',
+    profile_photo TEXT,
+    documents JSONB DEFAULT '[]',
     location VARCHAR(255),
     city VARCHAR(100),
+    area VARCHAR(100),
+    address TEXT,
+    pincode VARCHAR(20),
     latitude DOUBLE PRECISION,
     longitude DOUBLE PRECISION,
     profile_completion INT DEFAULT 20,
@@ -133,6 +145,11 @@ CREATE TABLE IF NOT EXISTS employer_profiles (
     contact_person VARCHAR(255),
     location VARCHAR(255),
     city VARCHAR(100),
+    area VARCHAR(100),
+    address TEXT,
+    pincode VARCHAR(20),
+    phone VARCHAR(20),
+    email VARCHAR(255),
     profile_completion INT DEFAULT 30,
     rating NUMERIC(3, 2) DEFAULT 0.0,
     review_count INT DEFAULT 0,
@@ -152,6 +169,10 @@ CREATE TABLE IF NOT EXISTS jobs (
     wage_amount NUMERIC(10, 2) NOT NULL,
     duration_days INT DEFAULT 1,
     location VARCHAR(255),
+    city VARCHAR(100),
+    area VARCHAR(100),
+    address TEXT,
+    pincode VARCHAR(20),
     latitude DOUBLE PRECISION,
     longitude DOUBLE PRECISION,
     workers_needed INT DEFAULT 1,
@@ -419,6 +440,13 @@ CREATE INDEX IF NOT EXISTS idx_attendance_worker ON attendances(worker_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read);
 
+CREATE INDEX IF NOT EXISTS idx_jobs_lat_lng ON jobs(latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_jobs_city_area ON jobs(city, area);
+CREATE INDEX IF NOT EXISTS idx_worker_profiles_lat_lng ON worker_profiles(latitude, longitude);
+CREATE INDEX IF NOT EXISTS idx_worker_profiles_availability ON worker_profiles(is_available_for_work, availability);
+CREATE INDEX IF NOT EXISTS idx_worker_profiles_city_area ON worker_profiles(city, area);
+CREATE INDEX IF NOT EXISTS idx_worker_profiles_primary_skill ON worker_profiles(primary_skill);
+
 -- ==============================================================================
 -- 4. ROW LEVEL SECURITY (RLS) POLICIES
 -- ==============================================================================
@@ -427,17 +455,69 @@ ALTER TABLE worker_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE employer_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE job_applications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE job_invitations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hiring_agreements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_workers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attendances ENABLE ROW LEVEL SECURITY;
+ALTER TABLE progress_updates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_extensions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE complaints ENABLE ROW LEVEL SECURITY;
+ALTER TABLE disputes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE risk_flags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE verification_records ENABLE ROW LEVEL SECURITY;
 
 -- Public / Anonymous can read open jobs
+DROP POLICY IF EXISTS "Public can view open jobs" ON jobs;
 CREATE POLICY "Public can view open jobs" ON jobs
     FOR SELECT USING (status = 'open');
 
--- Public / Anonymous can view active worker profiles
-CREATE POLICY "Public can view active worker profiles" ON worker_profiles
-    FOR SELECT USING (true);
+-- Authenticated users can view public cards for available workers
+DROP POLICY IF EXISTS "Authenticated can view public worker profiles" ON worker_profiles;
+CREATE POLICY "Authenticated can view public worker profiles" ON worker_profiles
+    FOR SELECT TO authenticated
+    USING (is_available_for_work = true OR auth.uid() = user_id);
+
+-- Workers can update own profile
+DROP POLICY IF EXISTS "Workers can update own profile" ON worker_profiles;
+CREATE POLICY "Workers can update own profile" ON worker_profiles
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+-- Employers can manage own profile
+DROP POLICY IF EXISTS "Employers can manage own profile" ON employer_profiles;
+CREATE POLICY "Employers can manage own profile" ON employer_profiles
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+-- Applications visible only to applicant worker or job owner
+DROP POLICY IF EXISTS "Workers can view and create own applications" ON job_applications;
+CREATE POLICY "Workers can view and create own applications" ON job_applications
+    FOR ALL TO authenticated
+    USING (auth.uid() = worker_id)
+    WITH CHECK (auth.uid() = worker_id);
+
+-- Hiring agreements visible only to involved counterparties
+DROP POLICY IF EXISTS "Agreements visible only to participants" ON hiring_agreements;
+CREATE POLICY "Agreements visible only to participants" ON hiring_agreements
+    FOR ALL TO authenticated
+    USING (auth.uid() = employer_id OR auth.uid() = worker_id)
+    WITH CHECK (auth.uid() = employer_id OR auth.uid() = worker_id);
+
+-- Notifications visible only to target user
+DROP POLICY IF EXISTS "Users can only read own notifications" ON notifications;
+CREATE POLICY "Users can only read own notifications" ON notifications
+    FOR ALL TO authenticated
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
 
 -- Authenticated Service Role bypasses RLS automatically in Supabase
 -- (The backend using SUPABASE_SERVICE_ROLE_KEY or direct PostgreSQL connection

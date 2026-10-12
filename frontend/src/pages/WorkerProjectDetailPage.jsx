@@ -24,9 +24,12 @@ import {
   ListTodo,
   AlertTriangle,
   Send,
-  PlusCircle,
   Star,
   CheckSquare,
+  Phone,
+  Mail,
+  MapPin,
+  Navigation,
 } from 'lucide-react';
 
 export const WorkerProjectDetailPage = () => {
@@ -382,6 +385,107 @@ export const WorkerProjectDetailPage = () => {
             lang={lang}
             type="project"
           />
+
+          {/* Authorized Employer & Site Location Card */}
+          <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-200/80 pb-3">
+              <div className="flex items-center gap-2">
+                <Building className="w-5 h-5 text-emerald-700 flex-shrink-0" />
+                <h3 className="text-base font-extrabold text-emerald-950">Authorized Employer Contact & Job Site</h3>
+              </div>
+              <span className="text-[11px] font-bold px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full border border-emerald-300 w-fit">
+                Confirmed Project Counterparty
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+              <div className="p-3 bg-white border border-emerald-100 rounded-xl space-y-1">
+                <span className="text-xs text-slate-500 font-semibold block">Employer Name</span>
+                <span className="font-bold text-slate-900 block truncate">
+                  {project.employerId?.name || 'Project Employer'}
+                </span>
+              </div>
+
+              <div className="p-3 bg-white border border-emerald-100 rounded-xl space-y-1">
+                <span className="text-xs text-slate-500 font-semibold block">Direct Phone</span>
+                {project.employerId?.phone ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-slate-900 truncate">{project.employerId.phone}</span>
+                    <a
+                      href={`tel:${project.employerId.phone}`}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors flex-shrink-0"
+                    >
+                      <Phone className="w-3 h-3" /> Call
+                    </a>
+                  </div>
+                ) : (
+                  <span className="text-slate-400 font-medium">Provided in Agreement</span>
+                )}
+              </div>
+
+              <div className="p-3 bg-white border border-emerald-100 rounded-xl space-y-1">
+                <span className="text-xs text-slate-500 font-semibold block">Email</span>
+                {project.employerId?.email ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-slate-900 truncate max-w-[130px]">{project.employerId.email}</span>
+                    <a
+                      href={`mailto:${project.employerId.email}`}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors border border-slate-200 flex-shrink-0"
+                    >
+                      <Mail className="w-3 h-3" /> Email
+                    </a>
+                  </div>
+                ) : (
+                  <span className="text-slate-400 font-medium">Provided in Agreement</span>
+                )}
+              </div>
+            </div>
+
+            {/* Site Address & Directions Button */}
+            <div className="p-4 bg-white border border-emerald-100 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <MapPin className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-xs text-slate-500 font-semibold block">Work Site Location</span>
+                  <p className="text-sm font-bold text-slate-900">
+                    {project.location?.address ||
+                      (typeof project.location === 'string' ? project.location : null) ||
+                      (project.location?.city ? `${project.location.city}, ${project.location.area || ''}` : 'Job site location')}
+                  </p>
+                  {project.location?.city && (
+                    <p className="text-xs text-slate-600">
+                      {project.location.city} {project.location.area ? `• ${project.location.area}` : ''}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {(() => {
+                const lat = project.location?.coordinates?.coordinates?.[1] ?? project.location?.latitude;
+                const lng = project.location?.coordinates?.coordinates?.[0] ?? project.location?.longitude;
+                const addr = project.location?.address || project.location?.city || (typeof project.location === 'string' ? project.location : '');
+                const hasCoords = lat !== null && lng !== null && !isNaN(Number(lat)) && !isNaN(Number(lng));
+                const destUrl = hasCoords
+                  ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+                  : addr
+                  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`
+                  : null;
+
+                if (!destUrl) return null;
+                return (
+                  <a
+                    href={destUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm self-start sm:self-auto flex-shrink-0"
+                  >
+                    <Navigation className="w-3.5 h-3.5" />
+                    <span>Get Directions</span>
+                  </a>
+                );
+              })()}
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">

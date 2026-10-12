@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { fetchWorkerProfile, createWorkerProfile, updateWorkerProfile } from '../services/profileApi.js';
 import { workerTranslations } from '../utils/workerTranslations.js';
+import { WorkerAvailabilityControl } from '../components/WorkerAvailabilityControl.jsx';
 import { HardHat, Globe, CheckCircle2, AlertCircle, Save, Percent, Sparkles, User, MapPin } from 'lucide-react';
 
 export const WorkerProfilePage = () => {
@@ -107,6 +108,7 @@ export const WorkerProfilePage = () => {
       languages: formData.languages,
       preferredWorkType: formData.preferredWorkType,
       availability: formData.availability,
+      isAvailableForWork: formData.availability !== 'unavailable',
       bio: formData.bio,
       profilePhoto: formData.profilePhoto,
       location: {
@@ -216,12 +218,17 @@ export const WorkerProfilePage = () => {
         </div>
       )}
 
-      {errorMsg && (
-        <div className="flex items-center gap-2 p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm shadow-xs">
-          <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
-          <span>{errorMsg}</span>
-        </div>
-      )}
+      {/* Prominent Worker Availability Status Control */}
+      <WorkerAvailabilityControl
+        lang={lang}
+        initialIsAvailable={formData.availability !== 'unavailable'}
+        onStatusChange={(newStatus) =>
+          setFormData((prev) => ({
+            ...prev,
+            availability: newStatus ? 'available' : 'unavailable',
+          }))
+        }
+      />
 
       {/* Profile Form */}
       <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">

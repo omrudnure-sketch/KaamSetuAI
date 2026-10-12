@@ -24,8 +24,12 @@ router.get('/employer', requireRole('employer'), handleGetEmployerHiringAgreemen
 router.get('/:id', handleGetHiringAgreement);
 router.get('/:id/contact', handleGetAgreementContact);
 router.patch('/:id/accept', handleAcceptHiringAgreement);
+router.post('/:id/accept', handleAcceptHiringAgreement);
 router.patch('/:id/reject', handleRejectHiringAgreement);
+router.post('/:id/reject', handleRejectHiringAgreement);
 router.patch('/:id/counter', handleCounterOffer);
+router.post('/:id/counter', handleCounterOffer);
 router.patch('/:id/cancel', handleCancelHiringAgreement);
+router.post('/:id/cancel', handleCancelHiringAgreement);
 
 export default router;

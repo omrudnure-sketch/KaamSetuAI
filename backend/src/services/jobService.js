@@ -33,11 +33,14 @@ export const getEmployerJobById = async (employerId, jobId, isAdmin = false) => 
     jobObj.skillRequired = jobObj.category;
   }
   const days = Number(jobObj.durationDays || jobObj.duration_days);
-  if (!jobObj.durationType) {
+  if (!jobObj.durationType || (jobObj.durationType === 'single_day' && days > 1)) {
     jobObj.durationType = days ? (days === 1 ? 'single_day' : 'fixed_duration') : 'single_day';
   }
-  if (!jobObj.workersRequired) {
-    jobObj.workersRequired = jobObj.workersNeeded || jobObj.workers_needed;
+  const needed = Number(jobObj.workersNeeded || jobObj.workers_needed);
+  if (needed) {
+    jobObj.workersRequired = needed;
+  } else if (!jobObj.workersRequired) {
+    jobObj.workersRequired = 1;
   }
   return jobObj;
 };
@@ -58,10 +61,36 @@ export const closeEmployerJob = async (employerId, jobId) => {
   );
 };
 
-export const getAvailableJobs = async (queryParams = {}) => {
+const haversineDistanceKm = (lat1, lon1, lat2, lon2) => {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 10) / 10;
+};
+
+const isValidCoord = (lng, lat) => {
+  const numLng = Number(lng);
+  const numLat = Number(lat);
+  return (
+    !isNaN(numLng) &&
+    !isNaN(numLat) &&
+    numLng >= -180 &&
+    numLng <= 180 &&
+    numLat >= -90 &&
+    numLat <= 90 &&
+    !(numLng === 0 && numLat === 0)
+  );
+};
+
+export const getAvailableJobs = async (queryParams) => {
   const {
-    page = 1,
-    limit = 10,
     skill,
     city,
     area,
@@ -71,6 +100,14 @@ export const getAvailableJobs = async (queryParams = {}) => {
     startDate,
     search,
     sort = 'newest',
+    page = 1,
+    limit = 10,
+    lat,
+    lng,
+    latitude,
+    longitude,
+    radius,
+    distance,
   } = queryParams;
 
   const pageNum = Math.max(1, parseInt(page, 10) || 1);
@@ -126,47 +163,105 @@ export const getAvailableJobs = async (queryParams = {}) => {
     sortOption = { wageAmount: 1 };
   }
 
-  const [jobs, total] = await Promise.all([
+  const rawLat = lat !== undefined ? lat : latitude;
+  const rawLng = lng !== undefined ? lng : longitude;
+  const hasUserCoords = isValidCoord(rawLng, rawLat);
+  const userLat = Number(rawLat);
+  const userLng = Number(rawLng);
+  const maxRadius = Number(radius || distance) || null;
+
+  // If sorting by nearest or filtering by radius, fetch larger batch for distance calculation
+  const fetchLimit = hasUserCoords ? 200 : limitNum;
+  const fetchSkip = hasUserCoords ? 0 : skip;
+
+  const [jobs, totalCount] = await Promise.all([
     Job.find(filter)
       .sort(sortOption)
-      .skip(skip)
-      .limit(limitNum)
-      .populate('employerId', 'name email phone'),
+      .skip(fetchSkip)
+      .limit(fetchLimit)
+      .populate('employerId', 'name'),
     Job.countDocuments(filter),
   ]);
 
-  const totalPages = Math.ceil(total / limitNum) || 1;
-
-  // Enrich with employer business profile info if available
-  const enrichedJobs = await Promise.all(
+  // Enrich with employer business profile info if available & calculate distances
+  let enrichedJobs = await Promise.all(
     jobs.map(async (jobDoc) => {
-      const job = jobDoc.toJSON();
-      if (job.employerId && job.employerId._id) {
-        const empProfile = await EmployerProfile.findOne({ userId: job.employerId._id }).select(
-          'name businessName businessType location rating'
-        );
-        job.employerProfile = empProfile || null;
+      const job = jobDoc.toJSON ? jobDoc.toJSON() : { ...jobDoc };
+      
+      // Never expose employer phone/email publicly on jobs listing
+      if (job.employerId && typeof job.employerId === 'object') {
+        delete job.employerId.phone;
+        delete job.employerId.email;
       }
+
+      if (job.employerId && (job.employerId._id || job.employerId.id)) {
+        const empUserId = job.employerId._id || job.employerId.id;
+        const empProfile = await EmployerProfile.findOne({ userId: empUserId }).select(
+          'name companyName businessName businessType location rating'
+        );
+        job.employerProfile = empProfile ? (empProfile.toJSON ? empProfile.toJSON() : empProfile) : null;
+      }
+
+      const jLng = job.longitude ?? (job.location?.coordinates?.coordinates?.[0] ?? null);
+      const jLat = job.latitude ?? (job.location?.coordinates?.coordinates?.[1] ?? null);
+      if (hasUserCoords && isValidCoord(jLng, jLat)) {
+        job.distanceKm = haversineDistanceKm(userLat, userLng, Number(jLat), Number(jLng));
+      } else {
+        job.distanceKm = null;
+      }
+
       return job;
     })
   );
+
+  if (hasUserCoords) {
+    if (maxRadius) {
+      enrichedJobs = enrichedJobs.filter((j) => j.distanceKm === null || j.distanceKm <= maxRadius);
+    }
+    if (sort === 'nearest') {
+      enrichedJobs.sort((a, b) => {
+        if (a.distanceKm === null && b.distanceKm === null) return 0;
+        if (a.distanceKm === null) return 1;
+        if (b.distanceKm === null) return -1;
+        return a.distanceKm - b.distanceKm;
+      });
+    }
+    const finalTotal = enrichedJobs.length;
+    const paginated = enrichedJobs.slice(skip, skip + limitNum);
+    return {
+      jobs: paginated,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: finalTotal,
+        totalPages: Math.ceil(finalTotal / limitNum) || 1,
+      },
+    };
+  }
+
+  const totalPages = Math.ceil(totalCount / limitNum) || 1;
 
   return {
     jobs: enrichedJobs,
     pagination: {
       page: pageNum,
       limit: limitNum,
-      total,
+      total: totalCount,
       totalPages,
     },
   };
 };
 
 export const getJobByIdForWorker = async (jobId) => {
-  const job = await Job.findById(jobId).populate('employerId', 'name email phone');
+  const job = await Job.findById(jobId).populate('employerId', 'name');
   if (!job) return null;
 
   const jobObj = job.toJSON ? job.toJSON() : { ...job };
+  if (jobObj.employerId && typeof jobObj.employerId === 'object') {
+    delete jobObj.employerId.phone;
+    delete jobObj.employerId.email;
+  }
+
   const employerUserId = jobObj.employerId?._id || jobObj.employerId?.id || jobObj.employerId;
   if (employerUserId) {
     const empProfile = await EmployerProfile.findOne({ userId: employerUserId }).select(
@@ -177,3 +272,4 @@ export const getJobByIdForWorker = async (jobId) => {
 
   return jobObj;
 };
+

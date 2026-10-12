@@ -66,29 +66,31 @@ export const getJobsMap = async (req, res, next) => {
       if (maxWage) query.wageAmount.$lte = Number(maxWage);
     }
 
-    // Geospatial query when valid coordinates provided
-    if (isValidCoordinate(lng, lat)) {
-      const radiusInRadians = Number(distance) / 6378.1;
-      query['location.coordinates'] = {
-        $geoWithin: {
-          $centerSphere: [[Number(lng), Number(lat)], radiusInRadians],
-        },
-      };
-    }
+    const hasSearchCoords = isValidCoordinate(lng, lat);
+    const searchLat = Number(lat);
+    const searchLng = Number(lng);
+    const searchRadiusKm = Number(distance) || 25;
 
     const jobs = await Job.find(query)
       .populate('employerId', 'name')
-      .select('title skillRequired workersRequired wageType wageAmount durationType startDate workingHours location createdAt')
       .sort({ createdAt: -1 })
-      .limit(100)
-      .lean();
+      .limit(100);
 
-    const formattedJobs = jobs.map((j) => {
-      const coords = j.location?.coordinates?.coordinates || [0, 0];
-      const hasCoords = isValidCoordinate(coords[0], coords[1]);
+    let formattedJobs = jobs.map((jobDoc) => {
+      const j = jobDoc.toJSON ? jobDoc.toJSON() : { ...jobDoc };
+      const jLng = j.longitude ?? (j.location?.coordinates?.coordinates?.[0] ?? 0);
+      const jLat = j.latitude ?? (j.location?.coordinates?.coordinates?.[1] ?? 0);
+      const hasCoords = isValidCoordinate(jLng, jLat);
+      const coords = [Number(jLng) || 0, Number(jLat) || 0];
+
+      let distanceKm = null;
+      if (hasSearchCoords && hasCoords) {
+        distanceKm = haversineDistanceKm(searchLat, searchLng, Number(jLat), Number(jLng));
+      }
 
       return {
-        _id: j._id,
+        _id: j.id || j._id,
+        id: j.id || j._id,
         title: j.title,
         skillRequired: j.skillRequired,
         workersRequired: j.workersRequired,
@@ -97,9 +99,11 @@ export const getJobsMap = async (req, res, next) => {
         durationType: j.durationType,
         startDate: j.startDate,
         workingHours: j.workingHours,
+        distanceKm,
         location: {
-          city: j.location?.city || 'Unspecified',
-          area: j.location?.area || '',
+          city: j.city || j.location?.city || (typeof j.location === 'string' ? j.location : '') || 'Unspecified',
+          area: j.area || j.location?.area || '',
+          address: j.address || j.location?.address || '',
           coordinates: coords, // [lng, lat]
           hasCoordinates: hasCoords,
         },
@@ -108,6 +112,15 @@ export const getJobsMap = async (req, res, next) => {
         },
       };
     });
+
+    if (hasSearchCoords) {
+      formattedJobs = formattedJobs.filter((j) => !j.location.hasCoordinates || j.distanceKm === null || j.distanceKm <= searchRadiusKm);
+      formattedJobs.sort((a, b) => {
+        if (a.distanceKm === null) return 1;
+        if (b.distanceKm === null) return -1;
+        return a.distanceKm - b.distanceKm;
+      });
+    }
 
     res.json({
       success: true,
@@ -172,48 +185,62 @@ export const getWorkersMap = async (req, res, next) => {
       query.$or = [{ primarySkill: skillRegex }, { skills: skillRegex }];
     }
 
-    if (isValidCoordinate(lng, lat)) {
-      const radiusInRadians = Number(distance) / 6378.1;
-      query['location.coordinates'] = {
-        $geoWithin: {
-          $centerSphere: [[Number(lng), Number(lat)], radiusInRadians],
-        },
-      };
-    }
+    const hasSearchCoords = isValidCoordinate(lng, lat);
+    const searchLat = Number(lat);
+    const searchLng = Number(lng);
+    const searchRadiusKm = Number(distance) || 25;
 
     // Populate user status to ensure only active users appear
     const workers = await WorkerProfile.find(query)
       .populate('userId', 'status')
-      .select('fullName primarySkill skills experienceYears dailyWage availability verificationStatus rating totalReviews location')
-      .limit(100)
-      .lean();
+      .limit(100);
 
     // Filter out inactive or suspended accounts
     const activeWorkers = workers.filter((w) => !w.userId || w.userId.status === 'active');
 
-    const formattedWorkers = activeWorkers.map((w) => {
-      const rawCoords = w.location?.coordinates?.coordinates || [0, 0];
+    let formattedWorkers = activeWorkers.map((workerDoc) => {
+      const w = workerDoc.toJSON ? workerDoc.toJSON() : { ...workerDoc };
+      const wLng = w.longitude ?? (w.location?.coordinates?.coordinates?.[0] ?? 0);
+      const wLat = w.latitude ?? (w.location?.coordinates?.coordinates?.[1] ?? 0);
+      const rawCoords = [Number(wLng) || 0, Number(wLat) || 0];
       const approxCoords = approximateCoordinates(rawCoords);
 
+      let distanceKm = null;
+      if (hasSearchCoords && isValidCoordinate(wLng, wLat)) {
+        distanceKm = haversineDistanceKm(searchLat, searchLng, Number(wLat), Number(wLng));
+      }
+
       return {
-        _id: w._id,
-        fullName: w.fullName,
-        primarySkill: w.primarySkill,
+        _id: w.id || w._id,
+        id: w.id || w._id,
+        fullName: w.fullName || 'Skilled Worker',
+        primarySkill: w.primarySkill || (Array.isArray(w.skills) ? w.skills[0] : 'General Worker'),
         skills: w.skills || [],
         experienceYears: w.experienceYears || 0,
         dailyWage: w.dailyWage || 0,
-        availability: w.availability,
+        availability: w.availability || 'available',
+        isAvailableForWork: w.isAvailableForWork ?? (w.availability !== 'unavailable'),
         verificationStatus: w.verificationStatus,
         rating: w.rating || 0,
-        totalReviews: w.totalReviews || 0,
+        totalReviews: w.totalReviews || w.reviewCount || 0,
+        distanceKm,
         location: {
-          city: w.location?.city || 'Unspecified',
-          area: w.location?.area || '',
+          city: w.city || w.location?.city || 'Unspecified',
+          area: w.area || w.location?.area || '',
           coordinates: approxCoords || [0, 0], // Approximate for privacy!
           hasCoordinates: approxCoords !== null,
         },
       };
     });
+
+    if (hasSearchCoords) {
+      formattedWorkers = formattedWorkers.filter((w) => !w.location.hasCoordinates || w.distanceKm === null || w.distanceKm <= searchRadiusKm);
+      formattedWorkers.sort((a, b) => {
+        if (a.distanceKm === null) return 1;
+        if (b.distanceKm === null) return -1;
+        return a.distanceKm - b.distanceKm;
+      });
+    }
 
     res.json({
       success: true,

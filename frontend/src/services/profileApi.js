@@ -29,3 +29,14 @@ export const updateEmployerProfile = async (profileData) => {
   const response = await authApiClient.put('/employers/profile', profileData);
   return response.data;
 };
+
+export const updateWorkerAvailability = async (availabilityData) => {
+  const response = await authApiClient.patch('/workers/availability', availabilityData);
+  return response.data;
+};
+
+export const fetchWorkersForEmployer = async (params = {}) => {
+  const response = await authApiClient.get('/workers', { params });
+  return response.data;
+};
+

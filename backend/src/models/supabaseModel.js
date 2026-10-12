@@ -23,6 +23,25 @@ export const mapObjectToSnake = (obj) => {
   for (const [key, val] of Object.entries(obj)) {
     if (key === '_id') {
       res['id'] = val;
+    } else if (key === 'createdFromHiringAgreement') {
+      res['hiring_agreement_id'] = val;
+    } else if (key === 'name' && obj.title === undefined) {
+      res['title'] = val;
+      res['name'] = val;
+    } else if (key === 'estimatedEndDate' && obj.expectedEndDate === undefined) {
+      res['expected_end_date'] = val;
+    } else if (key === 'location' && typeof val === 'object' && val !== null) {
+      if (val.city && res.city === undefined) res.city = val.city;
+      if (val.area && res.area === undefined) res.area = val.area;
+      if (val.address && res.address === undefined) res.address = val.address;
+      if (Array.isArray(val.coordinates) && val.coordinates.length >= 2) {
+        if (res.longitude === undefined) res.longitude = val.coordinates[0];
+        if (res.latitude === undefined) res.latitude = val.coordinates[1];
+      } else if (val.coordinates?.coordinates && Array.isArray(val.coordinates.coordinates)) {
+        if (res.longitude === undefined) res.longitude = val.coordinates.coordinates[0];
+        if (res.latitude === undefined) res.latitude = val.coordinates.coordinates[1];
+      }
+      res['location'] = typeof val === 'string' ? val : ([val.area, val.city].filter(Boolean).join(', ') || val.address || '');
     } else if (key.startsWith('$')) {
       // Ignore Mongo operator wrappers like $set
       if (typeof val === 'object' && val !== null) {
@@ -53,9 +72,23 @@ export const mapObjectToCamel = (obj) => {
 // Verified column whitelist per Supabase table to prevent PostgREST PGRST204 errors
 export const SUPABASE_TABLE_COLUMNS = {
   users: new Set(['id', 'name', 'email', 'phone', 'password_hash', 'role', 'admin_role', 'permissions', 'preferred_language', 'status', 'is_verified', 'last_login_at', 'created_at', 'updated_at']),
-  worker_profiles: new Set(['id', 'user_id', 'bio', 'skills', 'experience_years', 'daily_wage', 'hourly_rate', 'availability', 'location', 'city', 'latitude', 'longitude', 'profile_completion', 'rating', 'review_count', 'completed_projects', 'created_at', 'updated_at']),
-  employer_profiles: new Set(['id', 'user_id', 'company_name', 'business_type', 'contact_person', 'location', 'city', 'profile_completion', 'rating', 'review_count', 'created_at', 'updated_at']),
-  jobs: new Set(['id', 'employer_id', 'title', 'description', 'category', 'required_skills', 'wage_type', 'wage_amount', 'duration_days', 'location', 'latitude', 'longitude', 'workers_needed', 'status', 'ai_generated', 'created_at', 'updated_at']),
+  worker_profiles: new Set([
+    'id', 'user_id', 'full_name', 'bio', 'primary_skill', 'skills', 'experience_years', 'daily_wage', 'hourly_rate',
+    'languages', 'preferred_work_type', 'availability', 'is_available_for_work', 'availability_updated_at',
+    'service_radius_km', 'profile_photo', 'documents', 'location', 'city', 'area', 'address', 'pincode',
+    'latitude', 'longitude', 'profile_completion', 'rating', 'review_count', 'completed_projects',
+    'created_at', 'updated_at'
+  ]),
+  employer_profiles: new Set([
+    'id', 'user_id', 'company_name', 'business_type', 'contact_person', 'location', 'city', 'area',
+    'address', 'pincode', 'phone', 'email', 'profile_completion', 'rating', 'review_count',
+    'created_at', 'updated_at'
+  ]),
+  jobs: new Set([
+    'id', 'employer_id', 'title', 'description', 'category', 'required_skills', 'wage_type', 'wage_amount',
+    'duration_days', 'location', 'city', 'area', 'address', 'pincode', 'latitude', 'longitude',
+    'workers_needed', 'status', 'ai_generated', 'created_at', 'updated_at'
+  ]),
   job_applications: new Set(['id', 'job_id', 'worker_id', 'proposed_wage', 'cover_note', 'status', 'applied_at', 'updated_at']),
   job_invitations: new Set(['id', 'job_id', 'worker_id', 'employer_id', 'status', 'created_at', 'updated_at']),
   hiring_agreements: new Set(['id', 'job_id', 'employer_id', 'worker_id', 'agreed_wage', 'wage_type', 'start_date', 'expected_end_date', 'terms', 'proposed_by', 'status', 'confirmed_at', 'created_at', 'updated_at']),
@@ -301,6 +334,9 @@ export class SupabaseModel {
             throw dupErr;
           }
           console.warn(`[Supabase ${this.tableName} Insert Notice]:`, error.message || error.code);
+          if (process.env.NODE_ENV === 'production') {
+            throw new Error(`Database insert failed for ${this.tableName}: ${error.message}`);
+          }
         } else if (inserted) {
           const doc = new SupabaseDocument(mapObjectToCamel(inserted), this);
           getInMemoryStore(this.tableName).set(doc.id, doc);
@@ -309,6 +345,9 @@ export class SupabaseModel {
       } catch (err) {
         if (err.code === '23505') throw err;
         console.warn(`[Supabase ${this.tableName} Fallback Notice]:`, err.message);
+        if (process.env.NODE_ENV === 'production') {
+          throw err;
+        }
       }
     }
 
@@ -353,9 +392,15 @@ export class SupabaseModel {
           const doc = new SupabaseDocument(mapObjectToCamel(updated), this);
           getInMemoryStore(this.tableName).set(doc.id, doc);
           return options.new === false ? existing : doc;
+        } else if (error && process.env.NODE_ENV === 'production') {
+          console.error(`[Supabase ${this.tableName} update error]:`, error.message);
+          throw new Error(`Database update failed for ${this.tableName}: ${error.message}`);
         }
-      } catch (_err) {
-        // Fall back to memory store
+      } catch (err) {
+        if (process.env.NODE_ENV === 'production') {
+          console.error(`[Supabase ${this.tableName} update fatal]:`, err.message);
+          throw err;
+        }
       }
     }
 
@@ -541,10 +586,19 @@ export class SupabaseModel {
         // Apply remaining filters
         for (const [k, v] of Object.entries(filter)) {
           if (k === '$or') continue;
-          const snakeKey = k === '_id' ? 'id' : camelToSnake(k);
+          let snakeKey = k === '_id' ? 'id' : camelToSnake(k);
+          if (snakeKey === 'location.city' || snakeKey === 'location_city') snakeKey = 'city';
+          if (snakeKey === 'location.area' || snakeKey === 'location_area') snakeKey = 'area';
           if (v !== undefined && v !== null) {
             const formatVal = (val) => (val instanceof Date ? val.toISOString() : val);
-            if (typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date) && !(v instanceof RegExp)) {
+            if (v instanceof RegExp) {
+              const cleanPattern = v.source.replace(/^\^/, '').replace(/\$$/, '');
+              sbQuery = sbQuery.ilike(snakeKey, `%${cleanPattern}%`);
+            } else if (typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date)) {
+              if (v.$regex) {
+                const pat = (v.$regex.source || v.$regex).replace(/^\^/, '').replace(/\$$/, '');
+                sbQuery = sbQuery.ilike(snakeKey, `%${pat}%`);
+              }
               if (v.$gte !== undefined) sbQuery = sbQuery.gte(snakeKey, formatVal(v.$gte));
               if (v.$lte !== undefined) sbQuery = sbQuery.lte(snakeKey, formatVal(v.$lte));
               if (v.$gt !== undefined) sbQuery = sbQuery.gt(snakeKey, formatVal(v.$gt));
@@ -571,8 +625,12 @@ export class SupabaseModel {
             items = rows.map((r) => new SupabaseDocument(mapObjectToCamel(r), this));
           }
         }
-      } catch (_err) {
+      } catch (err) {
         queriedFromSupabase = false;
+        if (process.env.NODE_ENV === 'production') {
+          console.error(`[Supabase ${this.tableName} query error]:`, err.message);
+          throw new Error(`Database query failed for ${this.tableName}`);
+        }
       }
     }
 
@@ -728,6 +786,8 @@ export class SupabaseModel {
   _getNestedValue(doc, path) {
     if (!doc || !path) return undefined;
     if (path === '_id' || path === 'id') return doc.id || doc._id;
+    if (path === 'location.city') return doc.city || doc.location?.city;
+    if (path === 'location.area') return doc.area || doc.location?.area;
     if (!path.includes('.')) return doc[path];
     const parts = path.split('.');
     let curr = doc;

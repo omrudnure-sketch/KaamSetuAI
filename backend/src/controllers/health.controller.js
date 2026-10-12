@@ -18,7 +18,7 @@ export const getReadinessStatus = async (req, res) => {
   if (supabaseAdmin) {
     try {
       const { error } = await supabaseAdmin.from('users').select('id').limit(1);
-      if (!error || error.code === 'PGRST116' || !error.message.includes('fetch failed')) {
+      if (!error || error.code === 'PGRST116') {
         isDbConnected = true;
         dbType = 'supabase_client';
       }

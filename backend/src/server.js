@@ -8,6 +8,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { connectDB } from './config/db.js';
 import routes from './routes/index.js';
+import healthRoutes from './routes/health.routes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { initSocket } from './socket/socketManager.js';
 
@@ -125,6 +126,9 @@ app.get('/', (req, res) => {
     },
   });
 });
+
+// Health & Readiness probes
+app.use('/health', healthRoutes);
 
 // API Routes
 app.use('/api', routes);

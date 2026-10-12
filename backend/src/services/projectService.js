@@ -44,18 +44,25 @@ export const createFromConfirmedAgreement = async (userId, agreementId, override
     throw error;
   }
 
+  const locStr = typeof job.location === 'string'
+    ? job.location
+    : [job.location?.area, job.location?.city].filter(Boolean).join(', ') || job.city || job.location?.address || '';
+
   const projectPayload = {
     jobId: agreement.jobId,
     employerId: agreement.employerId,
-    createdFromHiringAgreement: agreement._id,
-    name: overrides.name || job.title,
-    description: overrides.description || job.description,
+    hiringAgreementId: agreement._id || agreement.id,
+    createdFromHiringAgreement: agreement._id || agreement.id,
+    title: overrides.title || overrides.name || job.title || 'Project',
+    name: overrides.title || overrides.name || job.title || 'Project',
+    description: overrides.description || job.description || '',
     projectType: agreement.durationType,
-    location: job.location || { city: '', area: '', address: '' },
+    location: locStr,
     durationType: agreement.durationType,
     startDate: agreement.startDate,
-    originalEstimatedEndDate: agreement.estimatedEndDate,
-    currentExpectedEndDate: agreement.estimatedEndDate,
+    expectedEndDate: agreement.estimatedEndDate || agreement.expectedEndDate,
+    originalEstimatedEndDate: agreement.estimatedEndDate || agreement.expectedEndDate,
+    currentExpectedEndDate: agreement.estimatedEndDate || agreement.expectedEndDate,
     workingHours: agreement.workingHours,
     paymentType: agreement.wageType,
     paymentAmount: agreement.agreedWage || agreement.proposedWage,
