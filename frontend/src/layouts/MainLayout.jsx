@@ -1,8 +1,15 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Navbar, Footer, AiAssistantModal } from '../components/index.js';
 
 export const MainLayout = () => {
+  const location = useLocation();
+  const isLanding = location.pathname === '/';
+
+  if (isLanding) {
+    return <Outlet />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-surface text-on-surface">
       <Navbar />
