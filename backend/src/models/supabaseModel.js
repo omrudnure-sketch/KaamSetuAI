@@ -42,6 +42,9 @@ export const mapObjectToSnake = (obj) => {
         if (res.latitude === undefined) res.latitude = val.coordinates.coordinates[1];
       }
       res['location'] = typeof val === 'string' ? val : ([val.area, val.city].filter(Boolean).join(', ') || val.address || '');
+    } else if (key === 'participants' && Array.isArray(val)) {
+      if (!res.participant_a && val[0]) res.participant_a = String(val[0]?._id || val[0]?.id || val[0]);
+      if (!res.participant_b && val[1]) res.participant_b = String(val[1]?._id || val[1]?.id || val[1]);
     } else if (key.startsWith('$')) {
       // Ignore Mongo operator wrappers like $set
       if (typeof val === 'object' && val !== null) {
@@ -65,6 +68,9 @@ export const mapObjectToCamel = (obj) => {
   if (res.id !== undefined) {
     res._id = String(res.id);
     res.id = String(res.id);
+  }
+  if (res.participantA && res.participantB && (!res.participants || !res.participants.length)) {
+    res.participants = [String(res.participantA), String(res.participantB)];
   }
   return res;
 };
@@ -99,7 +105,7 @@ export const SUPABASE_TABLE_COLUMNS = {
   payments: new Set(['id', 'project_id', 'payer_id', 'payee_id', 'amount', 'wage_type', 'status', 'payment_date', 'transaction_ref', 'notes', 'created_at']),
   reviews: new Set(['id', 'project_id', 'reviewer_id', 'reviewee_id', 'rating', 'comment', 'created_at']),
   messages: new Set(['id', 'conversation_id', 'sender_id', 'receiver_id', 'message_type', 'content', 'attachment_url', 'attachment_name', 'attachment_size', 'duration', 'attachments', 'is_read', 'read_at', 'created_at']),
-  conversations: new Set(['id', 'participant_a', 'participant_b', 'related_project_id', 'project_id', 'job_id', 'conversation_type', 'last_message', 'last_message_at', 'participants', 'status', 'initiated_by', 'request_message', 'accepted_at', 'rejected_at', 'created_at', 'updated_at']),
+  conversations: new Set(['id', 'participant_a', 'participant_b', 'related_project_id', 'project_id', 'job_id', 'conversation_type', 'last_message', 'last_message_at', 'status', 'initiated_by', 'request_message', 'accepted_at', 'rejected_at', 'created_at', 'updated_at']),
   notifications: new Set(['id', 'user_id', 'type', 'title', 'message', 'is_read', 'data', 'created_at']),
   complaints: new Set(['id', 'filed_by', 'against_user', 'against_user_id', 'project_id', 'category', 'description', 'status', 'assigned_admin_id', 'resolution_notes', 'resolved_at', 'created_at', 'updated_at']),
   disputes: new Set(['id', 'complaint_id', 'project_id', 'claimant_id', 'respondent_id', 'assigned_admin_id', 'status', 'resolution_notes', 'resolved_at', 'created_at', 'updated_at']),
@@ -396,6 +402,28 @@ export class SupabaseModel {
             dupErr.code = '23505';
             throw dupErr;
           }
+
+          // Auto-heal schema cache errors (e.g., PostgREST PGRST204: Could not find the 'xyz' column)
+          const colMatch = error.message?.match(/Could not find the '([^']+)' column/i);
+          if (colMatch && colMatch[1]) {
+            const missingCol = colMatch[1];
+            console.warn(`[Supabase Auto-Heal]: Column '${missingCol}' missing in '${this.tableName}'. Removing and retrying insert...`);
+            if (SUPABASE_TABLE_COLUMNS[this.tableName]) {
+              SUPABASE_TABLE_COLUMNS[this.tableName].delete(missingCol);
+            }
+            delete validColumnsData[missingCol];
+            const retryRes = await supabaseAdmin
+              .from(this.tableName)
+              .insert(validColumnsData)
+              .select()
+              .single();
+            if (!retryRes.error && retryRes.data) {
+              const doc = new SupabaseDocument(mapObjectToCamel(retryRes.data), this);
+              getInMemoryStore(this.tableName).set(doc.id, doc);
+              return doc;
+            }
+          }
+
           console.warn(`[Supabase ${this.tableName} Insert Notice]:`, error.message || error.code);
           if (process.env.NODE_ENV === 'production') {
             throw new Error(`Database insert failed for ${this.tableName}: ${error.message}`);
@@ -456,9 +484,31 @@ export class SupabaseModel {
           const doc = new SupabaseDocument(mapObjectToCamel(updated), this);
           getInMemoryStore(this.tableName).set(doc.id, doc);
           return options.new === false ? existing : doc;
-        } else if (error && process.env.NODE_ENV === 'production') {
-          console.error(`[Supabase ${this.tableName} update error]:`, error.message);
-          throw new Error(`Database update failed for ${this.tableName}: ${error.message}`);
+        } else if (error) {
+          const colMatch = error.message?.match(/Could not find the '([^']+)' column/i);
+          if (colMatch && colMatch[1]) {
+            const missingCol = colMatch[1];
+            console.warn(`[Supabase Auto-Heal]: Column '${missingCol}' missing in table '${this.tableName}'. Removing and retrying update...`);
+            if (SUPABASE_TABLE_COLUMNS[this.tableName]) {
+              SUPABASE_TABLE_COLUMNS[this.tableName].delete(missingCol);
+            }
+            delete validColumnsData[missingCol];
+            const retryRes = await supabaseAdmin
+              .from(this.tableName)
+              .update(validColumnsData)
+              .eq('id', existing.id)
+              .select()
+              .single();
+            if (!retryRes.error && retryRes.data) {
+              const doc = new SupabaseDocument(mapObjectToCamel(retryRes.data), this);
+              getInMemoryStore(this.tableName).set(doc.id, doc);
+              return options.new === false ? existing : doc;
+            }
+          }
+          if (process.env.NODE_ENV === 'production') {
+            console.error(`[Supabase ${this.tableName} update error]:`, error.message);
+            throw new Error(`Database update failed for ${this.tableName}: ${error.message}`);
+          }
         }
       } catch (err) {
         if (process.env.NODE_ENV === 'production') {
@@ -722,6 +772,19 @@ export class SupabaseModel {
           let snakeKey = k === '_id' ? 'id' : camelToSnake(k);
           if (snakeKey === 'location.city' || snakeKey === 'location_city') snakeKey = 'city';
           if (snakeKey === 'location.area' || snakeKey === 'location_area') snakeKey = 'area';
+
+          if (this.tableName === 'conversations' && (k === 'participants' || snakeKey === 'participants')) {
+            if (v && v.$all && Array.isArray(v.$all) && v.$all.length >= 2) {
+              const p1 = String(v.$all[0]?._id || v.$all[0]?.id || v.$all[0]);
+              const p2 = String(v.$all[1]?._id || v.$all[1]?.id || v.$all[1]);
+              sbQuery = sbQuery.or(`and(participant_a.eq.${p1},participant_b.eq.${p2}),and(participant_a.eq.${p2},participant_b.eq.${p1})`);
+              continue;
+            } else if (v && !v.$all) {
+              const pid = String(v?._id || v?.id || v);
+              sbQuery = sbQuery.or(`participant_a.eq.${pid},participant_b.eq.${pid}`);
+              continue;
+            }
+          }
           if (v !== undefined && v !== null) {
             const formatVal = (val) => (val instanceof Date ? val.toISOString() : val);
             if (v instanceof RegExp) {
@@ -971,7 +1034,9 @@ export class SupabaseModel {
     for (const [key, expected] of Object.entries(filter)) {
       if (key === '$or') continue;
 
-      const rawDocVal = this._getNestedValue(doc, key);
+      const rawDocVal =
+        this._getNestedValue(doc, key) ||
+        (key === 'participants' && doc.participantA && doc.participantB ? [doc.participantA, doc.participantB] : undefined);
       const docVal = this._extractIdOrPrimitive(rawDocVal);
       const expVal = this._extractIdOrPrimitive(expected);
 
