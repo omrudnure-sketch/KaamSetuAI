@@ -311,24 +311,37 @@ export const searchWorkersWithNaturalLanguage = async (input) => {
     .lean();
 
   // Format safe worker result list
-  const results = rawWorkers.map((p) => ({
-    workerId: p.userId?._id || p.userId,
-    workerProfileId: p._id,
-    workerName: p.fullName || p.userId?.name || 'Worker',
-    primarySkill: p.primarySkill,
-    skills: p.skills || [],
-    experienceYears: p.experienceYears || 0,
-    dailyWage: p.dailyWage,
-    location: {
-      city: p.location?.city || '',
-      area: p.location?.area || '',
-    },
-    availability: p.availability || 'available',
-    rating: p.rating || 0,
-    totalReviews: p.totalReviews || 0,
-    completedProjects: p.completedProjects || 0,
-    isVerified: p.verificationStatus === 'verified' || !!p.userId?.isVerified,
-  }));
+  const results = rawWorkers.map((p) => {
+    const rawUserId = p.userId?._id || p.userId?.id || p.userId;
+    const cleanUserId =
+      typeof rawUserId === 'object' && rawUserId !== null
+        ? String(rawUserId._id || rawUserId.id || '')
+        : String(rawUserId || '');
+    const cleanProfileId = String(p._id || p.id || '');
+    const resolvedWorkerId = cleanUserId || cleanProfileId;
+
+    return {
+      id: resolvedWorkerId,
+      _id: resolvedWorkerId,
+      workerId: resolvedWorkerId,
+      userId: cleanUserId,
+      workerProfileId: cleanProfileId,
+      workerName: p.fullName || p.userId?.name || 'Worker',
+      primarySkill: p.primarySkill,
+      skills: p.skills || [],
+      experienceYears: p.experienceYears || 0,
+      dailyWage: p.dailyWage,
+      location: {
+        city: p.location?.city || '',
+        area: p.location?.area || '',
+      },
+      availability: p.availability || 'available',
+      rating: p.rating || 0,
+      totalReviews: p.totalReviews || 0,
+      completedProjects: p.completedProjects || 0,
+      isVerified: p.verificationStatus === 'verified' || !!p.userId?.isVerified,
+    };
+  });
 
   return {
     interpretedQuery: query,

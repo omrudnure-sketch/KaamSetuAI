@@ -222,6 +222,26 @@ ${text}`;
   };
 };
 
+// Cache helpers compatible with both Mongoose Map and Supabase/Plain JS Objects
+const getCachedTranslation = (container, lang) => {
+  if (!container?.translations) return null;
+  if (typeof container.translations.get === 'function') {
+    return container.translations.get(lang);
+  }
+  return container.translations[lang] || null;
+};
+
+const setCachedTranslation = (container, lang, text) => {
+  if (!container.translations) {
+    container.translations = {};
+  }
+  if (typeof container.translations.set === 'function') {
+    container.translations.set(lang, text);
+  } else {
+    container.translations[lang] = text;
+  }
+};
+
 /**
  * Translate a job description for a worker in their preferred language (Section 23.4)
  */
@@ -240,11 +260,12 @@ export const translateJobDescription = async (jobId, targetLanguage) => {
   }
 
   // Check if job already has this language cached in document
-  if (job.translations && job.translations.get(targetLanguage)) {
+  const cached = getCachedTranslation(job, targetLanguage);
+  if (cached) {
     return {
       jobId: job._id,
       originalDescription: job.description,
-      translatedDescription: job.translations.get(targetLanguage),
+      translatedDescription: cached,
       targetLanguage,
       isCached: true,
       isTranslated: true,
@@ -260,10 +281,7 @@ export const translateJobDescription = async (jobId, targetLanguage) => {
   });
 
   // Cache in job document for future worker requests
-  if (!job.translations) {
-    job.translations = new Map();
-  }
-  job.translations.set(targetLanguage, result.translatedText);
+  setCachedTranslation(job, targetLanguage, result.translatedText);
   await job.save();
 
   return {
@@ -294,22 +312,23 @@ export const translateChatMessage = async (messageId, targetLanguage, requesting
   }
 
   // Security check: Only sender or receiver of the conversation may translate the message
-  const isSender = message.senderId.toString() === requestingUserId.toString();
-  const isReceiver = message.receiverId.toString() === requestingUserId.toString();
+  const isSender = message.senderId?.toString() === requestingUserId?.toString();
+  const isReceiver = message.receiverId?.toString() === requestingUserId?.toString();
 
-  if (!isSender && !isReceiver) {
+  if (requestingUserId && !isSender && !isReceiver) {
     const error = new Error('Unauthorized: You can only translate messages within your own conversations');
     error.status = 403;
     throw error;
   }
 
   // Check if translation is already cached on message document
-  if (message.translations && message.translations.get(targetLanguage)) {
+  const cached = getCachedTranslation(message, targetLanguage);
+  if (cached) {
     return {
       messageId: message._id,
       conversationId: message.conversationId,
       originalContent: message.content,
-      translatedContent: message.translations.get(targetLanguage),
+      translatedContent: cached,
       targetLanguage,
       isCached: true,
       isTranslated: true,
@@ -325,10 +344,7 @@ export const translateChatMessage = async (messageId, targetLanguage, requesting
   });
 
   // Cache translation on message document without overwriting original content
-  if (!message.translations) {
-    message.translations = new Map();
-  }
-  message.translations.set(targetLanguage, result.translatedText);
+  setCachedTranslation(message, targetLanguage, result.translatedText);
   message.translatedContent = result.translatedText;
   message.translationLanguage = targetLanguage;
   message.isTranslated = true;
@@ -362,17 +378,18 @@ export const translateNotificationText = async (notificationId, targetLanguage, 
     throw error;
   }
 
-  if (notification.userId.toString() !== requestingUserId.toString()) {
+  if (requestingUserId && notification.userId?.toString() !== requestingUserId?.toString()) {
     const error = new Error('Unauthorized: You can only view and translate your own notifications');
     error.status = 403;
     throw error;
   }
 
-  if (notification.translations && notification.translations.get(targetLanguage)) {
+  const cached = getCachedTranslation(notification, targetLanguage);
+  if (cached) {
     return {
       notificationId: notification._id,
       originalMessage: notification.message,
-      translatedMessage: notification.translations.get(targetLanguage),
+      translatedMessage: cached,
       targetLanguage,
       isCached: true,
       isTranslated: true,
@@ -386,10 +403,7 @@ export const translateNotificationText = async (notificationId, targetLanguage, 
     contentType: 'notification',
   });
 
-  if (!notification.translations) {
-    notification.translations = new Map();
-  }
-  notification.translations.set(targetLanguage, result.translatedText);
+  setCachedTranslation(notification, targetLanguage, result.translatedText);
   await notification.save();
 
   return {

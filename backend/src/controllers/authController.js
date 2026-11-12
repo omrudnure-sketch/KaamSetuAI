@@ -8,7 +8,7 @@ export const getCookieOptions = () => ({
   httpOnly: true,
   sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   secure: process.env.NODE_ENV === 'production',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  maxAge: 365 * 24 * 60 * 60 * 1000, // 365 days persistent device session
 });
 
 export const register = async (req, res, next) => {
@@ -73,10 +73,13 @@ export const register = async (req, res, next) => {
         if (!existingProfile) {
           await WorkerProfile.create({
             userId: savedUser._id,
+            fullName: savedUser.name || '',
             bio: '',
-            skills: [],
+            primarySkill: 'General Worker',
+            skills: ['General Worker'],
             availability: 'available',
-            profileCompletion: 20,
+            isAvailableForWork: true,
+            profileCompletion: 25,
           });
         }
       } else if (savedUser.role === 'employer') {
@@ -175,7 +178,12 @@ export const login = async (req, res, next) => {
     }
 
     const { email, password } = validation.data;
-    const identifier = email.trim();
+    let identifier = email.trim();
+    if (identifier.startsWith('+91')) {
+      identifier = identifier.slice(3).trim();
+    } else if (identifier.startsWith('91') && identifier.length === 12 && /^\d+$/.test(identifier)) {
+      identifier = identifier.slice(2).trim();
+    }
 
     // Search user by email or phone
     const user = await User.findOne({

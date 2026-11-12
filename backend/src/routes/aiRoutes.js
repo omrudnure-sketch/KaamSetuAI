@@ -25,7 +25,7 @@ router.get(
 
 router.get(
   '/matches/workers/:workerId/jobs',
-  requireRole('worker'),
+  requireRole('worker', 'employer', 'admin'),
   aiController.getRecommendedJobsForWorker
 );
 

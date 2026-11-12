@@ -74,9 +74,14 @@ export const WorkerAvailabilityControl = ({
     } catch (err) {
       // Roll back optimistic state on failure
       setIsAvailable(previousStatus);
+      const msg = err.response?.data?.error?.message;
+      const friendlyMsg =
+        err.response?.status === 403 || msg?.toLowerCase().includes('worker roles')
+          ? 'Availability status is restricted to registered worker accounts.'
+          : msg || err.message || 'Failed to update status';
       setFeedback({
         type: 'error',
-        message: err.response?.data?.error?.message || err.message || 'Network error while updating status',
+        message: friendlyMsg,
       });
     } finally {
       setSaving(false);

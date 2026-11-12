@@ -161,7 +161,7 @@ export async function runAiAnalyticsTests() {
 
 if (process.argv[1]?.endsWith('ai-analytics.test.js')) {
   runAiAnalyticsTests()
-    .then(() => disconnectTestDB())
+    .then(() => disconnectTestDB().then(() => process.exit(0)))
     .catch((err) => {
       console.error(err);
       disconnectTestDB().then(() => process.exit(1));

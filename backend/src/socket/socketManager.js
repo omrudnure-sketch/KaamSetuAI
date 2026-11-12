@@ -53,7 +53,7 @@ export const initSocket = (httpServer, customCors) => {
         const conversation = await Conversation.findById(conversationId);
         if (
           conversation &&
-          conversation.participants.some((p) => p.toString() === userId)
+          conversation.participants.some((p) => (p._id || p.id || p).toString() === userId)
         ) {
           socket.join(`conversation:${conversationId}`);
           socket.emit('conversation:joined', { conversationId });

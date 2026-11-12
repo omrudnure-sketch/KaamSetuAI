@@ -1,63 +1,225 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+/* Configure Tailwind v4 custom dark variant to react to .dark and [data-theme="dark"] rather than OS media query */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, .dark, .dark *));
+
+/* ==============================================================================
+   KaamSetu AI — Light & Dark Mode Design Tokens
+   ============================================================================== */
+
+:root {
+  /* Brand Primary */
+  --ks-primary: #00236f;
+  --ks-on-primary: #ffffff;
+  --ks-primary-container: #1e3a8a;
+  --ks-on-primary-container: #90a8ff;
+  --ks-primary-fixed: #dce1ff;
+  --ks-primary-fixed-dim: #b6c4ff;
+  --ks-on-primary-fixed: #00164e;
+  --ks-on-primary-fixed-variant: #264191;
+
+  /* Secondary (Warm / Gold / Accent) */
+  --ks-secondary: #855300;
+  --ks-on-secondary: #ffffff;
+  --ks-secondary-container: #fea619;
+  --ks-on-secondary-container: #684000;
+  --ks-secondary-fixed: #ffddb8;
+  --ks-secondary-fixed-dim: #ffb95f;
+  --ks-on-secondary-fixed: #2a1700;
+  --ks-on-secondary-fixed-variant: #653e00;
+
+  /* Tertiary (Emerald / Success) */
+  --ks-tertiary: #00311f;
+  --ks-on-tertiary: #ffffff;
+  --ks-tertiary-container: #004a31;
+  --ks-on-tertiary-container: #27c38a;
+  --ks-tertiary-fixed: #6ffbbe;
+  --ks-tertiary-fixed-dim: #4edea3;
+  --ks-on-tertiary-fixed: #002113;
+  --ks-on-tertiary-fixed-variant: #005236;
+
+  /* Surfaces & Backgrounds */
+  --ks-surface: #faf8ff;
+  --ks-on-surface: #131b2e;
+  --ks-surface-dim: #d2d9f4;
+  --ks-surface-bright: #faf8ff;
+  --ks-surface-container-lowest: #ffffff;
+  --ks-surface-container-low: #f2f3ff;
+  --ks-surface-container: #eaedff;
+  --ks-surface-container-high: #e2e7ff;
+  --ks-surface-container-highest: #dae2fd;
+  --ks-surface-variant: #dae2fd;
+  --ks-on-surface-variant: #444651;
+  --ks-surface-tint: #4059aa;
+
+  --ks-background: #faf8ff;
+  --ks-on-background: #131b2e;
+  --ks-outline: #757682;
+  --ks-outline-variant: #c5c5d3;
+
+  /* Error / Status */
+  --ks-error: #ba1a1a;
+  --ks-on-error: #ffffff;
+  --ks-error-container: #ffdad6;
+  --ks-on-error-container: #93000a;
+
+  /* Inverse */
+  --ks-inverse-surface: #283044;
+  --ks-inverse-on-surface: #eef0ff;
+  --ks-inverse-primary: #b6c4ff;
+
+  --ks-slate-750: #f1f5f9;
+  --ks-slate-850: #ffffff;
+
+  /* Component Tokens */
+  --ks-bg-page: #faf8ff;
+  --ks-bg-card: #ffffff;
+  --ks-bg-subtle: #f8fafc;
+  --ks-text-primary: #0f172a;
+  --ks-text-secondary: #334155;
+  --ks-text-muted: #64748b;
+  --ks-border: #e2e8f0;
+  --ks-border-subtle: #f1f5f9;
+  --ks-input-bg: #ffffff;
+  --ks-input-border: #cbd5e1;
+}
+
+[data-theme="dark"],
+.dark {
+  /* Brand Primary */
+  --ks-primary: #38bdf8;
+  --ks-on-primary: #001f3f;
+  --ks-primary-container: #0369a1;
+  --ks-on-primary-container: #e0f2fe;
+  --ks-primary-fixed: #1e293b;
+  --ks-primary-fixed-dim: #334155;
+  --ks-on-primary-fixed: #7dd3fc;
+  --ks-on-primary-fixed-variant: #38bdf8;
+
+  /* Secondary (Warm / Gold / Accent) */
+  --ks-secondary: #f59e0b;
+  --ks-on-secondary: #451a03;
+  --ks-secondary-container: #b45309;
+  --ks-on-secondary-container: #fef3c7;
+  --ks-secondary-fixed: #292524;
+  --ks-secondary-fixed-dim: #44403c;
+  --ks-on-secondary-fixed: #fcd34d;
+  --ks-on-secondary-fixed-variant: #fbbf24;
+
+  /* Tertiary (Emerald / Success) */
+  --ks-tertiary: #10b981;
+  --ks-on-tertiary: #022c22;
+  --ks-tertiary-container: #047857;
+  --ks-on-tertiary-container: #d1fae5;
+  --ks-tertiary-fixed: #132e27;
+  --ks-tertiary-fixed-dim: #1f453b;
+  --ks-on-tertiary-fixed: #6ee7b7;
+  --ks-on-tertiary-fixed-variant: #34d399;
+
+  /* Surfaces & Backgrounds */
+  --ks-surface: #0b1120;
+  --ks-on-surface: #f1f5f9;
+  --ks-surface-dim: #070c18;
+  --ks-surface-bright: #172033;
+  --ks-surface-container-lowest: #0f172a;
+  --ks-surface-container-low: #131c31;
+  --ks-surface-container: #17233c;
+  --ks-surface-container-high: #1c2b48;
+  --ks-surface-container-highest: #233557;
+  --ks-surface-variant: #1e293b;
+  --ks-on-surface-variant: #94a3b8;
+  --ks-surface-tint: #38bdf8;
+
+  --ks-background: #070b14;
+  --ks-on-background: #f1f5f9;
+  --ks-outline: #475569;
+  --ks-outline-variant: #334155;
+
+  /* Error / Status */
+  --ks-error: #f87171;
+  --ks-on-error: #450a0a;
+  --ks-error-container: #991b1b;
+  --ks-on-error-container: #fee2e2;
+
+  /* Inverse */
+  --ks-inverse-surface: #f1f5f9;
+  --ks-inverse-on-surface: #0f172a;
+  --ks-inverse-primary: #00236f;
+
+  --ks-slate-750: #1e293b;
+  --ks-slate-850: #0f172a;
+
+  /* Component Tokens */
+  --ks-bg-page: #070b14;
+  --ks-bg-card: #111c34;
+  --ks-bg-subtle: #16223e;
+  --ks-text-primary: #f8fafc;
+  --ks-text-secondary: #e2e8f0;
+  --ks-text-muted: #94a3b8;
+  --ks-border: #22324f;
+  --ks-border-subtle: #1a273f;
+  --ks-input-bg: #0d1527;
+  --ks-input-border: #2a3d60;
+}
+
 @theme {
-  --color-primary: #00236f;
-  --color-on-primary: #ffffff;
-  --color-primary-container: #1e3a8a;
-  --color-on-primary-container: #90a8ff;
-  --color-primary-fixed: #dce1ff;
-  --color-primary-fixed-dim: #b6c4ff;
-  --color-on-primary-fixed: #00164e;
-  --color-on-primary-fixed-variant: #264191;
+  --color-primary: var(--ks-primary);
+  --color-on-primary: var(--ks-on-primary);
+  --color-primary-container: var(--ks-primary-container);
+  --color-on-primary-container: var(--ks-on-primary-container);
+  --color-primary-fixed: var(--ks-primary-fixed);
+  --color-primary-fixed-dim: var(--ks-primary-fixed-dim);
+  --color-on-primary-fixed: var(--ks-on-primary-fixed);
+  --color-on-primary-fixed-variant: var(--ks-on-primary-fixed-variant);
 
-  --color-secondary: #855300;
-  --color-on-secondary: #ffffff;
-  --color-secondary-container: #fea619;
-  --color-on-secondary-container: #684000;
-  --color-secondary-fixed: #ffddb8;
-  --color-secondary-fixed-dim: #ffb95f;
-  --color-on-secondary-fixed: #2a1700;
-  --color-on-secondary-fixed-variant: #653e00;
+  --color-secondary: var(--ks-secondary);
+  --color-on-secondary: var(--ks-on-secondary);
+  --color-secondary-container: var(--ks-secondary-container);
+  --color-on-secondary-container: var(--ks-on-secondary-container);
+  --color-secondary-fixed: var(--ks-secondary-fixed);
+  --color-secondary-fixed-dim: var(--ks-secondary-fixed-dim);
+  --color-on-secondary-fixed: var(--ks-on-secondary-fixed);
+  --color-on-secondary-fixed-variant: var(--ks-on-secondary-fixed-variant);
 
-  --color-tertiary: #00311f;
-  --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #004a31;
-  --color-on-tertiary-container: #27c38a;
-  --color-tertiary-fixed: #6ffbbe;
-  --color-tertiary-fixed-dim: #4edea3;
-  --color-on-tertiary-fixed: #002113;
-  --color-on-tertiary-fixed-variant: #005236;
+  --color-tertiary: var(--ks-tertiary);
+  --color-on-tertiary: var(--ks-on-tertiary);
+  --color-tertiary-container: var(--ks-tertiary-container);
+  --color-on-tertiary-container: var(--ks-on-tertiary-container);
+  --color-tertiary-fixed: var(--ks-tertiary-fixed);
+  --color-tertiary-fixed-dim: var(--ks-tertiary-fixed-dim);
+  --color-on-tertiary-fixed: var(--ks-on-tertiary-fixed);
+  --color-on-tertiary-fixed-variant: var(--ks-on-tertiary-fixed-variant);
 
-  --color-surface: #faf8ff;
-  --color-on-surface: #131b2e;
-  --color-surface-dim: #d2d9f4;
-  --color-surface-bright: #faf8ff;
-  --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f2f3ff;
-  --color-surface-container: #eaedff;
-  --color-surface-container-high: #e2e7ff;
-  --color-surface-container-highest: #dae2fd;
-  --color-surface-variant: #dae2fd;
-  --color-on-surface-variant: #444651;
-  --color-surface-tint: #4059aa;
+  --color-surface: var(--ks-surface);
+  --color-on-surface: var(--ks-on-surface);
+  --color-surface-dim: var(--ks-surface-dim);
+  --color-surface-bright: var(--ks-surface-bright);
+  --color-surface-container-lowest: var(--ks-surface-container-lowest);
+  --color-surface-container-low: var(--ks-surface-container-low);
+  --color-surface-container: var(--ks-surface-container);
+  --color-surface-container-high: var(--ks-surface-container-high);
+  --color-surface-container-highest: var(--ks-surface-container-highest);
+  --color-surface-variant: var(--ks-surface-variant);
+  --color-on-surface-variant: var(--ks-on-surface-variant);
+  --color-surface-tint: var(--ks-surface-tint);
 
-  --color-background: #faf8ff;
-  --color-on-background: #131b2e;
-  --color-outline: #757682;
-  --color-outline-variant: #c5c5d3;
+  --color-background: var(--ks-background);
+  --color-on-background: var(--ks-on-background);
+  --color-outline: var(--ks-outline);
+  --color-outline-variant: var(--ks-outline-variant);
 
-  --color-error: #ba1a1a;
-  --color-on-error: #ffffff;
-  --color-error-container: #ffdad6;
-  --color-on-error-container: #93000a;
+  --color-error: var(--ks-error);
+  --color-on-error: var(--ks-on-error);
+  --color-error-container: var(--ks-error-container);
+  --color-on-error-container: var(--ks-on-error-container);
 
-  --color-inverse-surface: #283044;
-  --color-inverse-on-surface: #eef0ff;
-  --color-inverse-primary: #b6c4ff;
+  --color-inverse-surface: var(--ks-inverse-surface);
+  --color-inverse-on-surface: var(--ks-inverse-on-surface);
+  --color-inverse-primary: var(--ks-inverse-primary);
 
-  --color-slate-750: #f1f5f9;
-  --color-slate-850: #ffffff;
+  --color-slate-750: var(--ks-slate-750);
+  --color-slate-850: var(--ks-slate-850);
 
   --font-headline-xl: 'Plus Jakarta Sans', sans-serif;
   --font-headline-lg: 'Plus Jakarta Sans', sans-serif;
@@ -105,4 +267,945 @@
 ::-webkit-scrollbar {
   display: none;
 }
+
+/* ==============================================================================
+   KaamSetu AI — Polished Startup & Logo Motion System
+   ============================================================================== */
+
+/* Cinematic Camera Push / Zoom-in for the Logo Showcase */
+@keyframes ksIntroZoomCard {
+  0% {
+    transform: scale(0.86);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  65% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1.14);
+    opacity: 1;
+  }
+}
+
+/* Worker Pillar (Left) Spring Glide */
+@keyframes ksLogoLeft {
+  0% {
+    transform: translateX(-30px) scale(0.9);
+    opacity: 0;
+  }
+  60% {
+    transform: translateX(3px) scale(1.03);
+    opacity: 1;
+  }
+  85% {
+    transform: translateX(-1px) scale(0.99);
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Employer Pillar (Right) Spring Glide */
+@keyframes ksLogoRight {
+  0% {
+    transform: translateX(30px) scale(0.9);
+    opacity: 0;
+  }
+  60% {
+    transform: translateX(-3px) scale(1.03);
+    opacity: 1;
+  }
+  85% {
+    transform: translateX(1px) scale(0.99);
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Setu Suspension Arch Stroke Draw & Glow */
+@keyframes ksLogoBridge {
+  0% {
+    stroke-dasharray: 65;
+    stroke-dashoffset: 65;
+    opacity: 0;
+    filter: drop-shadow(0 0 0px #10b981);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dasharray: 65;
+    stroke-dashoffset: 0;
+    opacity: 1;
+    filter: drop-shadow(0 0 6px #10b981);
+  }
+}
+
+/* Suspension Vertical Cables Cascade */
+@keyframes ksLogoCables {
+  0% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 0.65;
+  }
+}
+
+/* Foundation Deck Beam Expansion */
+@keyframes ksLogoDeck {
+  0% {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0.9;
+  }
+}
+
+/* AI Nexus Ignition & Radiant Pop */
+@keyframes ksLogoBeacon {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(0.92);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Crosshair Connectivity Rays Rotation & Expansion */
+@keyframes ksBeaconRays {
+  0% {
+    transform: scale(0) rotate(-45deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2) rotate(20deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(90deg);
+    opacity: 1;
+  }
+}
+
+/* Concentric Shockwave Pulse Rings */
+@keyframes ksBeaconRipple {
+  0% {
+    r: 3.2;
+    opacity: 0.9;
+    stroke-width: 2.2;
+  }
+  60% {
+    opacity: 0.55;
+  }
+  100% {
+    r: 22;
+    opacity: 0;
+    stroke-width: 0.4;
+  }
+}
+
+/* Text Element Staggered Slide & Fade */
+@keyframes ksIntroTextReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Ambient Pulse for settled view */
+@keyframes ksAmbientPulse {
+  0%, 100% {
+    opacity: 0.95;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+/* Homepage Settled Content Reveal */
+@keyframes ksContentReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Intro Classes --- */
+.ks-intro-zoom-card {
+  animation: ksIntroZoomCard 2.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: center center;
+}
+
+.ks-intro-left {
+  animation: ksLogoLeft 0.9s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  transform-origin: center;
+}
+
+.ks-intro-right {
+  animation: ksLogoRight 0.9s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  transform-origin: center;
+}
+
+.ks-intro-deck {
+  animation: ksLogoDeck 0.7s 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center;
+}
+
+.ks-intro-bridge {
+  animation: ksLogoBridge 1.15s 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ks-intro-cables {
+  animation: ksLogoCables 0.7s 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: 24px 20px;
+}
+
+.ks-intro-beacon {
+  animation: ksLogoBeacon 0.85s 1.1s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transform-origin: 24px 14px;
+}
+
+.ks-intro-rays {
+  animation: ksBeaconRays 1.4s 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: 24px 14px;
+}
+
+.ks-intro-ripple-1 {
+  animation: ksBeaconRipple 1.4s 1.25s ease-out both;
+  transform-origin: 24px 14px;
+}
+
+.ks-intro-ripple-2 {
+  animation: ksBeaconRipple 1.6s 1.5s ease-out both;
+  transform-origin: 24px 14px;
+}
+
+.ks-intro-title {
+  animation: ksIntroTextReveal 0.85s 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ks-intro-subtitle {
+  animation: ksIntroTextReveal 0.85s 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ks-intro-badge {
+  animation: ksIntroTextReveal 0.85s 1.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ks-ambient-beacon {
+  animation: ksAmbientPulse 3.5s ease-in-out infinite;
+  transform-origin: 24px 14px;
+}
+
+.ks-intro-overlay {
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ks-intro-overlay.ks-leaving {
+  opacity: 0;
+  transform: scale(1.04);
+  pointer-events: none;
+}
+
+.ks-content-reveal {
+  animation: ksContentReveal 0.75s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ==============================================================================
+   KaamSetu AI — Admin Dashboard Motion & Style System
+   ============================================================================== */
+
+@keyframes ksAdminFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ksOrbPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 25px rgba(124, 58, 237, 0.45), 0 0 50px rgba(56, 189, 248, 0.25);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 35px rgba(124, 58, 237, 0.65), 0 0 65px rgba(56, 189, 248, 0.4);
+  }
+}
+
+.ks-admin-fade-up {
+  animation: ksAdminFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ks-admin-stagger-1 { animation-delay: 0.05s; }
+.ks-admin-stagger-2 { animation-delay: 0.1s; }
+.ks-admin-stagger-3 { animation-delay: 0.15s; }
+.ks-admin-stagger-4 { animation-delay: 0.2s; }
+
+.ks-ai-orb {
+  animation: ksOrbPulse 4s ease-in-out infinite;
+}
+
+/* Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .ks-admin-fade-up,
+  .ks-ai-orb,
+  .ks-intro-zoom-card,
+  .ks-intro-left,
+  .ks-intro-right,
+  .ks-intro-bridge,
+  .ks-intro-cables,
+  .ks-intro-deck,
+  .ks-intro-beacon,
+  .ks-intro-rays,
+  .ks-intro-ripple-1,
+  .ks-intro-ripple-2,
+  .ks-intro-title,
+  .ks-intro-subtitle,
+  .ks-intro-badge,
+  .ks-ambient-beacon,
+  .ks-content-reveal,
+  .ks-intro-overlay {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  .ks-intro-overlay {
+    display: none !important;
+  }
+}
+
+/* ==============================================================================
+   Glassmorphism Spring Glide Menu & Navbar System (Framer-Motion Easing Port)
+   ============================================================================== */
+
+:root {
+  --ease-spring-glide: cubic-bezier(0.34, 1.56, 0.5, 1);
+}
+
+.ks-glass-bar {
+  background: color-mix(in oklab, white 65%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 16px 36px -12px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(22px) saturate(1.8);
+  -webkit-backdrop-filter: blur(22px) saturate(1.8);
+  border-radius: 9999px;
+  padding: 4px;
+}
+
+.ks-glass-bar-dark {
+  background: color-mix(in oklab, white 14%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 20px 44px -22px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(22px) saturate(1.8);
+  -webkit-backdrop-filter: blur(22px) saturate(1.8);
+  border-radius: 9999px;
+  padding: 4px;
+}
+
+.ks-glass-bar-mobile {
+  background: color-mix(in oklab, white 78%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 20px 48px -10px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  border-radius: 9999px;
+  padding: 5px;
+  width: 100%;
+}
+
+.ks-glass-bar-vertical {
+  background: color-mix(in oklab, white 55%, rgba(248, 250, 252, 0.6));
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 10px 28px -6px rgba(15, 23, 42, 0.05);
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  border-radius: 20px;
+  padding: 6px;
+}
+
+.ks-glass-pill {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: inset 0 1px 0 #ffffff, 0 4px 14px -3px rgba(15, 23, 42, 0.1);
+  transition: left 0.48s cubic-bezier(0.34, 1.56, 0.5, 1),
+              width 0.48s cubic-bezier(0.34, 1.56, 0.5, 1),
+              opacity 0.25s ease;
+}
+
+.ks-glass-pill-dark {
+  background: rgba(255, 255, 255, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 6px 18px rgba(0, 0, 0, 0.25);
+  transition: left 0.48s cubic-bezier(0.34, 1.56, 0.5, 1),
+              width 0.48s cubic-bezier(0.34, 1.56, 0.5, 1),
+              opacity 0.25s ease;
+}
+
+.ks-glass-pill-mobile {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 1);
+  box-shadow: inset 0 1px 0 #ffffff, 0 3px 10px rgba(15, 23, 42, 0.08);
+  transition: left 0.45s cubic-bezier(0.34, 1.56, 0.5, 1),
+              width 0.45s cubic-bezier(0.34, 1.56, 0.5, 1),
+              opacity 0.2s ease;
+}
+
+.ks-glass-pill-vertical {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(255, 255, 255, 1);
+  box-shadow: inset 0 1px 0 #ffffff, 0 4px 14px -2px rgba(15, 23, 42, 0.08);
+  transition: top 0.45s cubic-bezier(0.34, 1.56, 0.5, 1),
+              height 0.45s cubic-bezier(0.34, 1.56, 0.5, 1),
+              opacity 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-glass-pill,
+  .ks-glass-pill-dark,
+  .ks-glass-pill-mobile,
+  .ks-glass-pill-vertical {
+    transition: none !important;
+  }
+}
+
+/* Automatic Dark Mode adjustments for Glassmorphic Bars & Pills */
+[data-theme="dark"] .ks-glass-bar,
+.dark .ks-glass-bar {
+  background: color-mix(in oklab, #0f172a 75%, transparent);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 16px 36px -12px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="dark"] .ks-glass-bar-mobile,
+.dark .ks-glass-bar-mobile {
+  background: color-mix(in oklab, #0b1120 85%, transparent);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 20px 48px -10px rgba(0, 0, 0, 0.65);
+}
+
+[data-theme="dark"] .ks-glass-bar-vertical,
+.dark .ks-glass-bar-vertical {
+  background: color-mix(in oklab, #111c34 78%, transparent);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 10px 28px -6px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="dark"] .ks-glass-pill,
+.dark .ks-glass-pill {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 4px 14px -3px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .ks-glass-pill-mobile,
+.dark .ks-glass-pill-mobile {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 3px 10px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .ks-glass-pill-vertical,
+.dark .ks-glass-pill-vertical {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 4px 14px -2px rgba(0, 0, 0, 0.3);
+}
+
+/* ==============================================================================
+   Liquid Glass Aurora Drift & Auth Card System
+   ============================================================================== */
+@keyframes lgt-drift {
+  0% {
+    transform: translate(-4%, -3%) scale(1.05);
+  }
+  50% {
+    transform: translate(3%, -2%) scale(1.12);
+  }
+  100% {
+    transform: translate(4%, 4%) scale(1.15);
+  }
+}
+
+.animate-lgt-drift {
+  animation: lgt-drift 20s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-lgt-drift {
+    animation: none !important;
+  }
+}
+
+.ks-liquid-aurora {
+  background: radial-gradient(45% 45% at 20% 30%, rgba(124, 92, 240, 0.32), transparent 70%),
+              radial-gradient(40% 40% at 80% 20%, rgba(6, 182, 212, 0.35), transparent 70%),
+              radial-gradient(45% 45% at 70% 80%, rgba(244, 63, 94, 0.28), transparent 70%),
+              radial-gradient(40% 40% at 25% 85%, rgba(245, 158, 11, 0.3), transparent 70%);
+}
+
+[data-theme="dark"] .ks-liquid-aurora,
+.dark .ks-liquid-aurora {
+  background: radial-gradient(40% 40% at 20% 30%, oklch(0.6 0.22 300), transparent 70%),
+              radial-gradient(40% 40% at 80% 20%, oklch(0.62 0.2 210), transparent 70%),
+              radial-gradient(45% 45% at 70% 80%, oklch(0.64 0.2 340), transparent 70%),
+              radial-gradient(40% 40% at 25% 85%, oklch(0.6 0.2 40), transparent 70%);
+}
+
+/* ==============================================================================
+   KaamSetu AI — Dark Mode Component & Surface System
+   Ensures cards, tables, sidebars, inputs, dropdowns, and text across all
+   Worker, Employer, Admin, and Public pages adapt seamlessly to Dark Mode.
+   ============================================================================== */
+
+[data-theme="dark"] body {
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+}
+
+/* Main Cards & Surfaces */
+[data-theme="dark"] .bg-white {
+  background-color: var(--ks-bg-card, #111c34) !important;
+  color: var(--ks-text-primary, #f8fafc);
+}
+
+[data-theme="dark"] .bg-slate-50 {
+  background-color: var(--ks-bg-subtle, #16223e) !important;
+}
+
+[data-theme="dark"] .bg-slate-100 {
+  background-color: #1a2740 !important;
+}
+
+[data-theme="dark"] .bg-slate-200 {
+  background-color: #233554 !important;
+}
+
+[data-theme="dark"] .bg-\[\#f4f6fa\] {
+  background-color: var(--ks-bg-page, #070b14) !important;
+}
+
+/* High Contrast Readable Text */
+[data-theme="dark"] .text-slate-900 {
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .text-slate-800 {
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .text-slate-600 {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Borders & Dividers */
+[data-theme="dark"] .border-slate-100,
+[data-theme="dark"] .border-slate-200,
+[data-theme="dark"] .border-slate-300 {
+  border-color: var(--ks-border, #22324f) !important;
+}
+
+/* Form Controls: Inputs, Selects, Textareas */
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background-color: var(--ks-input-bg, #0d1527) !important;
+  color: #f8fafc !important;
+  border-color: var(--ks-input-border, #2a3d60) !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Header & Sidebar in Dark Mode */
+[data-theme="dark"] header.bg-surface\/80,
+[data-theme="dark"] header.bg-surface\/90 {
+  background-color: rgba(11, 17, 32, 0.88) !important;
+  border-color: rgba(34, 50, 79, 0.7) !important;
+}
+
+[data-theme="dark"] .ks-glass-bar {
+  background: color-mix(in oklab, #0f172a 75%, transparent) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 16px 36px -12px rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme="dark"] .ks-glass-pill {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 4px 14px -3px rgba(0, 0, 0, 0.4) !important;
+  color: #38bdf8 !important;
+}
+
+[data-theme="dark"] .ks-glass-bar-mobile {
+  background: color-mix(in oklab, #0f172a 88%, transparent) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 20px 48px -10px rgba(0, 0, 0, 0.7) !important;
+}
+
+[data-theme="dark"] .ks-glass-pill-mobile {
+  background: rgba(255, 255, 255, 0.18) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  color: #38bdf8 !important;
+}
+
+[data-theme="dark"] .ks-glass-bar-vertical {
+  background: color-mix(in oklab, #0b1120 70%, rgba(15, 23, 42, 0.8)) !important;
+  border: 1px solid rgba(34, 50, 79, 0.85) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 10px 28px -6px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .ks-glass-pill-vertical {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Modals, Dialogs & Popovers in Dark Mode */
+[data-theme="dark"] [role="dialog"],
+[data-theme="dark"] .fixed.inset-0 .bg-white {
+  background-color: #0f172a !important;
+  color: #f1f5f9 !important;
+  border-color: #27354f !important;
+}
+
+/* Tables in Dark Mode */
+[data-theme="dark"] table {
+  color: #f1f5f9;
+}
+[data-theme="dark"] th {
+  background-color: #141f36 !important;
+  color: #94a3b8 !important;
+  border-color: #22324f !important;
+}
+[data-theme="dark"] td {
+  border-color: #1c2b44 !important;
+}
+[data-theme="dark"] tr:hover td {
+  background-color: #16243f !important;
+}
+
+/* Tailwind Gray Utilities High Contrast in Dark Mode */
+[data-theme="dark"] .text-gray-900 {
+  color: #f8fafc !important;
+}
+[data-theme="dark"] .text-gray-800 {
+  color: #f1f5f9 !important;
+}
+[data-theme="dark"] .text-gray-700 {
+  color: #cbd5e1 !important;
+}
+[data-theme="dark"] .text-gray-600 {
+  color: #94a3b8 !important;
+}
+[data-theme="dark"] .text-gray-500 {
+  color: #94a3b8 !important;
+}
+[data-theme="dark"] .bg-gray-50 {
+  background-color: var(--ks-bg-subtle, #16223e) !important;
+}
+[data-theme="dark"] .bg-gray-100 {
+  background-color: #1a2740 !important;
+}
+[data-theme="dark"] .bg-gray-200 {
+  background-color: #233554 !important;
+}
+/* ==============================================================================
+   KaamSetu AI — Universal Glassmorphic SaaS Design System Utilities
+   ============================================================================== */
+
+.ks-glass-card {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid #dfeaf4;
+  border-radius: 20px;
+  box-shadow: 0 18px 40px rgba(18, 58, 103, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+}
+
+[data-theme="dark"] .ks-glass-card,
+.dark .ks-glass-card {
+  background: rgba(10, 27, 64, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  box-shadow: 0 24px 60px rgba(2, 13, 37, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.ks-glass-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 26px 50px rgba(18, 58, 103, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border-color: #b9d8f3;
+}
+
+[data-theme="dark"] .ks-glass-card-hover:hover,
+.dark .ks-glass-card-hover:hover {
+  box-shadow: 0 28px 70px rgba(2, 13, 37, 0.65), 0 0 24px rgba(56, 189, 248, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  border-color: rgba(103, 232, 249, 0.4);
+}
+
+.ks-glass-hero {
+  background: radial-gradient(circle at 80% 30%, #164b9c 0%, transparent 45%),
+              linear-gradient(116deg, #071b42 0%, #0b3377 55%, #0d4e94 100%);
+  color: #ffffff;
+  border-radius: 24px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(7, 27, 66, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .ks-glass-hero,
+.dark .ks-glass-hero {
+  background: radial-gradient(circle at 80% 30%, rgba(22, 75, 156, 0.6) 0%, transparent 45%),
+              linear-gradient(116deg, #051433 0%, #071f4d 55%, #0b3377 100%);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.ks-glass-input {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.ks-glass-input:focus {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
+}
+
+[data-theme="dark"] .ks-glass-input,
+.dark .ks-glass-input {
+  background: rgba(13, 31, 71, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .ks-glass-input:focus,
+.dark .ks-glass-input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.22);
+}
+
+.ks-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 14px;
+  padding: 10px 20px;
+  font-weight: 700;
+  font-size: 13px;
+  background: #0ea5e9;
+  color: #ffffff;
+  border: 0;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(14, 165, 233, 0.28);
+  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+}
+
+.ks-btn-primary:hover {
+  background: #38bdf8;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(14, 165, 233, 0.35);
+}
+
+.ks-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 14px;
+  padding: 10px 20px;
+  font-weight: 700;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  color: #1e3a8a;
+  border: 1px solid #cbd5e1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.ks-btn-outline:hover {
+  background: #ffffff;
+  border-color: #93c5fd;
+  transform: translateY(-1px);
+}
+
+[data-theme="dark"] .ks-btn-outline,
+.dark .ks-btn-outline {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+[data-theme="dark"] .ks-btn-outline:hover,
+.dark .ks-btn-outline:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(103, 232, 249, 0.4);
+}
+
+.ks-badge-cyan {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(14, 165, 233, 0.12);
+  color: #0284c7;
+  border: 1px solid rgba(14, 165, 233, 0.25);
+}
+
+[data-theme="dark"] .ks-badge-cyan,
+.dark .ks-badge-cyan {
+  background: rgba(56, 189, 248, 0.15);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.ks-badge-emerald {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+[data-theme="dark"] .ks-badge-emerald,
+.dark .ks-badge-emerald {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.ks-badge-amber {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+[data-theme="dark"] .ks-badge-amber,
+.dark .ks-badge-amber {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.ks-badge-purple {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(168, 85, 247, 0.12);
+  color: #9333ea;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+[data-theme="dark"] .ks-badge-purple,
+.dark .ks-badge-purple {
+  background: rgba(168, 85, 247, 0.18);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+}
+
+.ks-badge-rose {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(244, 63, 94, 0.12);
+  color: #e11d48;
+  border: 1px solid rgba(244, 63, 94, 0.25);
+}
+
+[data-theme="dark"] .ks-badge-rose,
+.dark .ks-badge-rose {
+  background: rgba(244, 63, 94, 0.18);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.35);
+}
+
+
+
 

@@ -89,7 +89,7 @@ export const EmployerProjectsListPage = () => {
                 <div className="space-y-2 flex-1">
                   <div className="flex items-center gap-2">
                     <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md border ${getStatusBadgeClass(project.status)}`}>
-                      {project.status.toUpperCase()}
+                      {(project.status || 'in_progress').toUpperCase()}
                     </span>
                     {project.jobId?.title && (
                       <span className="text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">

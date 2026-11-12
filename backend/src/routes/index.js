@@ -39,9 +39,11 @@ router.use('/attendance', attendanceRoutes);
 router.use('/progress', progressRoutes);
 
 router.use('/', extensionRoutes);
+router.use('/payments', paymentRoutes);
 router.use('/', paymentRoutes);
 router.use('/', reviewRoutes);
 router.use('/', chatRoutes);
+router.use('/chat', chatRoutes);
 router.use('/', notificationRoutes);
 router.use('/', complaintRoutes);
 router.use('/', disputeRoutes);

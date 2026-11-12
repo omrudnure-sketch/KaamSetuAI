@@ -306,7 +306,7 @@ export async function runE2EWorkflowTests() {
 
 if (process.argv[1]?.endsWith('e2e-workflow.test.js')) {
   runE2EWorkflowTests()
-    .then(() => disconnectTestDB())
+    .then(() => disconnectTestDB().then(() => process.exit(0)))
     .catch((err) => {
       console.error(err);
       disconnectTestDB().then(() => process.exit(1));

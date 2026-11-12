@@ -213,7 +213,7 @@ export async function runCommunicationSupportTests() {
 
 if (process.argv[1]?.endsWith('communication-support.test.js')) {
   runCommunicationSupportTests()
-    .then(() => disconnectTestDB())
+    .then(() => disconnectTestDB().then(() => process.exit(0)))
     .catch((err) => {
       console.error(err);
       disconnectTestDB().then(() => process.exit(1));

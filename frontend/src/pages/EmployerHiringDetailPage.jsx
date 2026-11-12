@@ -78,12 +78,18 @@ export const EmployerHiringDetailPage = () => {
           setWorkerContact(null);
         }
 
+        const parseDateSafe = (d) => {
+          if (!d) return '';
+          const parsed = new Date(d);
+          return !isNaN(parsed.getTime()) ? parsed.toISOString().split('T')[0] : '';
+        };
+
         setCounterForm({
           wageType: res.data.wageType || 'daily',
           proposedWage: res.data.proposedWage || '',
           durationType: res.data.durationType || 'single_day',
-          startDate: res.data.startDate ? new Date(res.data.startDate).toISOString().split('T')[0] : '',
-          estimatedEndDate: res.data.estimatedEndDate ? new Date(res.data.estimatedEndDate).toISOString().split('T')[0] : '',
+          startDate: parseDateSafe(res.data.startDate),
+          estimatedEndDate: parseDateSafe(res.data.estimatedEndDate),
           workingHours: res.data.workingHours || { start: '09:00', end: '18:00', description: '' },
           message: '',
         });
@@ -236,17 +242,6 @@ export const EmployerHiringDetailPage = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 pb-12">
-      {/* Top Bar Navigation */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => navigate('/employer/hiring')}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Hiring List</span>
-        </button>
-      </div>
-
       {actionMessage && (
         <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-bold rounded-2xl flex items-center gap-2 shadow-xs">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
@@ -260,7 +255,7 @@ export const EmployerHiringDetailPage = () => {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className={`text-xs font-bold px-3 py-1 rounded-md border ${getStatusBadgeClass(agreement.status)}`}>
-                {agreement.status.toUpperCase()}
+                {(agreement.status || 'pending').toUpperCase()}
               </span>
               {agreement.status === 'confirmed' && (
                 <span className="flex items-center gap-1 text-xs font-extrabold text-emerald-800 bg-emerald-50 px-3 py-1 rounded border border-emerald-200">

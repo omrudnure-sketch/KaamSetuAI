@@ -207,7 +207,7 @@ export const discoverWorkersForEmployer = async (req, res, next) => {
     if (sort === 'newest') sortOption = { createdAt: -1 };
 
     const workers = await WorkerProfile.find(query)
-      .populate('userId', 'name status')
+      .populate('userId', 'name status role')
       .sort(sortOption)
       .limit(100);
 
@@ -218,7 +218,14 @@ export const discoverWorkersForEmployer = async (req, res, next) => {
 
     // Filter active workers and map only safe public fields
     let safeWorkers = workers
-      .filter((w) => !w.userId || w.userId.status === 'active')
+      .filter((w) => {
+        if (!w.userId) return true;
+        if (typeof w.userId === 'object') {
+          if (w.userId.status && w.userId.status !== 'active') return false;
+          if (w.userId.role && w.userId.role !== 'worker') return false;
+        }
+        return true;
+      })
       .map((w) => {
         const item = w.toObject ? w.toObject() : { ...w };
         const wLng = item.longitude ?? (item.location?.coordinates?.coordinates?.[0] ?? null);
@@ -230,10 +237,21 @@ export const discoverWorkersForEmployer = async (req, res, next) => {
           distanceKm = haversineDistanceKm(userLat, userLng, Number(wLat), Number(wLng));
         }
 
+        const workerUserId =
+          typeof item.userId === 'object' && item.userId !== null
+            ? String(item.userId._id || item.userId.id || '')
+            : String(item.userId || '');
+        const profileId = String(item.id || item._id || '');
+        const resolvedId = workerUserId || profileId;
+
         return {
-          id: item.id || item._id,
-          _id: item.id || item._id,
+          id: resolvedId,
+          _id: resolvedId,
+          workerId: resolvedId,
+          userId: workerUserId,
+          profileId,
           fullName: item.fullName || item.userId?.name || 'Skilled Worker',
+          workerName: item.fullName || item.userId?.name || 'Skilled Worker',
           primarySkill: item.primarySkill || (Array.isArray(item.skills) ? item.skills[0] : 'General Worker'),
           skills: Array.isArray(item.skills) ? item.skills : [],
           experienceYears: item.experienceYears || 0,

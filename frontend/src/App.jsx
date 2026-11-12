@@ -3,6 +3,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { SocketProvider } from './context/SocketContext.jsx';
+import { ThemeProvider } from './context/ThemeContext.jsx';
 import { AppRoutes } from './routes/AppRoutes.jsx';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 
@@ -18,15 +19,17 @@ const queryClient = new QueryClient({
 export const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <SocketProvider>
-          <BrowserRouter>
-            <ErrorBoundary>
-              <AppRoutes />
-            </ErrorBoundary>
-          </BrowserRouter>
-        </SocketProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <SocketProvider>
+            <BrowserRouter>
+              <ErrorBoundary>
+                <AppRoutes />
+              </ErrorBoundary>
+            </BrowserRouter>
+          </SocketProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };

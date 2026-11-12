@@ -4,6 +4,9 @@ import { searchWorkersWithNL } from '../services/aiService.js';
 import { inviteWorker } from '../services/invitationService.js';
 import { getEmployerJobs } from '../services/jobApi.js';
 import { fetchWorkersForEmployer } from '../services/profileApi.js';
+import { LocationAccessBar } from '../components/LocationAccessBar.jsx';
+import { getSessionLocation } from '../services/locationService.js';
+import ChatRequestModal from '../components/chat/ChatRequestModal.jsx';
 import {
   Search,
   Sparkles,
@@ -20,11 +23,13 @@ import {
   Eye,
   RotateCcw,
   User,
+  Users,
   SlidersHorizontal,
   ChevronRight,
   Info,
   Map,
   Zap,
+  MessageSquare,
 } from 'lucide-react';
 
 const COMMON_SKILLS = [
@@ -62,6 +67,31 @@ export const EmployerWorkersPage = () => {
   const [minExp, setMinExp] = useState('');
   const [maxWageFilter, setMaxWageFilter] = useState('');
 
+  // Location awareness & reverse geocoded display
+  const [activeLocation, setActiveLocation] = useState(() => getSessionLocation());
+
+  const handleLocationAcquired = (locData) => {
+    setActiveLocation(locData);
+    if (locData.city) {
+      setSelectedCity(locData.city);
+    }
+    if (locData.area) {
+      setSelectedArea(locData.area);
+    }
+    handleStructuredSearch({
+      city: locData.city || selectedCity,
+      area: locData.area || selectedArea,
+      page: 1,
+    });
+  };
+
+  const handleLocationCleared = () => {
+    setActiveLocation(null);
+    setSelectedCity('');
+    setSelectedArea('');
+    handleStructuredSearch({ city: '', area: '', page: 1 });
+  };
+
   // AI search states
   const [searchQuery, setSearchQuery] = useState('');
   const [activeQuery, setActiveQuery] = useState('');
@@ -79,6 +109,7 @@ export const EmployerWorkersPage = () => {
   const [employerJobs, setEmployerJobs] = useState([]);
   const [selectedWorkerForProfile, setSelectedWorkerForProfile] = useState(null);
   const [selectedWorkerForInvite, setSelectedWorkerForInvite] = useState(null);
+  const [chatRequestWorker, setChatRequestWorker] = useState(null);
   const [inviteJobId, setInviteJobId] = useState('');
   const [inviteWage, setInviteWage] = useState(800);
   const [inviteMessage, setInviteMessage] = useState('');
@@ -110,8 +141,23 @@ export const EmployerWorkersPage = () => {
         ? worker.isAvailableForWork
         : worker.availability === 'available' || worker.availability === 'ready';
 
+    const safeUserId =
+      typeof worker.userId === 'object' && worker.userId !== null
+        ? String(worker.userId._id || worker.userId.id || '')
+        : String(worker.userId || '');
+    const safeWorkerId =
+      typeof worker.workerId === 'object' && worker.workerId !== null
+        ? String(worker.workerId._id || worker.workerId.id || '')
+        : String(worker.workerId || safeUserId || worker.id || worker._id || '');
+    const safeProfileId = String(worker.profileId || worker.workerProfileId || worker.id || worker._id || '');
+    const resolvedId = safeWorkerId || safeUserId || safeProfileId;
+
     return {
-      workerId: worker.workerId || worker.id || worker._id,
+      workerId: resolvedId,
+      userId: safeUserId || resolvedId,
+      profileId: safeProfileId,
+      id: resolvedId,
+      _id: resolvedId,
       workerName: worker.workerName || worker.fullName || 'Skilled Worker',
       primarySkill: worker.primarySkill || (Array.isArray(worker.skills) && worker.skills[0]) || 'General Worker',
       skills: Array.isArray(worker.skills) ? worker.skills : [],
@@ -269,9 +315,15 @@ export const EmployerWorkersPage = () => {
       setInviting(true);
       setInviteStatus({ type: '', message: '' });
 
+      const targetWorkerId =
+        selectedWorkerForInvite.userId ||
+        selectedWorkerForInvite.workerId ||
+        selectedWorkerForInvite.id ||
+        selectedWorkerForInvite._id;
+
       const res = await inviteWorker({
         jobId: inviteJobId,
-        workerId: selectedWorkerForInvite.workerId,
+        workerId: String(targetWorkerId),
         proposedWage: Number(inviteWage),
         message: inviteMessage,
       });
@@ -304,30 +356,34 @@ export const EmployerWorkersPage = () => {
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 pb-12">
       {/* Page Header */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="p-1.5 bg-primary/10 text-primary rounded-lg">
-              <Sparkles className="w-5 h-5" />
+      <div className="ks-glass-card p-6 sm:p-8 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-primary/10 via-sky-500/10 to-transparent rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="ks-badge-cyan">
+              <Sparkles className="w-3.5 h-3.5" /> AI Matching Engine
             </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">Discover Skilled Workers</h1>
           </div>
-          <p className="text-slate-600 text-xs sm:text-sm">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+            <Users className="w-7 h-7 text-primary dark:text-sky-400" />
+            <span>Discover Skilled Workers</span>
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 max-w-xl">
             Find verified workers by city, locality, trade, and immediate availability across Maharashtra.
           </p>
         </div>
 
         <Link
           to="/employer/workers/map"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl border border-slate-200 transition-colors shadow-sm self-start md:self-auto"
+          className="ks-btn-outline text-xs px-4 py-2.5 font-bold flex items-center gap-2 self-start md:self-auto relative z-10"
         >
-          <Map className="w-4 h-4 text-primary" />
+          <Map className="w-4 h-4 text-primary dark:text-sky-400" />
           <span>Switch to Map View</span>
         </Link>
       </div>
 
       {/* Mode Selector Tabs */}
-      <div className="flex border-b border-slate-200 gap-2">
+      <div className="flex border-b border-slate-200/80 dark:border-white/10 gap-2">
         <button
           type="button"
           onClick={() => {
@@ -336,11 +392,11 @@ export const EmployerWorkersPage = () => {
           }}
           className={`px-4 py-2.5 text-xs font-bold rounded-t-xl transition-colors border-t border-x flex items-center gap-2 ${
             discoveryMode === 'area'
-              ? 'bg-white border-slate-200 text-primary border-b-transparent shadow-sm'
-              : 'bg-slate-50 border-transparent text-slate-600 hover:text-slate-900'
+              ? 'bg-white/80 dark:bg-slate-900/80 border-slate-200/80 dark:border-white/10 text-primary dark:text-sky-400 border-b-transparent shadow-xs'
+              : 'bg-transparent border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <MapPin className="w-4 h-4 text-primary" />
+          <MapPin className="w-4 h-4 text-primary dark:text-sky-400" />
           <span>Area & Trade Discovery</span>
         </button>
 
@@ -354,8 +410,8 @@ export const EmployerWorkersPage = () => {
           }}
           className={`px-4 py-2.5 text-xs font-bold rounded-t-xl transition-colors border-t border-x flex items-center gap-2 ${
             discoveryMode === 'ai'
-              ? 'bg-white border-slate-200 text-primary border-b-transparent shadow-sm'
-              : 'bg-slate-50 border-transparent text-slate-600 hover:text-slate-900'
+              ? 'bg-white/80 dark:bg-slate-900/80 border-slate-200/80 dark:border-white/10 text-primary dark:text-sky-400 border-b-transparent shadow-xs'
+              : 'bg-transparent border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <Sparkles className="w-4 h-4 text-amber-500" />
@@ -364,18 +420,28 @@ export const EmployerWorkersPage = () => {
       </div>
 
       {/* Discovery Controls Container */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+      <div className="ks-glass-card p-6 space-y-4">
+        {/* Geolocation Access & Taken Location Display */}
+        <LocationAccessBar
+          activeLocation={activeLocation}
+          onLocationAcquired={handleLocationAcquired}
+          onLocationCleared={handleLocationCleared}
+          role="employer"
+          customButtonLabel="Find Workers Near My Location"
+          showRadius={false}
+        />
+
         {discoveryMode === 'area' ? (
           /* Structured Area & Trade Discovery Form */
           <form onSubmit={handleStructuredFormSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               {/* City Selection */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">City / Region</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">City / Region</label>
                 <select
                   value={selectedCity}
                   onChange={(e) => setSelectedCity(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-primary"
+                  className="ks-input text-xs"
                 >
                   {MAHARASHTRA_CITIES.map((c) => (
                     <option key={c} value={c === 'All Cities' ? '' : c}>
@@ -387,23 +453,23 @@ export const EmployerWorkersPage = () => {
 
               {/* Locality / Area */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Locality / Area</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Locality / Area</label>
                 <input
                   type="text"
                   value={selectedArea}
                   onChange={(e) => setSelectedArea(e.target.value)}
                   placeholder="e.g. Kothrud, Andheri, Hinjewadi"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-primary"
+                  className="ks-input text-xs"
                 />
               </div>
 
               {/* Trade / Skill */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Trade / Skill</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Trade / Skill</label>
                 <select
                   value={selectedSkill}
                   onChange={(e) => setSelectedSkill(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-primary"
+                  className="ks-input text-xs"
                 >
                   {COMMON_SKILLS.map((s) => (
                     <option key={s} value={s === 'All Skills' ? '' : s}>
@@ -415,7 +481,7 @@ export const EmployerWorkersPage = () => {
 
               {/* Max Daily Wage */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Max Wage (₹/day)</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Max Wage (₹/day)</label>
                 <input
                   type="number"
                   min="0"
@@ -423,13 +489,13 @@ export const EmployerWorkersPage = () => {
                   value={maxWageFilter}
                   onChange={(e) => setMaxWageFilter(e.target.value)}
                   placeholder="e.g. 1200"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-primary"
+                  className="ks-input text-xs"
                 />
               </div>
             </div>
 
             {/* Quick Filters & Availability Toggle */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200/80 dark:border-white/10">
               <div className="flex flex-wrap items-center gap-2">
                 {/* Availability Filter Toggle Button */}
                 <button
@@ -437,8 +503,8 @@ export const EmployerWorkersPage = () => {
                   onClick={() => setAvailabilityOnly(!availabilityOnly)}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all ${
                     availabilityOnly
-                      ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
-                      : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                      ? 'bg-emerald-500 text-white border-emerald-600 shadow-xs'
+                      : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:bg-slate-200'
                   }`}
                 >
                   <Zap className={`w-3.5 h-3.5 ${availabilityOnly ? 'text-amber-300' : 'text-slate-400'}`} />
@@ -458,7 +524,7 @@ export const EmployerWorkersPage = () => {
                     className={`text-[11px] px-2.5 py-1 rounded-lg border transition-colors ${
                       selectedCity === cityChip
                         ? 'bg-primary text-white border-primary'
-                        : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                        : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:bg-slate-200'
                     }`}
                   >
                     {cityChip}
@@ -470,14 +536,14 @@ export const EmployerWorkersPage = () => {
                 <button
                   type="button"
                   onClick={handleClearFilters}
-                  className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 font-semibold"
+                  className="ks-btn-outline text-xs px-3 py-1.5 font-semibold"
                 >
                   Reset
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                  className="ks-btn-primary text-xs px-4 py-1.5 font-bold flex items-center gap-1.5 disabled:opacity-50"
                 >
                   <Search className="w-3.5 h-3.5" />
                   <span>Apply Filters</span>
@@ -490,27 +556,27 @@ export const EmployerWorkersPage = () => {
           <div className="space-y-4">
             <form onSubmit={handleFormSubmit} className="space-y-3">
               <div className="relative">
-                <Search className="w-5 h-5 text-slate-400 absolute left-4 top-3.5" />
+                <Sparkles className="w-5 h-5 text-primary dark:text-sky-400 absolute left-4 top-3.5 pointer-events-none" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Describe the worker you need (e.g. Find an electrician in Pune under ₹1,000 with 3+ years experience)..."
-                  className="w-full bg-slate-50 border border-slate-300 focus:border-primary focus:bg-white rounded-xl pl-12 pr-28 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition-colors"
+                  className="ks-input pl-12 pr-28 py-3 text-xs sm:text-sm"
                 />
                 <button
                   type="submit"
                   disabled={loading || !searchQuery.trim()}
-                  className="absolute right-2 top-2 px-4 py-1.5 bg-primary hover:bg-primary/90 text-white font-bold text-xs rounded-lg transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+                  className="ks-btn-primary absolute right-2 top-2 px-4 py-1.5 text-xs font-bold disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Search className="w-3.5 h-3.5" />
                   <span>Search</span>
                 </button>
               </div>
 
               {/* 1-Click Example Queries */}
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="text-[11px] font-semibold text-slate-500">Try asking:</span>
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Try asking:</span>
                 {EXAMPLE_QUERIES.map((eg, idx) => (
                   <button
                     key={idx}
@@ -520,9 +586,9 @@ export const EmployerWorkersPage = () => {
                       setPage(1);
                       handleSearch(eg);
                     }}
-                    className="text-[11px] px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 rounded-lg border border-slate-200 transition-colors"
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-white/10 transition-colors"
                   >
-                    "{eg}"
+                    &ldquo;{eg}&rdquo;
                   </button>
                 ))}
               </div>
@@ -691,133 +757,153 @@ export const EmployerWorkersPage = () => {
         {/* Worker Cards Grid */}
         {!loading && !error && results.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {results.map((worker) => (
-              <div
-                key={worker.workerId}
-                className="bg-white border border-slate-200 hover:border-slate-300 rounded-2xl p-6 transition-all space-y-4 flex flex-col justify-between shadow-sm hover:shadow-md"
-              >
-                <div className="space-y-3">
-                  {/* Top: Photo/Avatar & Name & Availability Badge */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-primary font-extrabold text-base overflow-hidden flex-shrink-0">
-                        {worker.profilePhoto ? (
-                          <img src={worker.profilePhoto} alt={worker.workerName} className="w-full h-full object-cover" />
-                        ) : worker.workerName ? (
-                          worker.workerName.charAt(0).toUpperCase()
-                        ) : (
-                          <User className="w-5 h-5 text-slate-500" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <h3 className="text-base font-bold text-slate-900">{worker.workerName}</h3>
-                          {worker.isVerified && (
-                            <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" title="Verified Worker" />
+            {results.map((worker) => {
+              const workerNameStr = worker?.workerName || 'Worker';
+              const initial = workerNameStr.charAt(0).toUpperCase() || 'W';
+              return (
+                <div
+                  key={worker.workerId}
+                  className="ks-glass-card hover:border-primary/40 dark:hover:border-sky-500/40 p-6 transition-all space-y-4 flex flex-col justify-between group"
+                >
+                  <div className="space-y-3">
+                    {/* Top: Photo/Avatar & Name & Availability Badge */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10 flex items-center justify-center text-primary dark:text-sky-400 font-extrabold text-base overflow-hidden flex-shrink-0">
+                          {worker.profilePhoto ? (
+                            <img src={worker.profilePhoto} alt={workerNameStr} className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{initial}</span>
                           )}
                         </div>
-                        <span className="text-xs font-bold text-primary uppercase tracking-wide">
-                          {worker.primarySkill}
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-primary dark:group-hover:text-sky-400 transition-colors">
+                              {workerNameStr}
+                            </h3>
+                            {worker.isVerified && (
+                              <CheckCircle className="w-4 h-4 text-primary dark:text-sky-400 flex-shrink-0" title="Verified Worker" />
+                            )}
+                          </div>
+                          <span className="text-xs font-bold text-primary dark:text-sky-400 uppercase tracking-wide">
+                            {worker.primarySkill || 'General Worker'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Prominent Availability Pill */}
+                      {worker.isAvailableForWork ? (
+                        <span className="ks-badge-emerald inline-flex items-center gap-1.5 text-xs font-bold">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          <span>Ready for Work</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                          Not Available
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Metadata Row */}
+                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-400 pt-3 border-t border-slate-200/80 dark:border-white/10">
+                      <div className="flex items-center gap-1.5">
+                        <Briefcase className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{worker.experienceYears ?? 0} years exp</span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">
+                          {(worker.rating || 0) > 0 ? `${worker.rating}★ (${worker.totalReviews || 0})` : 'New profile'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
+                        <span className="font-extrabold text-emerald-500 dark:text-emerald-400">
+                          {worker.dailyWage ? `₹${worker.dailyWage}/day` : 'Rate flexible'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="truncate">
+                          {worker.location?.city || 'Location flexible'}
+                          {worker.location?.area ? `, ${worker.location.area}` : ''}
                         </span>
                       </div>
                     </div>
 
-                    {/* Prominent Availability Pill */}
-                    {worker.isAvailableForWork ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span>Ready for Work</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                        Not Available
-                      </span>
+                    {/* Distance Pill if available */}
+                    {worker.distanceKm !== null && worker.distanceKm !== undefined && (
+                      <div className="pt-1">
+                        <span className="ks-badge-cyan text-[11px] font-bold">
+                          <MapPin className="w-3 h-3 text-sky-400" />
+                          <span>~{worker.distanceKm} km away</span>
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Additional Skills Tags */}
+                    {Array.isArray(worker.skills) && worker.skills.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {worker.skills.map((s, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2 py-0.5 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 text-[11px] rounded-md border border-slate-200 dark:border-white/10"
+                          >
+                            {s}
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </div>
 
-                  {/* Metadata Row */}
-                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 pt-2 border-t border-slate-100">
-                    <div className="flex items-center gap-1.5">
-                      <Briefcase className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{worker.experienceYears} years exp</span>
-                    </div>
+                  {/* Card Actions */}
+                  <div className="pt-3 border-t border-slate-200/80 dark:border-white/10 grid grid-cols-3 gap-1.5 sm:gap-2">
+                    <button
+                      onClick={() => setSelectedWorkerForProfile(worker)}
+                      className="ks-btn-outline py-2 px-2 text-xs font-bold flex items-center justify-center gap-1"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-primary dark:text-sky-400" />
+                      <span>Profile</span>
+                    </button>
 
-                    <div className="flex items-center gap-1.5">
-                      <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
-                      <span className="font-semibold text-slate-700">
-                        {worker.rating > 0 ? `${worker.rating}★ (${worker.totalReviews})` : 'New profile'}
-                      </span>
-                    </div>
+                    <button
+                      onClick={() =>
+                        setChatRequestWorker({
+                          id: worker.userId || worker.workerId || worker.id || worker._id,
+                          name: worker.workerName || worker.name || 'Worker',
+                          role: 'worker',
+                          trade: worker.primarySkill || 'General Trade',
+                        })
+                      }
+                      className="py-2 px-2 text-xs font-bold rounded-xl border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 flex items-center justify-center gap-1 transition-colors"
+                      title="Direct message or pre-agreement chat request"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>Message</span>
+                    </button>
 
-                    <div className="flex items-center gap-1.5">
-                      <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
-                      <span className="font-extrabold text-emerald-700">
-                        {worker.dailyWage ? `₹${worker.dailyWage}/day` : 'Rate flexible'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="truncate">
-                        {worker.location?.city || 'Location flexible'}
-                        {worker.location?.area ? `, ${worker.location.area}` : ''}
-                      </span>
-                    </div>
+                    <button
+                      onClick={() => handleOpenInvite(worker)}
+                      className="ks-btn-primary py-2 px-2 text-xs font-extrabold flex items-center justify-center gap-1 shadow-xs"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Invite</span>
+                    </button>
                   </div>
-
-                  {/* Distance Pill if available */}
-                  {worker.distanceKm !== null && (
-                    <div className="pt-1">
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
-                        <MapPin className="w-3 h-3 text-blue-600" />
-                        <span>~{worker.distanceKm} km away</span>
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Additional Skills Tags */}
-                  {worker.skills && worker.skills.length > 0 && (
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      {worker.skills.map((s, idx) => (
-                        <span
-                          key={idx}
-                          className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[11px] rounded-md border border-slate-200"
-                        >
-                          {s}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
-
-                {/* Card Actions */}
-                <div className="pt-3 border-t border-slate-100 flex items-center gap-2">
-                  <button
-                    onClick={() => setSelectedWorkerForProfile(worker)}
-                    className="flex-1 py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <Eye className="w-3.5 h-3.5 text-primary" />
-                    <span>View Profile</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleOpenInvite(worker)}
-                    className="flex-1 py-2 px-3 bg-primary hover:bg-primary/90 text-white text-xs font-extrabold rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Invite Worker</span>
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
         {/* Pagination Bar */}
         {!loading && !error && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between bg-white p-4 border border-slate-200 rounded-2xl text-xs text-slate-600 shadow-sm">
+          <div className="flex items-center justify-between ks-glass-card p-4 text-xs text-slate-600 dark:text-slate-400 shadow-xs">
             <span>
-              Page <strong className="text-slate-900">{pagination.page}</strong> of <strong className="text-slate-900">{pagination.totalPages}</strong> ({pagination.total} workers)
+              Page <strong className="text-slate-900 dark:text-white">{pagination.page}</strong> of <strong className="text-slate-900 dark:text-white">{pagination.totalPages}</strong> ({pagination.total} workers)
             </span>
 
             <div className="flex items-center gap-2">
@@ -832,7 +918,7 @@ export const EmployerWorkersPage = () => {
                     handleSearch(activeQuery || searchQuery);
                   }
                 }}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 rounded-lg font-semibold border border-slate-200 transition-colors"
+                className="ks-btn-outline px-3 py-1.5 disabled:opacity-40 text-xs font-semibold"
               >
                 Previous
               </button>
@@ -847,7 +933,7 @@ export const EmployerWorkersPage = () => {
                     handleSearch(activeQuery || searchQuery);
                   }
                 }}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 rounded-lg font-semibold border border-slate-200 transition-colors"
+                className="ks-btn-outline px-3 py-1.5 disabled:opacity-40 text-xs font-semibold"
               >
                 Next
               </button>
@@ -858,60 +944,78 @@ export const EmployerWorkersPage = () => {
 
       {/* Profile Modal */}
       {selectedWorkerForProfile && (
-        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="ks-glass-card w-full max-w-md p-6 space-y-5 shadow-2xl relative border-white/20">
             <button
               onClick={() => setSelectedWorkerForProfile(null)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-slate-700"
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-primary font-extrabold text-lg">
-                {selectedWorkerForProfile.workerName?.charAt(0).toUpperCase()}
+              <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10 flex items-center justify-center text-primary dark:text-sky-400 font-extrabold text-lg">
+                {selectedWorkerForProfile.workerName?.charAt(0).toUpperCase() || 'W'}
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">{selectedWorkerForProfile.workerName}</h3>
-                <p className="text-xs font-semibold text-primary uppercase">
-                  {selectedWorkerForProfile.primarySkill}
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{selectedWorkerForProfile.workerName || 'Worker'}</h3>
+                <p className="text-xs font-semibold text-primary dark:text-sky-400 uppercase">
+                  {selectedWorkerForProfile.primarySkill || 'General Worker'}
                 </p>
               </div>
             </div>
 
-            <div className="space-y-2 bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs">
-              <div className="flex justify-between py-1 border-b border-slate-200">
-                <span className="text-slate-600">Experience:</span>
-                <span className="font-bold text-slate-900">{selectedWorkerForProfile.experienceYears} Years</span>
+            <div className="space-y-2 bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/10 rounded-xl p-4 text-xs">
+              <div className="flex justify-between py-1 border-b border-slate-200/80 dark:border-white/10">
+                <span className="text-slate-600 dark:text-slate-400">Experience:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{selectedWorkerForProfile.experienceYears ?? 0} Years</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-200">
-                <span className="text-slate-600">Daily Rate:</span>
-                <span className="font-bold text-emerald-700">
+              <div className="flex justify-between py-1 border-b border-slate-200/80 dark:border-white/10">
+                <span className="text-slate-600 dark:text-slate-400">Daily Rate:</span>
+                <span className="font-bold text-emerald-500 dark:text-emerald-400">
                   {selectedWorkerForProfile.dailyWage ? `₹${selectedWorkerForProfile.dailyWage}/day` : 'Flexible'}
                 </span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-200">
-                <span className="text-slate-600">City / Area:</span>
-                <span className="font-bold text-slate-900">
+              <div className="flex justify-between py-1 border-b border-slate-200/80 dark:border-white/10">
+                <span className="text-slate-600 dark:text-slate-400">City / Area:</span>
+                <span className="font-bold text-slate-900 dark:text-white">
                   {selectedWorkerForProfile.location?.city || 'N/A'} {selectedWorkerForProfile.location?.area ? `(${selectedWorkerForProfile.location.area})` : ''}
                 </span>
               </div>
               <div className="flex justify-between py-1">
-                <span className="text-slate-600">Rating & Reviews:</span>
-                <span className="font-bold text-amber-600">
-                  {selectedWorkerForProfile.rating}★ ({selectedWorkerForProfile.totalReviews} reviews)
+                <span className="text-slate-600 dark:text-slate-400">Rating & Reviews:</span>
+                <span className="font-bold text-amber-500">
+                  {selectedWorkerForProfile.rating || 0}★ ({selectedWorkerForProfile.totalReviews || 0} reviews)
                 </span>
               </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <button
+                type="button"
+                onClick={() => {
+                  const worker = selectedWorkerForProfile;
+                  setSelectedWorkerForProfile(null);
+                  setChatRequestWorker({
+                    id: worker.userId || worker.workerId || worker.id || worker._id,
+                    name: worker.workerName || worker.name || 'Worker',
+                    role: 'worker',
+                    trade: worker.primarySkill || 'General Trade',
+                  });
+                }}
+                className="px-4 py-2 text-xs font-bold rounded-xl border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 flex items-center gap-1.5 transition-colors"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Message Worker</span>
+              </button>
+
+              <button
                 onClick={() => {
                   const worker = selectedWorkerForProfile;
                   setSelectedWorkerForProfile(null);
                   handleOpenInvite(worker);
                 }}
-                className="px-4 py-2 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
+                className="ks-btn-primary text-xs px-5 py-2 font-bold shadow-xs"
               >
                 Invite This Worker
               </button>
@@ -922,18 +1026,20 @@ export const EmployerWorkersPage = () => {
 
       {/* Invite Modal */}
       {selectedWorkerForInvite && (
-        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="ks-glass-card border-white/20 rounded-2xl w-full max-w-md p-5 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl relative max-h-[92vh] overflow-y-auto">
             <button
               onClick={() => setSelectedWorkerForInvite(null)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-slate-700"
+              className="absolute top-4 right-4 sm:top-5 sm:right-5 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div>
-              <h3 className="text-lg font-bold text-slate-900">Invite {selectedWorkerForInvite.workerName}</h3>
-              <p className="text-xs text-slate-600 mt-1">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                Invite {selectedWorkerForInvite.workerName || 'Worker'}
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                 Send a direct invitation to work on your posted job.
               </p>
             </div>
@@ -942,14 +1048,14 @@ export const EmployerWorkersPage = () => {
               <div
                 className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
                   inviteStatus.type === 'success'
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                    : 'bg-rose-50 border-rose-200 text-rose-800'
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400'
                 }`}
               >
                 {inviteStatus.type === 'success' ? (
-                  <CheckCircle className="w-4 h-4 flex-shrink-0 text-emerald-600" />
+                  <CheckCircle className="w-4 h-4 flex-shrink-0 text-emerald-500" />
                 ) : (
-                  <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-500" />
                 )}
                 <span>{inviteStatus.message}</span>
               </div>
@@ -957,7 +1063,7 @@ export const EmployerWorkersPage = () => {
 
             <form onSubmit={handleSendInvite} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                   Select Job to Invite For
                 </label>
                 {employerJobs.length > 0 ? (
@@ -965,7 +1071,7 @@ export const EmployerWorkersPage = () => {
                     required
                     value={inviteJobId}
                     onChange={(e) => setInviteJobId(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-primary"
+                    className="ks-input text-xs"
                   >
                     {employerJobs.map((j) => (
                       <option key={j._id} value={j._id}>
@@ -974,9 +1080,9 @@ export const EmployerWorkersPage = () => {
                     ))}
                   </select>
                 ) : (
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs">
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-600 dark:text-amber-400 text-xs">
                     You don't have any open jobs posted yet.{' '}
-                    <Link to="/employer/jobs/create" className="underline font-bold text-primary">
+                    <Link to="/employer/jobs/create" className="underline font-bold text-primary dark:text-sky-400">
                       Post a job first
                     </Link>{' '}
                     to send invitations.
@@ -985,7 +1091,7 @@ export const EmployerWorkersPage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                   Offered Daily Wage (₹)
                 </label>
                 <input
@@ -994,12 +1100,12 @@ export const EmployerWorkersPage = () => {
                   required
                   value={inviteWage}
                   onChange={(e) => setInviteWage(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-primary"
+                  className="ks-input text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                   Message (Optional)
                 </label>
                 <textarea
@@ -1007,23 +1113,23 @@ export const EmployerWorkersPage = () => {
                   maxLength="1000"
                   value={inviteMessage}
                   onChange={(e) => setInviteMessage(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-primary"
+                  className="ks-input text-xs"
                   placeholder="Describe timing, site address, or specifics..."
-                ></textarea>
+                />
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setSelectedWorkerForInvite(null)}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl hover:bg-slate-200 border border-slate-200 transition-colors"
+                  className="ks-btn-outline text-xs px-4 py-2 font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={inviting || !inviteJobId}
-                  className="px-4 py-2 bg-primary hover:bg-primary/90 text-white text-xs font-extrabold rounded-xl transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+                  className="ks-btn-primary text-xs px-4 py-2 font-extrabold flex items-center gap-1.5 disabled:opacity-50"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>{inviting ? 'Sending...' : 'Send Invitation'}</span>
@@ -1032,6 +1138,16 @@ export const EmployerWorkersPage = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Pre-Agreement Chat Request Modal */}
+      {chatRequestWorker && (
+        <ChatRequestModal
+          isOpen={!!chatRequestWorker}
+          recipient={chatRequestWorker}
+          currentUserRole="employer"
+          onClose={() => setChatRequestWorker(null)}
+        />
       )}
     </div>
   );

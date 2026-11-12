@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import { authApiClient } from '../services/authApi.js';
+import { LocationAccessBar } from '../components/LocationAccessBar.jsx';
+import { getSessionLocation, KNOWN_REGIONS } from '../services/locationService.js';
+import { Map, List, Globe, Search, DollarSign, Filter, RotateCcw, MapPin, Briefcase } from 'lucide-react';
 
 // Multilingual text dictionary for English, Marathi, and Hindi
 const translations = {
@@ -83,10 +86,12 @@ export const WorkerJobMapPage = () => {
   const [minWage, setMinWage] = useState('');
   const [durationType, setDurationType] = useState('');
 
-  // Location search states
-  const [coords, setCoords] = useState(null);
-  const [geoLoading, setGeoLoading] = useState(false);
-  const [geoError, setGeoError] = useState('');
+  // Location search states with reverse-geocoded taken location display
+  const [activeLocation, setActiveLocation] = useState(() => getSessionLocation());
+  const [coords, setCoords] = useState(() => {
+    const cached = getSessionLocation();
+    return cached?.lat && cached?.lng ? { lat: cached.lat, lng: cached.lng } : null;
+  });
   const [distance, setDistance] = useState(25); // km
 
   const mapContainerRef = useRef(null);
@@ -95,60 +100,17 @@ export const WorkerJobMapPage = () => {
   const userCircleRef = useRef(null);
   const userMarkerRef = useRef(null);
 
-  const handleUseMyLocation = () => {
-    if (!navigator.geolocation) {
-      setGeoError(
-        lang === 'mr'
-          ? 'आपला ब्राउझर भौगोलिक स्थान समर्थन करत नाही.'
-          : lang === 'hi'
-          ? 'आपका ब्राउज़र जियोलोकेशन का समर्थन नहीं करता।'
-          : 'Geolocation is not supported by your browser.'
-      );
-      return;
+  const handleLocationAcquired = (locData) => {
+    setActiveLocation(locData);
+    setCoords({ lat: locData.lat, lng: locData.lng });
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setView([locData.lat, locData.lng], 12);
     }
-    setGeoLoading(true);
-    setGeoError('');
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const userCoords = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        };
-        setCoords(userCoords);
-        setGeoLoading(false);
-
-        // Center map on user location
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.setView([userCoords.lat, userCoords.lng], 12);
-        }
-      },
-      (err) => {
-        setGeoLoading(false);
-        if (err.code === 1) {
-          setGeoError(
-            lang === 'mr'
-              ? 'स्थान परवानगी नाकारली. आपण शहरानुसार शोधू शकता.'
-              : lang === 'hi'
-              ? 'स्थान अनुमति अस्वीकृत। आप शहर द्वारा खोज सकते हैं।'
-              : 'Location permission denied. You can search by city or area below.'
-          );
-        } else {
-          setGeoError(
-            lang === 'mr'
-              ? 'स्थान मिळवण्यात अडचण आली.'
-              : lang === 'hi'
-              ? 'स्थान प्राप्त करने में असमर्थ।'
-              : 'Unable to acquire location.'
-          );
-        }
-      },
-      { timeout: 10000, enableHighAccuracy: true }
-    );
   };
 
-  const handleClearLocation = () => {
+  const handleLocationCleared = () => {
+    setActiveLocation(null);
     setCoords(null);
-    setGeoError('');
     if (userCircleRef.current && mapInstanceRef.current) {
       mapInstanceRef.current.removeLayer(userCircleRef.current);
       userCircleRef.current = null;
@@ -178,7 +140,6 @@ export const WorkerJobMapPage = () => {
     } catch (err) {
       console.error('Failed to load map jobs:', err);
       setError(t.mapError);
-      setViewMode('list'); // Fallback to list view if API fails
     } finally {
       setLoading(false);
     }
@@ -192,8 +153,14 @@ export const WorkerJobMapPage = () => {
   useEffect(() => {
     if (viewMode !== 'map' || !mapContainerRef.current) return;
 
+    let isSubscribed = true;
+
     try {
       if (!mapInstanceRef.current) {
+        if (mapContainerRef.current._leaflet_id) {
+          delete mapContainerRef.current._leaflet_id;
+        }
+
         // Default center: Pune [lat: 18.5204, lng: 73.8567]
         const map = L.map(mapContainerRef.current, {
           center: [18.5204, 73.8567],
@@ -216,37 +183,82 @@ export const WorkerJobMapPage = () => {
         markersLayerRef.current.clearLayers();
       }
 
-      // Add markers for jobs with valid coordinates
+      // Add markers for jobs with valid coordinates or city bounds
       const validPoints = [];
 
       jobs.forEach((job) => {
-        const coords = job.location?.coordinates;
-        if (coords && coords.length >= 2 && !(coords[0] === 0 && coords[1] === 0)) {
-          const lng = coords[0];
-          const lat = coords[1];
+        let lng = null;
+        let lat = null;
 
+        // 1. Direct coordinates array on job.location
+        if (Array.isArray(job.location?.coordinates) && job.location.coordinates.length >= 2) {
+          lng = Number(job.location.coordinates[0]);
+          lat = Number(job.location.coordinates[1]);
+        }
+        // 2. GeoJSON coordinates.coordinates
+        else if (Array.isArray(job.location?.coordinates?.coordinates) && job.location.coordinates.coordinates.length >= 2) {
+          lng = Number(job.location.coordinates.coordinates[0]);
+          lat = Number(job.location.coordinates.coordinates[1]);
+        }
+        // 3. Direct latitude and longitude fields
+        else if (job.latitude && job.longitude) {
+          lat = Number(job.latitude);
+          lng = Number(job.longitude);
+        }
+
+        // Validate coordinate bounds and non-zero
+        const hasValidCoords =
+          lat !== null &&
+          lng !== null &&
+          !isNaN(lat) &&
+          !isNaN(lng) &&
+          lat >= -90 &&
+          lat <= 90 &&
+          lng >= -180 &&
+          lng <= 180 &&
+          !(lat === 0 && lng === 0);
+
+        if (!hasValidCoords) {
+          // Fallback: check city in KNOWN_REGIONS if coordinates are missing
+          const cityName = job.location?.city || (typeof job.location === 'string' ? job.location : null);
+          if (cityName) {
+            const matched = KNOWN_REGIONS.find(
+              (r) => r.city.toLowerCase() === cityName.toLowerCase()
+            );
+            if (matched) {
+              lat = matched.lat;
+              lng = matched.lng;
+            }
+          }
+        }
+
+        if (lat !== null && lng !== null && !(lat === 0 && lng === 0)) {
           // Leaflet uses [latitude, longitude] order
+          const skillLabel = job.skillRequired ? job.skillRequired.toUpperCase() : 'JOB';
           const customIcon = L.divIcon({
             className: 'custom-job-marker',
             html: `
-              <div style="background-color: #00236f; color: white; padding: 4px 8px; border-radius: 9999px; font-size: 11px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 4px; white-space: nowrap;">
+              <div style="background-color: #0284c7; color: white; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: bold; border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 5px; white-space: nowrap;">
                 <span>🛠</span>
-                <span>₹${job.wageAmount}</span>
+                <span>${skillLabel} · ₹${job.wageAmount}</span>
               </div>
             `,
-            iconSize: [60, 24],
-            iconAnchor: [30, 24],
+            iconSize: [120, 26],
+            iconAnchor: [60, 26],
           });
 
           const marker = L.marker([lat, lng], { icon: customIcon });
 
+          const cityStr = job.location?.city || (typeof job.location === 'string' ? job.location : '') || 'Location';
+          const areaStr = job.location?.area ? ` • ${job.location.area}` : '';
+
           const popupContent = `
-            <div style="font-family: inherit; font-size: 12px; min-width: 180px; padding: 4px;">
-              <div style="font-weight: 800; font-size: 13px; color: #00236f; margin-bottom: 4px;">${job.title}</div>
-              <div style="color: #4b5563; margin-bottom: 2px;"><strong>Skill:</strong> ${job.skillRequired}</div>
-              <div style="color: #4b5563; margin-bottom: 2px;"><strong>Wage:</strong> ₹${job.wageAmount} (${job.wageType})</div>
-              <div style="color: #4b5563; margin-bottom: 4px;"><strong>Location:</strong> ${job.location.city} ${job.location.area ? '• ' + job.location.area : ''}</div>
-              <button id="view-job-${job._id}" style="width: 100%; margin-top: 6px; padding: 6px; background-color: #00236f; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
+            <div style="font-family: inherit; font-size: 12px; min-width: 190px; padding: 4px; color: #1e293b;">
+              <div style="font-weight: 800; font-size: 13px; color: #0284c7; margin-bottom: 4px;">${job.title}</div>
+              <div style="color: #475569; margin-bottom: 2px;"><strong>Skill:</strong> ${job.skillRequired || 'General'}</div>
+              <div style="color: #475569; margin-bottom: 2px;"><strong>Wage:</strong> ₹${job.wageAmount} (${job.wageType || 'daily'})</div>
+              <div style="color: #475569; margin-bottom: 4px;"><strong>Location:</strong> ${cityStr}${areaStr}</div>
+              <button id="view-job-${job._id || job.id}" style="width: 100%; margin-top: 6px; padding: 6px; background-color: #0284c7; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
                 ${t.viewDetails}
               </button>
             </div>
@@ -254,9 +266,9 @@ export const WorkerJobMapPage = () => {
 
           marker.bindPopup(popupContent);
           marker.on('popupopen', () => {
-            const btn = document.getElementById(`view-job-${job._id}`);
+            const btn = document.getElementById(`view-job-${job._id || job.id}`);
             if (btn) {
-              btn.onclick = () => navigate(`/worker/jobs/${job._id}`);
+              btn.onclick = () => navigate(`/worker/jobs/${job._id || job.id}`);
             }
           });
 
@@ -292,7 +304,7 @@ export const WorkerJobMapPage = () => {
         });
 
         userMarkerRef.current = L.marker([coords.lat, coords.lng], { icon: userPinIcon })
-          .bindPopup('<b>Your Search Location</b>')
+          .bindPopup(`<b>📍 ${activeLocation?.shortLabel || 'Your Search Location'}</b><br/><span style="font-size: 11px; color: #475569;">${activeLocation?.formattedCoords || ''}</span>`)
           .addTo(mapInstanceRef.current);
 
         validPoints.push([coords.lat, coords.lng]);
@@ -300,19 +312,28 @@ export const WorkerJobMapPage = () => {
 
       // Fit map bounds if markers exist
       if (validPoints.length > 0 && mapInstanceRef.current) {
-        const bounds = L.latLngBounds(validPoints);
-        mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+        if (validPoints.length === 1) {
+          mapInstanceRef.current.setView(validPoints[0], 13);
+        } else {
+          const bounds = L.latLngBounds(validPoints);
+          mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+        }
       }
+
+      // Refresh Leaflet size calculation
+      setTimeout(() => {
+        if (isSubscribed && mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 100);
     } catch (err) {
       console.error('Error rendering Leaflet map:', err);
-      setError(t.mapError);
-      setViewMode('list');
     }
 
     return () => {
-      // In StrictMode or navigation, map cleanup
+      isSubscribed = false;
     };
-  }, [jobs, viewMode, t, navigate]);
+  }, [jobs, viewMode, t, navigate, coords, distance, activeLocation]);
 
   // Clean map instance on component unmount
   useEffect(() => {
@@ -326,36 +347,39 @@ export const WorkerJobMapPage = () => {
 
   return (
     <div className="w-full space-y-4 py-3">
-      {/* Top Header with Multilingual Language Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-outline-variant/30">
+      {/* Top Header with Multilingual Language Selector & View Toggle */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-200/80 dark:border-white/10">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-on-surface tracking-tight">{t.title}</h1>
-          <p className="text-xs text-on-surface-variant mt-0.5">{t.subtitle}</p>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <MapPin className="w-6 h-6 text-primary dark:text-sky-400" />
+            <span>{t.title}</span>
+          </h1>
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">{t.subtitle}</p>
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
           {/* Language Selector */}
-          <div className="inline-flex rounded-lg bg-surface-container-low p-1 border border-outline-variant/30 text-xs">
+          <div className="inline-flex rounded-xl bg-white/70 dark:bg-slate-900/70 p-1 border border-slate-200/80 dark:border-white/10 backdrop-blur-md text-xs shadow-xs">
             <button
               onClick={() => setLang('en')}
-              className={`px-2 py-1 rounded-md font-bold transition-all ${
-                lang === 'en' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'
+              className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                lang === 'en' ? 'bg-primary text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               EN
             </button>
             <button
               onClick={() => setLang('mr')}
-              className={`px-2 py-1 rounded-md font-bold transition-all ${
-                lang === 'mr' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'
+              className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                lang === 'mr' ? 'bg-primary text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               मराठी
             </button>
             <button
               onClick={() => setLang('hi')}
-              className={`px-2 py-1 rounded-md font-bold transition-all ${
-                lang === 'hi' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'
+              className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                lang === 'hi' ? 'bg-primary text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               हिंदी
@@ -363,99 +387,51 @@ export const WorkerJobMapPage = () => {
           </div>
 
           {/* List / Map Toggle */}
-          <div className="inline-flex rounded-lg bg-surface-container-low p-1 border border-outline-variant/30 text-xs">
+          <div className="inline-flex rounded-xl bg-white/70 dark:bg-slate-900/70 p-1 border border-slate-200/80 dark:border-white/10 backdrop-blur-md text-xs shadow-xs">
             <button
               onClick={() => setViewMode('map')}
-              className={`px-2.5 py-1 rounded-md font-bold flex items-center gap-1 transition-all ${
-                viewMode === 'map' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'
+              className={`px-3 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all ${
+                viewMode === 'map' ? 'bg-primary text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <span className="material-symbols-outlined text-[16px]">map</span>
+              <Map className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{t.viewModeMap}</span>
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-2.5 py-1 rounded-md font-bold flex items-center gap-1 transition-all ${
-                viewMode === 'list' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'
+              className={`px-3 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all ${
+                viewMode === 'list' ? 'bg-primary text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <span className="material-symbols-outlined text-[16px]">list</span>
+              <List className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{t.viewModeList}</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-xs space-y-3">
-        {/* Geolocation Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-surface-container-low rounded-lg text-xs">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleUseMyLocation}
-              disabled={geoLoading}
-              className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all text-xs shadow-2xs ${
-                coords ? 'bg-emerald-600 text-white' : 'bg-primary text-white hover:opacity-90'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[16px]">my_location</span>
-              <span>
-                {geoLoading
-                  ? 'Detecting GPS...'
-                  : coords
-                  ? 'My Location Active ✓'
-                  : lang === 'mr'
-                  ? 'माझे स्थान वापरा'
-                  : lang === 'hi'
-                  ? 'मेरा स्थान उपयोग करें'
-                  : 'Use My Location'}
-              </span>
-            </button>
+      {/* Filter Bar with Glass Design */}
+      <div className="p-4 ks-glass-card shadow-xs space-y-3">
+        {/* Geolocation Bar & Taken Location Display */}
+        <LocationAccessBar
+          activeLocation={activeLocation}
+          onLocationAcquired={handleLocationAcquired}
+          onLocationCleared={handleLocationCleared}
+          radius={distance}
+          onRadiusChange={(d) => setDistance(d)}
+          showRadius={true}
+          lang={lang}
+          role="worker"
+          className="mb-1"
+        />
 
-            {coords && (
-              <button
-                type="button"
-                onClick={handleClearLocation}
-                className="text-xs text-rose-600 hover:text-rose-700 font-semibold underline"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-
-          {coords ? (
-            <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
-              <span className="font-semibold text-[11px]">Radius:</span>
-              {[10, 25, 50, 100].map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setDistance(d)}
-                  className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-all ${
-                    distance === d
-                      ? 'bg-primary text-white border-primary'
-                      : 'bg-surface-container-lowest text-on-surface border-outline-variant/40'
-                  }`}
-                >
-                  {d} km
-                </button>
-              ))}
-            </div>
-          ) : (
-            <span className="text-[11px] text-on-surface-variant">
-              {geoError || (lang === 'mr' ? 'नकाशावर जवळची कामे शोधण्यासाठी स्थान वापरा' : lang === 'hi' ? 'मानचित्र पर नजदीकी काम खोजने के लिए स्थान का उपयोग करें' : 'Use location to discover jobs nearest to you on map')}
-            </span>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 text-xs">
           <input
             type="text"
             placeholder={t.searchPlaceholder}
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            className="p-2 rounded-lg bg-surface-container-low border border-outline-variant/30 font-medium text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+            className="ks-glass-input p-2.5 text-xs"
           />
 
           <input
@@ -463,13 +439,13 @@ export const WorkerJobMapPage = () => {
             placeholder="Skill (e.g. Mason, Plumber, Painter)..."
             value={skill}
             onChange={(e) => setSkill(e.target.value)}
-            className="p-2 rounded-lg bg-surface-container-low border border-outline-variant/30 font-medium text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+            className="ks-glass-input p-2.5 text-xs"
           />
 
           <select
             value={durationType}
             onChange={(e) => setDurationType(e.target.value)}
-            className="p-2 rounded-lg bg-surface-container-low border border-outline-variant/30 font-semibold text-on-surface focus:outline-none"
+            className="ks-glass-input p-2.5 text-xs font-semibold"
           >
             <option value="">{t.allDurations}</option>
             <option value="single_day">Single Day</option>
@@ -483,11 +459,11 @@ export const WorkerJobMapPage = () => {
               placeholder={t.minWageLabel}
               value={minWage}
               onChange={(e) => setMinWage(e.target.value)}
-              className="w-1/2 p-2 rounded-lg bg-surface-container-low border border-outline-variant/30 font-medium text-on-surface focus:outline-none"
+              className="w-1/2 ks-glass-input p-2.5 text-xs"
             />
             <button
               onClick={fetchJobs}
-              className="w-1/2 px-3 py-2 bg-primary text-on-primary font-bold rounded-lg text-xs hover:opacity-90 active:scale-95 transition-all"
+              className="w-1/2 ks-btn-primary px-3 py-2 text-xs font-bold"
             >
               {t.filterAction}
             </button>
@@ -496,70 +472,80 @@ export const WorkerJobMapPage = () => {
       </div>
 
       {/* Map or List View Container */}
-      {loading ? (
-        <div className="p-16 text-center text-xs text-on-surface-variant flex flex-col items-center justify-center gap-3">
-          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
-          <span>{t.loading}</span>
+      {viewMode === 'map' ? (
+        <div className="space-y-4">
+          {/* Leaflet Map Box with persistent DOM mount and loading overlay */}
+          <div className="w-full h-[520px] rounded-2xl overflow-hidden border border-slate-200/80 dark:border-white/10 shadow-md relative z-0">
+            <div ref={mapContainerRef} className="w-full h-full" />
+            {loading && (
+              <div className="absolute inset-0 bg-slate-900/35 backdrop-blur-xs flex items-center justify-center z-10 transition-opacity">
+                <div className="flex flex-col items-center gap-2.5 p-4 rounded-2xl bg-white/95 dark:bg-slate-900/95 shadow-xl border border-slate-200/80 dark:border-white/10 text-xs font-bold text-slate-800 dark:text-slate-200">
+                  <div className="w-7 h-7 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+                  <span>{t.loading}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Cards of Available Jobs */}
+          <div className="space-y-2">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              Nearby Open Jobs ({jobs.length})
+            </div>
+            {jobs.length === 0 ? (
+              <div className="p-6 text-center text-xs text-slate-500 dark:text-slate-400 ks-glass-card">
+                {t.noJobs}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {jobs.map((job) => (
+                  <div
+                    key={job._id || job.id}
+                    onClick={() => navigate(`/worker/jobs/${job._id || job.id}`)}
+                    className="p-4 rounded-2xl ks-glass-card-hover cursor-pointer space-y-2 group"
+                  >
+                    <div className="flex justify-between items-start">
+                      <span className="font-bold text-xs text-slate-900 dark:text-white line-clamp-1 group-hover:text-primary dark:group-hover:text-sky-400 transition-colors">
+                        {job.title}
+                      </span>
+                      <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 font-mono whitespace-nowrap ml-2">
+                        ₹{job.wageAmount}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                      <span className="ks-badge-cyan text-[10px] capitalize">
+                        {job.skillRequired || 'Work'}
+                      </span>
+                      <span>• {job.location?.city || (typeof job.location === 'string' ? job.location : 'Pune')}</span>
+                      {job.distanceKm !== null && job.distanceKm !== undefined && (
+                        <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">
+                          ~{job.distanceKm} km
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       ) : (
-        <>
-          {viewMode === 'map' ? (
-            <div className="space-y-4">
-              {/* Leaflet Map Box */}
-              <div className="w-full h-[520px] rounded-xl overflow-hidden border border-outline-variant/30 shadow-xs relative z-0">
-                <div ref={mapContainerRef} className="w-full h-full" />
-              </div>
-
-              {/* Sidebar / Bottom Cards of Available Jobs */}
-              <div className="space-y-2">
-                <div className="text-xs font-bold uppercase tracking-wider text-on-surface">
-                  Nearby Open Jobs ({jobs.length})
-                </div>
-                {jobs.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-on-surface-variant bg-surface-container-low rounded-xl">
-                    {t.noJobs}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {jobs.map((job) => (
-                      <div
-                        key={job._id}
-                        onClick={() => navigate(`/worker/jobs/${job._id}`)}
-                        className="p-3.5 rounded-xl bg-surface-container-lowest border border-outline-variant/30 hover:border-primary/50 cursor-pointer shadow-xs transition-all space-y-2"
-                      >
-                        <div className="flex justify-between items-start">
-                          <span className="font-bold text-xs text-on-surface line-clamp-1">{job.title}</span>
-                          <span className="text-xs font-black text-primary font-mono whitespace-nowrap ml-2">
-                            ₹{job.wageAmount}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-on-surface-variant flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded-md bg-surface-container-low font-bold uppercase text-[10px]">
-                            {job.skillRequired}
-                          </span>
-                          <span>• {job.location.city}</span>
-                          {job.distanceKm !== null && job.distanceKm !== undefined && (
-                            <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
-                              ~{job.distanceKm} km
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+        /* List View Fallback */
+        <div className="space-y-3">
+          {loading ? (
+            <div className="p-16 text-center text-xs text-slate-500 dark:text-slate-400 flex flex-col items-center justify-center gap-3 ks-glass-card">
+              <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+              <span>{t.loading}</span>
             </div>
           ) : (
-            /* List View Fallback */
-            <div className="space-y-3">
-              <div className="p-3 bg-surface-container-low rounded-xl text-xs text-on-surface-variant flex items-center justify-between">
+            <>
+              <div className="p-3 ks-glass-card text-xs text-slate-600 dark:text-slate-400 flex items-center justify-between">
                 <span>{t.listFallbackNotice}</span>
-                <span className="font-bold text-primary">{jobs.length} open jobs</span>
+                <span className="font-bold text-primary dark:text-sky-400">{jobs.length} open jobs</span>
               </div>
 
               {jobs.length === 0 ? (
-                <div className="p-12 text-center text-xs text-on-surface-variant bg-surface-container-low rounded-xl">
+                <div className="p-12 text-center text-xs text-slate-500 dark:text-slate-400 ks-glass-card">
                   {t.noJobs}
                 </div>
               ) : (
@@ -567,33 +553,33 @@ export const WorkerJobMapPage = () => {
                   {jobs.map((job) => (
                     <div
                       key={job._id}
-                      className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/30 shadow-xs space-y-3 hover:border-primary/40 transition-all"
+                      className="p-5 rounded-2xl ks-glass-card-hover space-y-3"
                     >
                       <div className="flex justify-between items-start">
                         <div>
-                          <h3 className="font-bold text-sm text-on-surface">{job.title}</h3>
-                          <div className="text-xs text-on-surface-variant mt-0.5">
+                          <h3 className="font-bold text-sm text-slate-900 dark:text-white">{job.title}</h3>
+                          <div className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
                             {job.employer?.name} • {job.location.city} {job.location.area ? `(${job.location.area})` : ''}
                           </div>
                         </div>
                         <div className="text-right">
-                          <span className="text-sm font-black text-primary font-mono">₹{job.wageAmount}</span>
-                          <span className="block text-[10px] text-on-surface-variant capitalize">{job.wageType}</span>
+                          <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">₹{job.wageAmount}</span>
+                          <span className="block text-[10px] text-slate-500 dark:text-slate-400 capitalize">{job.wageType}</span>
                         </div>
                       </div>
 
                       <div className="flex flex-wrap gap-2 text-[11px]">
-                        <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary font-bold uppercase">
+                        <span className="ks-badge-cyan text-[10px] capitalize">
                           {job.skillRequired}
                         </span>
-                        <span className="px-2 py-0.5 rounded-md bg-surface-container-low font-semibold text-on-surface-variant capitalize">
+                        <span className="px-2 py-0.5 rounded-lg bg-white/60 dark:bg-slate-800/60 font-semibold text-slate-700 dark:text-slate-300 capitalize border border-slate-200/80 dark:border-white/10">
                           {job.durationType.replace('_', ' ')}
                         </span>
-                        <span className="px-2 py-0.5 rounded-md bg-surface-container-low font-semibold text-on-surface-variant">
+                        <span className="px-2 py-0.5 rounded-lg bg-white/60 dark:bg-slate-800/60 font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-white/10">
                           {job.workersRequired} workers needed
                         </span>
                         {job.distanceKm !== null && job.distanceKm !== undefined && (
-                          <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold border border-blue-200">
+                          <span className="px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-700 dark:text-blue-300 font-bold border border-blue-500/20">
                             ~{job.distanceKm} km away
                           </span>
                         )}
@@ -601,7 +587,7 @@ export const WorkerJobMapPage = () => {
 
                       <button
                         onClick={() => navigate(`/worker/jobs/${job._id}`)}
-                        className="w-full py-2 bg-primary text-on-primary rounded-lg text-xs font-bold hover:opacity-90 active:scale-95 transition-all text-center"
+                        className="ks-btn-primary w-full py-2 text-xs font-bold text-center"
                       >
                         {t.viewDetails}
                       </button>
@@ -609,9 +595,9 @@ export const WorkerJobMapPage = () => {
                   ))}
                 </div>
               )}
-            </div>
+            </>
           )}
-        </>
+        </div>
       )}
     </div>
   );

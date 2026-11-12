@@ -29,6 +29,8 @@ const suites = [
   { name: '12. Job Details, Application Submission & Notifications Regression', file: 'job-details-application-notifications.test.js' },
   { name: '13. Employer Job Details, Agreement Creation & Worker Contact Security', file: 'employer-jobs-agreements-contacts.test.js' },
   { name: '14. Security Hardening, Persistence, Worker Availability & Location Search', file: 'security-persistence-availability-location.test.js' },
+  { name: '15. Role-Based Email Requirements & Authentication', file: 'role-based-email-requirements.test.js' },
+  { name: '16. WhatsApp-Style Messaging & Pre-Agreement Chat Requests', file: 'whatsapp-style-messaging.test.js' },
 ];
 
 console.log('================================================================');

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { authApiClient } from '../services/authApi.js';
+import { GlassSpringNav } from '../components/GlassSpringNav.jsx';
 
 export const AdminAnalyticsPage = () => {
   // Date range state
@@ -126,29 +127,24 @@ export const AdminAnalyticsPage = () => {
         </div>
       )}
 
-      {/* Navigation Sub-Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-1 text-xs border-b border-outline-variant/20 scrollbar-none">
-        {[
-          { id: 'overview', label: 'KPI Overview' },
-          { id: 'funnel', label: 'Hiring Funnel' },
-          { id: 'users', label: 'User & Geo Trends' },
-          { id: 'projects', label: 'Projects & Delays' },
-          { id: 'skills', label: 'Skill Demand & Gap' },
-          { id: 'payments', label: 'Payments & Wage Telemetry' },
-          { id: 'attendance', label: 'Attendance' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-3.5 py-2 font-bold whitespace-nowrap rounded-t-lg transition-all border-b-2 ${
-              activeTab === tab.id
-                ? 'border-primary text-primary bg-primary/5'
-                : 'border-transparent text-on-surface-variant hover:text-on-surface'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Navigation Sub-Tabs with Glassmorphism Spring Glide */}
+      <div className="flex overflow-x-auto pb-2 scrollbar-none">
+        <GlassSpringNav
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={[
+            { id: 'overview', key: 'overview', label: 'KPI Overview' },
+            { id: 'funnel', key: 'funnel', label: 'Hiring Funnel' },
+            { id: 'users', key: 'users', label: 'User & Geo Trends' },
+            { id: 'projects', key: 'projects', label: 'Projects & Delays' },
+            { id: 'skills', key: 'skills', label: 'Skill Demand & Gap' },
+            { id: 'payments', key: 'payments', label: 'Payments & Telemetry' },
+            { id: 'attendance', key: 'attendance', label: 'Attendance' },
+          ]}
+          variant="glass-light"
+          size="sm"
+          ariaLabel="Analytics view sub-tabs"
+        />
       </div>
 
       {/* Loading & Error States */}

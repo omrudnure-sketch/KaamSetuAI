@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 import { getJobById } from '../services/jobApi.js';
 import { applyToJob, getWorkerApplications } from '../services/applicationService.js';
 import { translateJobDescription } from '../services/aiService.js';
 import { workerJobTranslations } from '../utils/workerJobTranslations.js';
 import { workerHiringTranslations } from '../utils/workerHiringTranslations.js';
+import ChatRequestModal from '../components/chat/ChatRequestModal.jsx';
 import {
   ArrowLeft,
   MapPin,
@@ -20,12 +22,16 @@ import {
   Languages,
   Sparkles,
   RefreshCw,
+  ShieldCheck,
+  MessageSquare,
 } from 'lucide-react';
 
 export const WorkerJobDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+  const isWorker = user?.role === 'worker';
 
   // Language state initialized from URL param if available
   const initialLang = searchParams.get('lang') || 'en';
@@ -46,8 +52,9 @@ export const WorkerJobDetailPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [applyError, setApplyError] = useState('');
   const [applySuccess, setApplySuccess] = useState('');
+  const [chatRequestEmployer, setChatRequestEmployer] = useState(null);
 
-  // Translation state (Step 23.4)
+  // Translation state
   const [translatedDesc, setTranslatedDesc] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
   const [translationMode, setTranslationMode] = useState('original');
@@ -72,9 +79,9 @@ export const WorkerJobDetailPage = () => {
         setActiveTranslationLang(targetLang);
       } else {
         setTranslationError(
-          newLang === 'mr'
+          targetLang === 'mr'
             ? 'अनुवाद सध्या अनुपलब्ध आहे.'
-            : newLang === 'hi'
+            : targetLang === 'hi'
             ? 'अनुवाद वर्तमान में अनुपलब्ध है।'
             : 'Translation currently unavailable.'
         );
@@ -111,22 +118,24 @@ export const WorkerJobDetailPage = () => {
       }
 
       // Check if worker already applied
-      try {
-        const appsRes = await getWorkerApplications({ jobId: id });
-        if (appsRes?.success && Array.isArray(appsRes?.data)) {
-          const matchingApp = appsRes.data.find(
-            (a) =>
-              a.jobId?._id === id ||
-              a.jobId?.id === id ||
-              a.jobId === id ||
-              a.job_id === id
-          );
-          if (matchingApp) {
-            setExistingApplication(matchingApp);
+      if (isWorker) {
+        try {
+          const appsRes = await getWorkerApplications({ jobId: id });
+          if (appsRes?.success && Array.isArray(appsRes?.data)) {
+            const matchingApp = appsRes.data.find(
+              (a) =>
+                a.jobId?._id === id ||
+                a.jobId?.id === id ||
+                a.jobId === id ||
+                a.job_id === id
+            );
+            if (matchingApp) {
+              setExistingApplication(matchingApp);
+            }
           }
+        } catch (_appErr) {
+          // Non-blocking application check error
         }
-      } catch (_appErr) {
-        // Non-blocking application check error
       }
     } catch (err) {
       const status = err.response?.status;
@@ -184,10 +193,11 @@ export const WorkerJobDetailPage = () => {
         setApplyError(res?.error?.message || 'Failed to submit application');
       }
     } catch (err) {
+      const msg = err.response?.data?.error?.message || err.response?.data?.message;
       const serverMessage =
-        err.response?.data?.error?.message ||
-        err.response?.data?.message ||
-        'Application could not be submitted. Please try again.';
+        err.response?.status === 403 || msg?.toLowerCase().includes('worker roles')
+          ? 'Applying for jobs is available to registered worker accounts only. Please sign in as a worker to apply.'
+          : msg || 'Application could not be submitted. Please try again.';
       setApplyError(serverMessage);
     } finally {
       setSubmitting(false);
@@ -196,27 +206,27 @@ export const WorkerJobDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="w-full max-w-4xl mx-auto p-12 text-center bg-white border border-slate-200 rounded-2xl shadow-sm my-6">
+      <div className="w-full max-w-4xl mx-auto p-12 text-center ks-glass-card my-6">
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3" />
-        <p className="text-slate-600 text-sm font-medium">{tJob.loadingJobs}</p>
+        <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">{tJob.loadingJobs}</p>
       </div>
     );
   }
 
   if (isNotFound) {
     return (
-      <div className="w-full max-w-4xl mx-auto p-8 my-6 bg-white border border-slate-200 rounded-2xl space-y-4 text-center shadow-sm">
-        <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
+      <div className="w-full max-w-4xl mx-auto p-8 my-6 ks-glass-card space-y-4 text-center">
+        <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/30 text-amber-500 rounded-2xl flex items-center justify-center mx-auto">
           <AlertCircle className="w-6 h-6" />
         </div>
-        <h2 className="text-xl font-bold text-slate-900">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">
           {lang === 'mr'
             ? 'काम आढळले नाही (Job Not Found)'
             : lang === 'hi'
             ? 'कार्य नहीं मिला (Job Not Found)'
             : 'Job Not Found'}
         </h2>
-        <p className="text-sm text-slate-600 max-w-md mx-auto">
+        <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
           {lang === 'mr'
             ? 'तुम्ही शोधत असलेले काम अस्तित्वात नाही किंवा ते बंद केले गेले आहे.'
             : lang === 'hi'
@@ -226,7 +236,7 @@ export const WorkerJobDetailPage = () => {
         <div className="pt-2">
           <Link
             to={`/worker/jobs?lang=${lang}`}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+            className="ks-btn-primary inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>{tJob.backToJobs}</span>
@@ -238,23 +248,23 @@ export const WorkerJobDetailPage = () => {
 
   if (error || !job) {
     return (
-      <div className="w-full max-w-4xl mx-auto p-8 my-6 bg-white border border-slate-200 rounded-2xl space-y-4 text-center shadow-sm">
-        <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto">
+      <div className="w-full max-w-4xl mx-auto p-8 my-6 ks-glass-card space-y-4 text-center border-rose-500/30">
+        <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/30 text-rose-500 rounded-2xl flex items-center justify-center mx-auto">
           <AlertCircle className="w-6 h-6" />
         </div>
-        <h2 className="text-xl font-bold text-slate-900">{error || tJob.errorLoadingJobs}</h2>
-        <p className="text-xs text-slate-600">Please check your network connection and try again.</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">{error || tJob.errorLoadingJobs}</h2>
+        <p className="text-xs text-slate-600 dark:text-slate-400">Please check your network connection and try again.</p>
         <div className="flex items-center justify-center gap-3 pt-2">
           <button
             onClick={fetchDetailAndApp}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+            className="ks-btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Retry</span>
           </button>
           <Link
             to={`/worker/jobs?lang=${lang}`}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs rounded-xl font-semibold border border-slate-200"
+            className="ks-btn-outline inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>{tJob.backToJobs}</span>
@@ -324,23 +334,15 @@ export const WorkerJobDetailPage = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 pb-12 pt-2">
-      {/* Top Bar Navigation & Language Toggle */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <Link
-          to={`/worker/jobs?lang=${lang}`}
-          className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>{tJob.backToJobs}</span>
-        </Link>
-
+      {/* Language Toggle */}
+      <div className="flex items-center justify-end gap-4">
         {/* Language selector */}
-        <div className="flex items-center gap-1.5 bg-slate-100 border border-slate-200 p-1 rounded-xl">
-          <Globe className="w-3.5 h-3.5 text-primary ml-1" />
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-white/10 backdrop-blur-md shadow-xs">
+          <Globe className="w-3.5 h-3.5 text-primary dark:text-sky-400 ml-1" />
           <button
             onClick={() => handleLanguageChange('en')}
             className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
-              lang === 'en' ? 'bg-primary text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'
+              lang === 'en' ? 'bg-primary text-white shadow-xs' : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             English
@@ -348,7 +350,7 @@ export const WorkerJobDetailPage = () => {
           <button
             onClick={() => handleLanguageChange('mr')}
             className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
-              lang === 'mr' ? 'bg-primary text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'
+              lang === 'mr' ? 'bg-primary text-white shadow-xs' : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             मराठी
@@ -356,7 +358,7 @@ export const WorkerJobDetailPage = () => {
           <button
             onClick={() => handleLanguageChange('hi')}
             className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
-              lang === 'hi' ? 'bg-primary text-white shadow-xs' : 'text-slate-700 hover:text-slate-900'
+              lang === 'hi' ? 'bg-primary text-white shadow-xs' : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             हिंदी
@@ -365,56 +367,56 @@ export const WorkerJobDetailPage = () => {
       </div>
 
       {/* Main Detail Card */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-slate-100 pb-6">
+      <div className="ks-glass-card p-6 sm:p-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-slate-200/80 dark:border-white/10 pb-6">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-md capitalize">
+              <span className="ks-badge-cyan text-xs capitalize">
                 {skillCategory}
               </span>
               <span
-                className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md border ${
+                className={`text-xs font-bold uppercase tracking-wider px-3 py-0.5 rounded-full border ${
                   job.status === 'open'
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                    : 'bg-slate-100 text-slate-700 border-slate-200'
+                    ? 'ks-badge-emerald'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                 }`}
               >
                 {job.status}
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{job.title}</h1>
-            <div className="flex items-center gap-2 text-slate-600 text-xs sm:text-sm">
-              <Building className="w-4 h-4 text-primary flex-shrink-0" />
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">{job.title}</h1>
+            <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 text-xs sm:text-sm">
+              <Building className="w-4 h-4 text-primary dark:text-sky-400 flex-shrink-0" />
               <span>
-                {tJob.postedBy}: <strong className="text-slate-900">{employerDisplayName}</strong>
+                {tJob.postedBy}: <strong className="text-slate-900 dark:text-white">{employerDisplayName}</strong>
               </span>
             </div>
           </div>
 
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-left sm:text-right flex-shrink-0">
-            <p className="text-xs text-slate-600 uppercase font-semibold">{tJob.wageLabel}</p>
-            <p className="text-2xl sm:text-3xl font-extrabold text-emerald-700">₹{job.wageAmount}</p>
-            <p className="text-xs text-slate-600 capitalize">{wageFrequencyText}</p>
+          <div className="p-4 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 text-left sm:text-right flex-shrink-0">
+            <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold">{tJob.wageLabel}</p>
+            <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">₹{job.wageAmount}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">{wageFrequencyText}</p>
           </div>
         </div>
 
         {/* Application Status Banner or Action Button */}
         {applySuccess && (
-          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-sm font-semibold flex items-center gap-3">
-            <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-800 dark:text-emerald-300 text-sm font-semibold flex items-center gap-3 backdrop-blur-md">
+            <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
             <span>{applySuccess}</span>
           </div>
         )}
 
         {existingApplication ? (
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <CheckCircle className="w-6 h-6 text-primary flex-shrink-0" />
+              <CheckCircle className="w-6 h-6 text-primary dark:text-sky-400 flex-shrink-0" />
               <div>
-                <p className="text-sm font-bold text-slate-900">{tHiring.alreadyApplied}</p>
-                <p className="text-xs text-slate-600 mt-0.5">
+                <p className="text-sm font-bold text-slate-900 dark:text-white">{tHiring.alreadyApplied}</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
                   {tHiring.proposedWage}: ₹{existingApplication.proposedWage} | {tHiring.status}:{' '}
-                  <span className="font-bold text-primary capitalize">
+                  <span className="font-bold text-primary dark:text-sky-400 capitalize">
                     {tHiring.statuses?.[existingApplication.status] || existingApplication.status}
                   </span>
                 </p>
@@ -422,67 +424,108 @@ export const WorkerJobDetailPage = () => {
             </div>
             <Link
               to={`/worker/applications?lang=${lang}`}
-              className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl transition-all shadow-xs self-start sm:self-auto"
+              className="ks-btn-primary px-4 py-2 text-xs font-bold self-start sm:self-auto"
             >
               {tHiring.myApplications} →
             </Link>
           </div>
         ) : job.status !== 'open' ? (
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-sm flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+          <div className="p-4 rounded-2xl bg-white/40 dark:bg-slate-900/40 border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300 text-sm flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0" />
             <span>{tHiring.jobClosedNotice}</span>
           </div>
-        ) : (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-            <div>
-              <p className="text-sm font-bold text-slate-900">{tHiring.applyForJob}</p>
-              <p className="text-xs text-slate-600">Propose your wage rate and submit application to employer</p>
+        ) : !isWorker ? (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20">
+            <div className="flex items-center gap-2.5">
+              <ShieldCheck className="w-5 h-5 text-primary dark:text-sky-400 shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">
+                  {user?.role === 'employer' ? 'Viewing Job as Employer' : 'Worker Application Only'}
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Job applications can only be submitted by registered worker accounts.
+                </p>
+              </div>
             </div>
-            <button
-              onClick={() => setShowApplyModal(true)}
-              className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs sm:text-sm font-extrabold rounded-xl transition-all flex items-center gap-2 shadow-sm self-start sm:self-auto"
-            >
-              <Send className="w-4 h-4" />
-              <span>{tHiring.apply}</span>
-            </button>
+            {user?.role === 'employer' && (
+              <Link
+                to="/employer/jobs"
+                className="ks-btn-primary px-4 py-2 text-xs font-bold self-start sm:self-auto shrink-0"
+              >
+                Go to Employer Jobs
+              </Link>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-white/10">
+            <div>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">{tHiring.applyForJob}</p>
+              <p className="text-xs text-slate-600 dark:text-slate-400">Propose your wage rate, ask questions, or chat with the employer</p>
+            </div>
+            <div className="flex items-center gap-2 self-start sm:self-auto w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() =>
+                  setChatRequestEmployer({
+                    id: job.employerId?._id || job.employerId?.id || job.employerId,
+                    name: job.employerId?.name || job.contactPerson || 'Employer',
+                    role: 'employer',
+                    trade: job.title || 'Job Poster',
+                  })
+                }
+                className="flex-1 sm:flex-none px-4 py-2.5 text-xs sm:text-sm font-bold rounded-xl border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 flex items-center justify-center gap-2 transition-colors"
+                title="Message employer directly before or after applying"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>Message Employer</span>
+              </button>
+
+              <button
+                onClick={() => setShowApplyModal(true)}
+                className="flex-1 sm:flex-none ks-btn-primary px-6 py-2.5 text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 shadow-xs"
+              >
+                <Send className="w-4 h-4" />
+                <span>{tHiring.apply}</span>
+              </button>
+            </div>
           </div>
         )}
 
         {/* Highlights Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-white/40 dark:bg-slate-900/40 border border-slate-200/80 dark:border-white/10 text-xs sm:text-sm">
           <div>
-            <span className="text-xs text-slate-600 flex items-center gap-1 mb-1">
-              <Users className="w-3.5 h-3.5 text-amber-700" /> {tJob.workersNeeded}
+            <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-1">
+              <Users className="w-3.5 h-3.5 text-amber-500" /> {tJob.workersNeeded}
             </span>
-            <span className="font-bold text-slate-900">{job.workersRequired || job.workersNeeded || 1}</span>
+            <span className="font-bold text-slate-900 dark:text-white">{job.workersRequired || job.workersNeeded || 1}</span>
           </div>
           <div>
-            <span className="text-xs text-slate-600 flex items-center gap-1 mb-1">
-              <MapPin className="w-3.5 h-3.5 text-rose-600" /> {tJob.locationLabel}
+            <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-1">
+              <MapPin className="w-3.5 h-3.5 text-rose-500" /> {tJob.locationLabel}
             </span>
-            <span className="font-bold text-slate-900 truncate block">{locationText}</span>
+            <span className="font-bold text-slate-900 dark:text-white truncate block">{locationText}</span>
           </div>
           <div>
-            <span className="text-xs text-slate-600 flex items-center gap-1 mb-1">
-              <Calendar className="w-3.5 h-3.5 text-blue-600" /> {tJob.durationLabel}
+            <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-1">
+              <Calendar className="w-3.5 h-3.5 text-primary dark:text-sky-400" /> {tJob.durationLabel}
             </span>
-            <span className="font-bold text-slate-900">{durationText}</span>
+            <span className="font-bold text-slate-900 dark:text-white">{durationText}</span>
           </div>
           <div>
-            <span className="text-xs text-slate-600 flex items-center gap-1 mb-1">
-              <Clock className="w-3.5 h-3.5 text-purple-600" /> {tJob.startDateLabel}
+            <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-1">
+              <Clock className="w-3.5 h-3.5 text-purple-500" /> {tJob.startDateLabel}
             </span>
-            <span className="font-bold text-slate-900">{formattedStartDate}</span>
+            <span className="font-bold text-slate-900 dark:text-white">{formattedStartDate}</span>
           </div>
         </div>
 
-        {/* Description Section with AI Multilingual Translation (Step 23.4) */}
-        <div className="space-y-3 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
+        {/* Description Section with AI Multilingual Translation */}
+        <div className="space-y-3 p-4 rounded-2xl bg-white/40 dark:bg-slate-900/40 border border-slate-200/80 dark:border-white/10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 dark:border-white/10 pb-2.5">
             <div className="flex items-center gap-2">
-              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">{tJob.description}</h3>
+              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">{tJob.description}</h3>
               {translationMode === 'translated' && (
-                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-black uppercase rounded-md flex items-center gap-1">
+                <span className="ks-badge-cyan text-[10px] font-black uppercase flex items-center gap-1">
                   <Sparkles className="w-2.5 h-2.5" />
                   Translated ({activeTranslationLang.toUpperCase()})
                 </span>
@@ -495,9 +538,9 @@ export const WorkerJobDetailPage = () => {
                 <button
                   type="button"
                   onClick={() => setTranslationMode('original')}
-                  className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg border border-slate-300 transition-colors flex items-center gap-1"
+                  className="ks-btn-outline px-2.5 py-1 text-xs font-semibold flex items-center gap-1"
                 >
-                  <Languages className="w-3.5 h-3.5 text-primary" />
+                  <Languages className="w-3.5 h-3.5 text-primary dark:text-sky-400" />
                   <span>View Original</span>
                 </button>
               ) : (
@@ -506,7 +549,7 @@ export const WorkerJobDetailPage = () => {
                     type="button"
                     disabled={isTranslating}
                     onClick={() => handleTranslateDesc('mr')}
-                    className="px-2.5 py-1 bg-white hover:bg-slate-100 text-primary hover:text-primary-hover text-xs font-semibold rounded-lg border border-slate-300 transition-colors flex items-center gap-1 disabled:opacity-50"
+                    className="ks-btn-outline px-2.5 py-1 text-xs font-semibold flex items-center gap-1 disabled:opacity-50"
                   >
                     <Languages className="w-3.5 h-3.5" />
                     <span>मराठी अनुवाद</span>
@@ -515,7 +558,7 @@ export const WorkerJobDetailPage = () => {
                     type="button"
                     disabled={isTranslating}
                     onClick={() => handleTranslateDesc('hi')}
-                    className="px-2.5 py-1 bg-white hover:bg-slate-100 text-primary hover:text-primary-hover text-xs font-semibold rounded-lg border border-slate-300 transition-colors flex items-center gap-1 disabled:opacity-50"
+                    className="ks-btn-outline px-2.5 py-1 text-xs font-semibold flex items-center gap-1 disabled:opacity-50"
                   >
                     <Languages className="w-3.5 h-3.5" />
                     <span>हिंदी अनुवाद</span>
@@ -526,50 +569,50 @@ export const WorkerJobDetailPage = () => {
           </div>
 
           {isTranslating && (
-            <div className="py-4 text-center text-xs text-slate-600 flex items-center justify-center gap-2">
+            <div className="py-4 text-center text-xs text-slate-600 dark:text-slate-400 flex items-center justify-center gap-2">
               <div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               <span>Translating description...</span>
             </div>
           )}
 
           {translationError && (
-            <p className="text-xs text-rose-600 italic">{translationError}</p>
+            <p className="text-xs text-rose-500 italic">{translationError}</p>
           )}
 
           {!isTranslating && (
-            <p className="text-slate-800 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
+            <p className="text-slate-800 dark:text-slate-200 text-xs sm:text-sm leading-relaxed whitespace-pre-line">
               {translationMode === 'translated' && translatedDesc ? translatedDesc : job.description}
             </p>
           )}
         </div>
 
         {/* Location Info */}
-        <div className="space-y-1.5 pt-4 border-t border-slate-100">
-          <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">{tJob.locationLabel}</h3>
-          <p className="text-slate-700 text-xs sm:text-sm font-medium">{locationText}</p>
+        <div className="space-y-1.5 pt-4 border-t border-slate-200/80 dark:border-white/10">
+          <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">{tJob.locationLabel}</h3>
+          <p className="text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-medium">{locationText}</p>
           {job.location?.address && (
-            <p className="text-slate-500 text-xs">{job.location.address}</p>
+            <p className="text-slate-500 dark:text-slate-400 text-xs">{job.location.address}</p>
           )}
         </div>
 
         {/* Working Hours & Requirements */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-200/80 dark:border-white/10">
           <div className="space-y-1.5">
-            <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">{tJob.workingHours}</h3>
-            <p className="text-slate-700 text-xs sm:text-sm font-medium">{workingHoursText}</p>
+            <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">{tJob.workingHours}</h3>
+            <p className="text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-medium">{workingHoursText}</p>
             {job.workingHours?.description && (
-              <p className="text-slate-500 text-xs">{job.workingHours.description}</p>
+              <p className="text-slate-500 dark:text-slate-400 text-xs">{job.workingHours.description}</p>
             )}
           </div>
 
           {requirementsList.length > 0 && (
             <div className="space-y-1.5">
-              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">{tJob.requirements}</h3>
+              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">{tJob.requirements}</h3>
               <div className="flex flex-wrap gap-1.5">
                 {requirementsList.map((req, idx) => (
                   <span
                     key={idx}
-                    className="px-2.5 py-1 bg-slate-100 text-slate-800 text-xs rounded-lg border border-slate-200 font-medium"
+                    className="px-2.5 py-1 rounded-lg text-xs font-medium bg-white/60 dark:bg-slate-800/60 border border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-200"
                   >
                     ✓ {req}
                   </span>
@@ -580,31 +623,31 @@ export const WorkerJobDetailPage = () => {
         </div>
       </div>
 
-      {/* Application Modal */}
+      {/* Application Modal with Glass Design */}
       {showApplyModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base sm:text-lg font-bold text-slate-900">{tHiring.applyForJob}</h3>
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="ks-glass-card max-w-lg w-full p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-white/10 pb-3">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{tHiring.applyForJob}</h3>
               <button
                 type="button"
                 onClick={() => setShowApplyModal(false)}
-                className="text-slate-400 hover:text-slate-700 text-lg leading-none p-1"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
               >
                 ✕
               </button>
             </div>
 
             {applyError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-500" />
                 <span>{applyError}</span>
               </div>
             )}
 
             <form onSubmit={handleApplySubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   {tHiring.proposedWage} (₹) *
                 </label>
                 <input
@@ -614,15 +657,15 @@ export const WorkerJobDetailPage = () => {
                   value={proposedWage}
                   onChange={(e) => setProposedWage(e.target.value)}
                   placeholder="e.g. 900"
-                  className="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl px-4 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-primary focus:bg-white"
+                  className="ks-glass-input w-full p-2.5 text-xs sm:text-sm"
                 />
-                <p className="text-[11px] text-slate-500 mt-1">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                   Posted rate: ₹{job.wageAmount} / {wageFrequencyText}
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   {tHiring.message}
                 </label>
                 <textarea
@@ -630,23 +673,23 @@ export const WorkerJobDetailPage = () => {
                   placeholder="Share your experience, tools, or availability for this job..."
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-xl px-4 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-primary focus:bg-white resize-none"
+                  className="ks-glass-input w-full p-2.5 text-xs sm:text-sm resize-none"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200/80 dark:border-white/10">
                 <button
                   type="button"
                   disabled={submitting}
                   onClick={() => setShowApplyModal(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-xl border border-slate-200"
+                  className="ks-btn-outline px-4 py-2 text-xs font-semibold"
                 >
                   {tHiring.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-extrabold rounded-xl transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+                  className="ks-btn-primary px-5 py-2 text-xs font-extrabold flex items-center gap-1.5 disabled:opacity-50"
                 >
                   {submitting && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                   <span>{submitting ? 'Submitting...' : tHiring.submitApplication}</span>
@@ -655,6 +698,17 @@ export const WorkerJobDetailPage = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Pre-Agreement Chat Request Modal */}
+      {chatRequestEmployer && (
+        <ChatRequestModal
+          isOpen={!!chatRequestEmployer}
+          recipient={chatRequestEmployer}
+          jobId={job?._id || job?.id}
+          currentUserRole="worker"
+          onClose={() => setChatRequestEmployer(null)}
+        />
       )}
     </div>
   );

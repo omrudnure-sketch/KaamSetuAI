@@ -50,6 +50,16 @@ export const createOrUpdateWorkerProfile = async (userId, profileData) => {
 
   // Flatten nested location fields for persistent PostgreSQL storage
   const flattened = { ...profileData, userId };
+  if (!flattened.fullName) {
+    try {
+      const user = await User.findById(userId);
+      if (user?.name) flattened.fullName = user.name;
+    } catch (_err) {}
+  }
+
+  if (profileData.city !== undefined) flattened.city = profileData.city;
+  if (profileData.area !== undefined) flattened.area = profileData.area;
+
   if (profileData.location && typeof profileData.location === 'object') {
     if (profileData.location.city !== undefined) flattened.city = profileData.location.city;
     if (profileData.location.area !== undefined) flattened.area = profileData.location.area;
@@ -61,6 +71,8 @@ export const createOrUpdateWorkerProfile = async (userId, profileData) => {
       flattened.longitude = coords[0];
       flattened.latitude = coords[1];
     }
+    flattened.location = [flattened.area, flattened.city].filter(Boolean).join(', ') || flattened.city || '';
+  } else if (flattened.city || flattened.area) {
     flattened.location = [flattened.area, flattened.city].filter(Boolean).join(', ') || flattened.city || '';
   }
 
@@ -109,10 +121,10 @@ export const calculateProfileCompletion = (profile) => {
     Boolean(typeof profile.experienceYears === 'number' && profile.experienceYears >= 0),
     Boolean(profile.dailyWage && profile.dailyWage > 0),
     Boolean(Array.isArray(profile.languages) && profile.languages.length > 0),
-    Boolean(profile.bio && profile.bio.trim()),
-    Boolean((profile.city || profile.location?.city) && (profile.city || profile.location?.city).trim()),
-    Boolean((profile.area || profile.location?.area) && (profile.area || profile.location?.area).trim()),
-    Boolean(profile.profilePhoto && profile.profilePhoto.trim()),
+    Boolean(profile.bio && typeof profile.bio === 'string' && profile.bio.trim()),
+    Boolean((typeof profile.city === 'string' && profile.city.trim()) || (typeof profile.location?.city === 'string' && profile.location.city.trim())),
+    Boolean((typeof profile.area === 'string' && profile.area.trim()) || (typeof profile.location?.area === 'string' && profile.location.area.trim())),
+    Boolean(profile.profilePhoto && typeof profile.profilePhoto === 'string' && profile.profilePhoto.trim()),
   ];
 
   const completedCount = checks.filter(Boolean).length;

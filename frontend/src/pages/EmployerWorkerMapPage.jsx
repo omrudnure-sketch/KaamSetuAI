@@ -1,7 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import L from 'leaflet';
 import { authApiClient } from '../services/authApi.js';
+import { LocationAccessBar } from '../components/LocationAccessBar.jsx';
+import { getSessionLocation } from '../services/locationService.js';
+import {
+  Map as MapIcon,
+  List,
+  Search,
+  ShieldCheck,
+  DollarSign,
+  Briefcase,
+  Users,
+  Sparkles,
+  MapPin,
+  Clock,
+  Send,
+  Building,
+} from 'lucide-react';
 
 export const EmployerWorkerMapPage = () => {
   const navigate = useNavigate();
@@ -18,9 +34,51 @@ export const EmployerWorkerMapPage = () => {
   const [verificationStatus, setVerificationStatus] = useState('');
   const [rating, setRating] = useState('');
 
+  // Location search state & reverse geocoded display
+  const [activeLocation, setActiveLocation] = useState(() => getSessionLocation());
+  const employerMarkerRef = useRef(null);
+
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersLayerRef = useRef(null);
+
+  const handleLocationAcquired = (locData) => {
+    setActiveLocation(locData);
+    if (locData?.city) {
+      setCity(locData.city);
+    }
+    if (mapInstanceRef.current && locData?.lat && locData?.lng) {
+      mapInstanceRef.current.setView([locData.lat, locData.lng], 12);
+
+      if (employerMarkerRef.current) {
+        mapInstanceRef.current.removeLayer(employerMarkerRef.current);
+      }
+
+      const employerIcon = L.divIcon({
+        className: 'custom-employer-marker',
+        html: `
+          <div style="background-color: #d97706; color: white; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 12px rgba(217,119,6,0.9); display: flex; align-items: center; justify-content: center; font-size: 12px;">
+            🏢
+          </div>
+        `,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      });
+
+      employerMarkerRef.current = L.marker([locData.lat, locData.lng], { icon: employerIcon })
+        .bindPopup(`<b>🏢 Your Employer Location</b><br/><span>${locData.shortLabel || ''}</span><br/><span style="font-size:10px; color:#6b7280;">${locData.formattedCoords || ''}</span>`)
+        .addTo(mapInstanceRef.current);
+    }
+  };
+
+  const handleLocationCleared = () => {
+    setActiveLocation(null);
+    setCity('');
+    if (employerMarkerRef.current && mapInstanceRef.current) {
+      mapInstanceRef.current.removeLayer(employerMarkerRef.current);
+      employerMarkerRef.current = null;
+    }
+  };
 
   const fetchWorkers = async () => {
     setLoading(true);
@@ -36,7 +94,7 @@ export const EmployerWorkerMapPage = () => {
       };
 
       const res = await authApiClient.get('/workers/map', { params });
-      setWorkers(res.data?.data || []);
+      setWorkers(Array.isArray(res.data?.data) ? res.data.data : []);
     } catch (err) {
       console.error('Failed to load worker map data:', err);
       setError('Unable to fetch worker discovery data. Switched to list view.');
@@ -80,21 +138,24 @@ export const EmployerWorkerMapPage = () => {
       const validPoints = [];
 
       workers.forEach((w) => {
-        const coords = w.location?.coordinates;
+        const coords = w?.location?.coordinates;
         if (coords && coords.length >= 2 && !(coords[0] === 0 && coords[1] === 0)) {
           const lng = coords[0];
           const lat = coords[1];
 
-          // Leaflet icon with worker role & verification indicator
-          const isVerified = w.verificationStatus === 'verified';
-          const badgeColor = isVerified ? '#059669' : '#00236f';
+          const isVerified = w?.verificationStatus === 'verified';
+          const badgeColor = isVerified ? '#059669' : '#0284c7';
+          const primarySkillName = w?.primarySkill || 'Worker';
+          const displayName = w?.fullName || w?.name || 'Worker';
+          const cityDisplay = (typeof w?.location === 'object' ? w?.location?.city : w?.location) || 'Area';
+          const areaDisplay = typeof w?.location === 'object' && w?.location?.area ? `(${w.location.area})` : '';
 
           const customIcon = L.divIcon({
             className: 'custom-worker-marker',
             html: `
               <div style="background-color: ${badgeColor}; color: white; padding: 4px 8px; border-radius: 9999px; font-size: 11px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 4px; white-space: nowrap;">
                 <span>👷</span>
-                <span>${w.primarySkill}</span>
+                <span>${primarySkillName}</span>
               </div>
             `,
             iconSize: [80, 24],
@@ -104,16 +165,16 @@ export const EmployerWorkerMapPage = () => {
           const marker = L.marker([lat, lng], { icon: customIcon });
 
           const popupContent = `
-            <div style="font-family: inherit; font-size: 12px; min-width: 190px; padding: 4px;">
-              <div style="font-weight: 800; font-size: 13px; color: #00236f; margin-bottom: 2px;">${w.fullName}</div>
-              <div style="font-size: 11px; color: #6b7280; margin-bottom: 4px;">
-                ${w.primarySkill.toUpperCase()} • ${w.experienceYears} yrs exp ${isVerified ? '• <span style="color:#059669; font-weight:bold;">Verified ✓</span>' : ''}
+            <div style="font-family: inherit; font-size: 12px; min-width: 190px; padding: 4px; color: #1e293b;">
+              <div style="font-weight: 800; font-size: 13px; color: #0284c7; margin-bottom: 2px;">${displayName}</div>
+              <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">
+                ${primarySkillName.toUpperCase()} • ${w?.experienceYears ?? 0} yrs exp ${isVerified ? '• <span style="color:#059669; font-weight:bold;">Verified ✓</span>' : ''}
               </div>
-              <div style="color: #374151; margin-bottom: 2px;"><strong>Daily Wage:</strong> ₹${w.dailyWage || 'Negotiable'}</div>
-              <div style="color: #374151; margin-bottom: 2px;"><strong>Status:</strong> <span style="text-transform: capitalize; color: #059669; font-weight: bold;">${w.availability}</span></div>
-              <div style="color: #374151; margin-bottom: 4px;"><strong>Location:</strong> ${w.location.city} ${w.location.area ? '(' + w.location.area + ')' : ''}</div>
-              <div style="font-size: 10px; color: #9ca3af; margin-bottom: 6px;">(Approximate area location for privacy)</div>
-              <button id="invite-worker-${w._id}" style="width: 100%; padding: 6px; background-color: #00236f; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
+              <div style="color: #334155; margin-bottom: 2px;"><strong>Daily Wage:</strong> ₹${w?.dailyWage || 'Negotiable'}</div>
+              <div style="color: #334155; margin-bottom: 2px;"><strong>Status:</strong> <span style="text-transform: capitalize; color: #059669; font-weight: bold;">${w?.availability || 'Available'}</span></div>
+              <div style="color: #334155; margin-bottom: 4px;"><strong>Location:</strong> ${cityDisplay} ${areaDisplay}</div>
+              <div style="font-size: 10px; color: #94a3b8; margin-bottom: 6px;">(Approximate area location for privacy)</div>
+              <button id="invite-worker-${w._id}" style="width: 100%; padding: 6px; background-color: #0284c7; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
                 Invite to Job
               </button>
             </div>
@@ -153,48 +214,73 @@ export const EmployerWorkerMapPage = () => {
   }, []);
 
   return (
-    <div className="w-full space-y-4 py-3">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-outline-variant/30">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-on-surface tracking-tight">Geographic Worker Discovery</h1>
-          <p className="text-xs text-on-surface-variant mt-0.5">
-            Discover verified daily wage workers, masons, carpenters, and technicians nearby.
-          </p>
-        </div>
+    <div className="w-full space-y-6 pb-12">
+      {/* Header Banner */}
+      <div className="ks-glass-card p-6 sm:p-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-primary/10 via-sky-500/10 to-transparent rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="ks-badge-cyan">
+                <Sparkles className="w-3.5 h-3.5" /> Geospatial Discovery
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <MapPin className="w-7 h-7 text-primary dark:text-sky-400" />
+              <span>Geographic Worker Discovery</span>
+            </h1>
+            <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 max-w-xl">
+              Locate nearby available masons, carpenters, electricians, plumbers, and technicians on an interactive map
+            </p>
+          </div>
 
-        {/* View Mode Toggle */}
-        <div className="inline-flex rounded-lg bg-surface-container-low p-1 border border-outline-variant/30 text-xs self-start sm:self-auto">
-          <button
-            onClick={() => setViewMode('map')}
-            className={`px-3 py-1 rounded-md font-bold flex items-center gap-1.5 transition-all ${
-              viewMode === 'map' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[16px]">map</span>
-            <span>Map View</span>
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`px-3 py-1 rounded-md font-bold flex items-center gap-1.5 transition-all ${
-              viewMode === 'list' ? 'bg-primary text-on-primary' : 'text-on-surface-variant'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[16px]">list</span>
-            <span>List View</span>
-          </button>
+          {/* View Mode Toggle */}
+          <div className="inline-flex rounded-xl p-1 bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-white/10 backdrop-blur-md shadow-xs self-start sm:self-auto">
+            <button
+              onClick={() => setViewMode('map')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${
+                viewMode === 'map'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <MapIcon className="w-4 h-4" />
+              <span>Map View</span>
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${
+                viewMode === 'list'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <List className="w-4 h-4" />
+              <span>List View</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="p-3.5 bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-xs space-y-2">
+      <div className="ks-glass-card p-4 sm:p-5 space-y-4">
+        {/* Location Access & Taken Location Display */}
+        <LocationAccessBar
+          activeLocation={activeLocation}
+          onLocationAcquired={handleLocationAcquired}
+          onLocationCleared={handleLocationCleared}
+          role="employer"
+          customButtonLabel="Center Map on My Location"
+          showRadius={false}
+        />
+
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-2 text-xs">
           <input
             type="text"
             placeholder="Skill (e.g. Mason)..."
             value={skill}
             onChange={(e) => setSkill(e.target.value)}
-            className="p-2 rounded-lg bg-surface-container-low border border-outline-variant/30 font-medium text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+            className="ks-input text-xs"
           />
 
           <input
@@ -202,13 +288,13 @@ export const EmployerWorkerMapPage = () => {
             placeholder="City or Area (e.g. Pune)..."
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            className="p-2 rounded-lg bg-surface-container-low border border-outline-variant/30 font-medium text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+            className="ks-input text-xs"
           />
 
           <select
             value={availability}
             onChange={(e) => setAvailability(e.target.value)}
-            className="p-2 rounded-lg bg-surface-container-low border border-outline-variant/30 font-semibold text-on-surface focus:outline-none"
+            className="ks-input text-xs font-semibold"
           >
             <option value="">All Availability</option>
             <option value="available">Available Now</option>
@@ -219,7 +305,7 @@ export const EmployerWorkerMapPage = () => {
           <select
             value={verificationStatus}
             onChange={(e) => setVerificationStatus(e.target.value)}
-            className="p-2 rounded-lg bg-surface-container-low border border-outline-variant/30 font-semibold text-on-surface focus:outline-none"
+            className="ks-input text-xs font-semibold"
           >
             <option value="">All Verification</option>
             <option value="verified">Verified Only ✓</option>
@@ -231,79 +317,85 @@ export const EmployerWorkerMapPage = () => {
             placeholder="Min Exp (Years)..."
             value={minExperience}
             onChange={(e) => setMinExperience(e.target.value)}
-            className="p-2 rounded-lg bg-surface-container-low border border-outline-variant/30 font-medium text-on-surface focus:outline-none"
+            className="ks-input text-xs"
           />
 
           <button
             onClick={fetchWorkers}
-            className="px-4 py-2 bg-primary text-on-primary font-bold rounded-lg text-xs hover:opacity-90 active:scale-95 transition-all"
+            className="ks-btn-primary text-xs font-bold flex items-center justify-center gap-1.5"
           >
-            Find Workers
+            <Search className="w-3.5 h-3.5" />
+            <span>Filter</span>
           </button>
         </div>
       </div>
 
       {/* Privacy Notice Pill */}
-      <div className="flex items-center gap-1.5 text-[11px] text-on-surface-variant/80 px-2">
-        <span className="material-symbols-outlined text-[14px] text-primary">security</span>
-        <span>Worker privacy protected: Locations are shown at neighborhood/city precision, not private doorsteps.</span>
+      <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 px-2">
+        <ShieldCheck className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+        <span>Worker privacy protected: Locations are generalized to neighborhood/city bounds, keeping personal residences private.</span>
       </div>
 
       {/* Content Rendering */}
       {loading ? (
-        <div className="p-16 text-center text-xs text-on-surface-variant flex flex-col items-center justify-center gap-3">
+        <div className="p-16 text-center ks-glass-card flex flex-col items-center justify-center gap-3">
           <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
-          <span>Searching eligible workers nearby...</span>
+          <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">Searching eligible workers nearby...</span>
         </div>
       ) : (
         <>
           {viewMode === 'map' ? (
             <div className="space-y-4">
-              <div className="w-full h-[520px] rounded-xl overflow-hidden border border-outline-variant/30 shadow-xs relative z-0">
-                <div ref={mapContainerRef} className="w-full h-full" />
+              <div className="w-full h-[520px] rounded-2xl overflow-hidden ks-glass-card p-1 shadow-xl relative z-0">
+                <div ref={mapContainerRef} className="w-full h-full rounded-xl" />
               </div>
 
               {/* Bottom Cards */}
-              <div className="space-y-2">
-                <div className="text-xs font-bold uppercase tracking-wider text-on-surface">
+              <div className="space-y-3">
+                <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Discovered Workers ({workers.length})
                 </div>
                 {workers.length === 0 ? (
-                  <div className="p-8 text-center text-xs text-on-surface-variant bg-surface-container-low rounded-xl">
+                  <div className="p-8 text-center text-xs text-slate-500 ks-glass-card">
                     No matching workers found in this area. Try adjusting your skill or city filters.
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {workers.map((w) => (
-                      <div
-                        key={w._id}
-                        className="p-3.5 rounded-xl bg-surface-container-lowest border border-outline-variant/30 shadow-xs space-y-2 hover:border-primary/40 transition-all"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <span className="font-bold text-xs text-on-surface">{w.fullName}</span>
-                            <div className="text-[10px] text-on-surface-variant font-semibold">
-                              {w.primarySkill.toUpperCase()} • {w.experienceYears} yrs exp
+                    {workers.map((w) => {
+                      const skillStr = w?.primarySkill || 'Worker';
+                      const expStr = w?.experienceYears ?? 0;
+                      const nameStr = w?.fullName || w?.name || 'Worker';
+                      return (
+                        <div
+                          key={w._id}
+                          className="p-4 rounded-xl ks-glass-card hover:border-primary/40 dark:hover:border-sky-500/40 space-y-2.5 transition-all"
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <div>
+                              <span className="font-bold text-xs text-slate-900 dark:text-white">{nameStr}</span>
+                              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase">
+                                {skillStr} • {expStr} yrs exp
+                              </div>
                             </div>
+                            {w?.verificationStatus === 'verified' && (
+                              <span className="ks-badge-emerald text-[10px]">
+                                Verified ✓
+                              </span>
+                            )}
                           </div>
-                          {w.verificationStatus === 'verified' && (
-                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                              Verified ✓
-                            </span>
-                          )}
-                        </div>
 
-                        <div className="flex justify-between items-center text-xs pt-1 border-t border-outline-variant/10">
-                          <span className="font-mono font-bold text-primary">₹{w.dailyWage}/day</span>
-                          <button
-                            onClick={() => navigate(`/employer/invitations?workerId=${w._id}`)}
-                            className="px-2.5 py-1 bg-primary text-on-primary rounded-md font-bold text-[11px] hover:opacity-90 active:scale-95 transition-all"
-                          >
-                            Invite
-                          </button>
+                          <div className="flex justify-between items-center text-xs pt-2 border-t border-slate-200/80 dark:border-white/10">
+                            <span className="font-mono font-bold text-emerald-500 dark:text-emerald-400">₹{w?.dailyWage || '0'}/day</span>
+                            <button
+                              onClick={() => navigate(`/employer/invitations?workerId=${w._id}`)}
+                              className="ks-btn-primary px-3 py-1 font-bold text-[11px]"
+                            >
+                              Invite
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -312,53 +404,60 @@ export const EmployerWorkerMapPage = () => {
             /* List View */
             <div className="space-y-3">
               {workers.length === 0 ? (
-                <div className="p-12 text-center text-xs text-on-surface-variant bg-surface-container-low rounded-xl">
+                <div className="p-12 text-center text-xs text-slate-500 ks-glass-card">
                   No matching workers found. Try expanding your search criteria.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {workers.map((w) => (
-                    <div
-                      key={w._id}
-                      className="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant/30 shadow-xs space-y-3 hover:border-primary/40 transition-all"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-bold text-sm text-on-surface">{w.fullName}</h3>
-                          <div className="text-xs text-on-surface-variant mt-0.5">
-                            {w.location.city} {w.location.area ? `(${w.location.area})` : ''}
+                  {workers.map((w) => {
+                    const skillStr = w?.primarySkill || 'Worker';
+                    const expStr = w?.experienceYears ?? 0;
+                    const nameStr = w?.fullName || w?.name || 'Worker';
+                    const cityStr = (typeof w?.location === 'object' ? w?.location?.city : w?.location) || 'City';
+                    const areaStr = typeof w?.location === 'object' && w?.location?.area ? `(${w.location.area})` : '';
+                    return (
+                      <div
+                        key={w._id}
+                        className="p-4 rounded-xl ks-glass-card hover:border-primary/40 dark:hover:border-sky-500/40 space-y-3 transition-all"
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <div>
+                            <h3 className="font-bold text-sm text-slate-900 dark:text-white">{nameStr}</h3>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                              {cityStr} {areaStr}
+                            </div>
                           </div>
+                          {w?.verificationStatus === 'verified' && (
+                            <span className="ks-badge-emerald text-[10px]">
+                              Verified ✓
+                            </span>
+                          )}
                         </div>
-                        {w.verificationStatus === 'verified' && (
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                            Verified ✓
+
+                        <div className="flex flex-wrap gap-1.5 text-[11px]">
+                          <span className="ks-badge-cyan text-[10px] uppercase font-bold">
+                            {skillStr}
                           </span>
-                        )}
-                      </div>
+                          <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
+                            {expStr} Years Exp
+                          </span>
+                          <span className="ks-badge-emerald text-[10px] capitalize">
+                            {w?.availability || 'Available'}
+                          </span>
+                        </div>
 
-                      <div className="flex flex-wrap gap-1.5 text-[11px]">
-                        <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary font-bold uppercase">
-                          {w.primarySkill}
-                        </span>
-                        <span className="px-2 py-0.5 rounded-md bg-surface-container-low font-semibold text-on-surface-variant">
-                          {w.experienceYears} Years Exp
-                        </span>
-                        <span className="px-2 py-0.5 rounded-md bg-surface-container-low font-semibold text-emerald-700 capitalize">
-                          {w.availability}
-                        </span>
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-200/80 dark:border-white/10 text-xs">
+                          <span className="font-mono font-bold text-emerald-500 dark:text-emerald-400">₹{w?.dailyWage || '0'}/day</span>
+                          <button
+                            onClick={() => navigate(`/employer/invitations?workerId=${w._id}`)}
+                            className="ks-btn-primary px-3 py-1.5 font-bold"
+                          >
+                            Send Invitation
+                          </button>
+                        </div>
                       </div>
-
-                      <div className="flex items-center justify-between pt-2 border-t border-outline-variant/10 text-xs">
-                        <span className="font-mono font-bold text-on-surface">₹{w.dailyWage}/day</span>
-                        <button
-                          onClick={() => navigate(`/employer/invitations?workerId=${w._id}`)}
-                          className="px-3 py-1.5 bg-primary text-on-primary rounded-lg font-bold hover:opacity-90 active:scale-95 transition-all"
-                        >
-                          Send Invitation
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -190,7 +190,7 @@ export async function runMarketplaceTests() {
 
 if (process.argv[1]?.endsWith('marketplace.test.js')) {
   runMarketplaceTests()
-    .then(() => disconnectTestDB())
+    .then(() => disconnectTestDB().then(() => process.exit(0)))
     .catch((err) => {
       console.error(err);
       disconnectTestDB().then(() => process.exit(1));

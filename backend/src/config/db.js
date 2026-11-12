@@ -1,7 +1,7 @@
 // Supabase Database Connection & Verification
 // Replaces obsolete Mongoose/MongoDB connection and eliminates all MongoDB fallbacks
 
-import { checkSupabaseConnection, pgPool, supabaseAdmin } from './supabase.js';
+import { checkSupabaseConnection } from './supabase.js';
 
 let isDbReady = false;
 
@@ -17,9 +17,9 @@ export const connectDB = async () => {
       return false;
     }
     console.warn('[KaamSetu AI] Supabase configuration notice: DATABASE_URL and SUPABASE_URL are not set in environment.');
-    console.warn('[KaamSetu AI] Operating with in-memory data access layer for test/isolated development mode only.');
-    isDbReady = process.env.NODE_ENV === 'test';
-    return false;
+    console.warn('[KaamSetu AI] Operating with in-memory data access layer for test/isolated development mode.');
+    isDbReady = true;
+    return true;
   }
 
   try {
@@ -30,20 +30,28 @@ export const connectDB = async () => {
       return true;
     } else if (status.error) {
       console.error(`[KaamSetu AI] Supabase connection check failed: ${status.error}`);
-      isDbReady = false;
       if (isProduction) {
         console.error('[KaamSetu AI] Database readiness failed in production.');
+        isDbReady = false;
+        return false;
       }
-      return false;
+      console.warn('[KaamSetu AI] Falling back to in-memory data access layer for non-production environment.');
+      isDbReady = true;
+      return true;
     }
   } catch (error) {
     console.error(`[KaamSetu AI] Error during Supabase connection initialization: ${error.message}`);
-    isDbReady = false;
-    return false;
+    if (isProduction) {
+      isDbReady = false;
+      return false;
+    }
+    console.warn('[KaamSetu AI] Falling back to in-memory data access layer after initialization error.');
+    isDbReady = true;
+    return true;
   }
 
-  isDbReady = false;
-  return false;
+  isDbReady = !isProduction;
+  return isDbReady;
 };
 
 export const getDbStatus = () => isDbReady;

@@ -1,4 +1,4 @@
-import { Job, WorkerProfile, EmployerProfile, Project } from '../models/index.js';
+import { Job, WorkerProfile, Project, EmployerProfile, User } from '../models/index.js';
 
 // Helper: validate coordinates
 export const isValidCoordinate = (lng, lat) => {
@@ -22,6 +22,21 @@ export const approximateCoordinates = (coords) => {
   if (!isValidCoordinate(lng, lat)) return null;
   // Round to 2 decimal places to prevent exposing exact residential doorstep
   return [Math.round(lng * 100) / 100, Math.round(lat * 100) / 100];
+};
+
+// Helper: Haversine distance in kilometers
+export const haversineDistanceKm = (lat1, lon1, lat2, lon2) => {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 10) / 10;
 };
 
 /**
@@ -78,8 +93,17 @@ export const getJobsMap = async (req, res, next) => {
 
     let formattedJobs = jobs.map((jobDoc) => {
       const j = jobDoc.toJSON ? jobDoc.toJSON() : { ...jobDoc };
-      const jLng = j.longitude ?? (j.location?.coordinates?.coordinates?.[0] ?? 0);
-      const jLat = j.latitude ?? (j.location?.coordinates?.coordinates?.[1] ?? 0);
+      let jLng = j.longitude;
+      let jLat = j.latitude;
+      if (jLng === undefined || jLat === undefined || (jLng === 0 && jLat === 0)) {
+        if (Array.isArray(j.location?.coordinates)) {
+          jLng = j.location.coordinates[0];
+          jLat = j.location.coordinates[1];
+        } else if (Array.isArray(j.location?.coordinates?.coordinates)) {
+          jLng = j.location.coordinates.coordinates[0];
+          jLat = j.location.coordinates.coordinates[1];
+        }
+      }
       const hasCoords = isValidCoordinate(jLng, jLat);
       const coords = [Number(jLng) || 0, Number(jLat) || 0];
 
@@ -278,11 +302,11 @@ export const getAdminGeoSupply = async (req, res, next) => {
     res.json({
       success: true,
       data: supplyByCity.map((c) => ({
-        city: c._id,
-        totalWorkers: c.totalWorkers,
-        availableWorkers: c.availableWorkers,
-        verifiedWorkers: c.verifiedWorkers,
-        avgWage: Math.round(c.avgWage || 0),
+        city: typeof c._id === 'string' ? c._id : String(c._id?.city || 'Unspecified'),
+        totalWorkers: Number(c.totalWorkers || 0),
+        availableWorkers: Number(c.availableWorkers || 0),
+        verifiedWorkers: Number(c.verifiedWorkers || 0),
+        avgWage: Math.round(Number(c.avgWage) || 0),
       })),
     });
   } catch (error) {
@@ -312,10 +336,10 @@ export const getAdminGeoDemand = async (req, res, next) => {
     res.json({
       success: true,
       data: demandByCity.map((c) => ({
-        city: c._id,
-        openJobs: c.openJobs,
-        workersNeeded: c.workersNeeded,
-        avgWage: Math.round(c.avgWage || 0),
+        city: typeof c._id === 'string' ? c._id : String(c._id?.city || 'Unspecified'),
+        openJobs: Number(c.openJobs || 0),
+        workersNeeded: Number(c.workersNeeded || 0),
+        avgWage: Math.round(Number(c.avgWage) || 0),
       })),
     });
   } catch (error) {
@@ -409,17 +433,20 @@ export const getAdminGeoGaps = async (req, res, next) => {
     });
 
     const tableRows = Object.values(gapMap).map((row) => {
-      const demand = row.openJobs;
-      const supply = row.availableWorkers;
+      const demand = Number(row.openJobs || 0);
+      const supply = Number(row.availableWorkers || 0);
       const gap = Math.max(0, demand - supply);
+      const cityName = typeof row.city === 'string' ? row.city : String(row.city?.city || row.city || 'Unspecified');
+      const skillName = typeof row.skill === 'string' ? row.skill : String(row.skill?.skill || row.skill || 'General');
+
       return {
-        city: row.city,
-        skill: row.skill,
+        city: cityName,
+        skill: skillName,
         openJobs: demand,
         availableWorkers: supply,
         gap,
-        avgWage: row.avgWage,
-        activeProjects: activeProjectsMap[row.city] || 0,
+        avgWage: Math.round(Number(row.avgWage) || 0),
+        activeProjects: Number(activeProjectsMap[cityName] || 0),
         alert: gap >= 3 ? 'Critical Shortage' : gap > 0 ? 'Moderate Shortage' : 'Balanced',
       };
     });
@@ -430,6 +457,300 @@ export const getAdminGeoGaps = async (req, res, next) => {
     res.json({
       success: true,
       data: tableRows,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/admin/map/entities
+ * Admin complete geospatial intelligence:
+ * Available workers, busy/hired workers, employers, active jobs,
+ * ongoing projects, completed projects, unfilled jobs, and unlocated records.
+ */
+export const getAdminGeoEntities = async (req, res, next) => {
+  try {
+    const [workers, employers, jobs, projects] = await Promise.all([
+      WorkerProfile.find({}).populate('userId', 'name phone email status'),
+      EmployerProfile.find({}).populate('userId', 'name phone email status'),
+      Job.find({}).populate('employerId', 'name phone email'),
+      Project.find({}).populate('employerId', 'name').populate('workers.workerId', 'name'),
+    ]);
+
+    const markers = [];
+    const unlocated = [];
+
+    // Helper to safely extract valid coordinates
+    const extractCoords = (doc) => {
+      let lng = doc.longitude;
+      let lat = doc.latitude;
+      if (lng === undefined || lat === undefined || (Number(lng) === 0 && Number(lat) === 0)) {
+        if (Array.isArray(doc.location?.coordinates)) {
+          lng = doc.location.coordinates[0];
+          lat = doc.location.coordinates[1];
+        } else if (Array.isArray(doc.location?.coordinates?.coordinates)) {
+          lng = doc.location.coordinates.coordinates[0];
+          lat = doc.location.coordinates.coordinates[1];
+        }
+      }
+      const valid = isValidCoordinate(lng, lat);
+      return {
+        lng: valid ? Number(lng) : 0,
+        lat: valid ? Number(lat) : 0,
+        valid,
+      };
+    };
+
+    // 1. Process Workers (Available vs Busy)
+    workers.forEach((wDoc) => {
+      const w = wDoc.toJSON ? wDoc.toJSON() : { ...wDoc };
+      const { lng, lat, valid } = extractCoords(w);
+      const isAvailable = w.availability === 'available' || (w.isAvailableForWork && w.availability !== 'busy');
+      const type = isAvailable ? 'available_worker' : 'busy_worker';
+      const city = w.city || w.location?.city || 'Unspecified';
+      const name = w.fullName || w.userId?.name || 'Skilled Worker';
+      const phone = w.phone || w.userId?.phone || '';
+      const email = w.email || w.userId?.email || '';
+
+      const payload = {
+        id: String(w.id || w._id),
+        entityType: 'worker',
+        markerType: type,
+        name,
+        title: `${name} (${w.primarySkill || 'Worker'})`,
+        skill: w.primarySkill || (Array.isArray(w.skills) ? w.skills[0] : 'General Worker'),
+        skills: Array.isArray(w.skills) ? w.skills : [],
+        dailyWage: Number(w.dailyWage) || 0,
+        availability: w.availability || (isAvailable ? 'available' : 'busy'),
+        verificationStatus: w.verificationStatus || 'unverified',
+        rating: Number(w.rating) || 0,
+        city,
+        address: w.address || w.location?.address || '',
+        phone,
+        email,
+        createdAt: w.createdAt,
+      };
+
+      if (valid) {
+        markers.push({
+          ...payload,
+          coordinates: [lng, lat],
+          hasCoordinates: true,
+        });
+      } else {
+        unlocated.push({
+          ...payload,
+          hasCoordinates: false,
+          reason: 'Missing GPS coordinates',
+        });
+      }
+    });
+
+    // 2. Process Employers
+    employers.forEach((eDoc) => {
+      const e = eDoc.toJSON ? eDoc.toJSON() : { ...eDoc };
+      const { lng, lat, valid } = extractCoords(e);
+      const city = e.city || e.location?.city || 'Unspecified';
+      const name = e.companyName || e.userId?.name || 'Employer';
+      const phone = e.phone || e.userId?.phone || '';
+      const email = e.email || e.userId?.email || '';
+
+      const payload = {
+        id: String(e.id || e._id),
+        entityType: 'employer',
+        markerType: 'employer',
+        name,
+        title: `${name} (Employer)`,
+        companyName: e.companyName || name,
+        industry: e.industry || 'General Work',
+        verificationStatus: e.verificationStatus || 'unverified',
+        city,
+        address: e.address || e.location?.address || '',
+        phone,
+        email,
+        createdAt: e.createdAt,
+      };
+
+      if (valid) {
+        markers.push({
+          ...payload,
+          coordinates: [lng, lat],
+          hasCoordinates: true,
+        });
+      } else {
+        unlocated.push({
+          ...payload,
+          hasCoordinates: false,
+          reason: 'Missing GPS coordinates',
+        });
+      }
+    });
+
+    // 3. Process Jobs (Active vs Unfilled)
+    jobs.forEach((jDoc) => {
+      const j = jDoc.toJSON ? jDoc.toJSON() : { ...jDoc };
+      const { lng, lat, valid } = extractCoords(j);
+      const city = j.city || j.location?.city || (typeof j.location === 'string' ? j.location : '') || 'Unspecified';
+      const isOpen = j.status === 'open';
+      const isUnfilled = isOpen && (!j.assignedWorkersCount || j.assignedWorkersCount < (j.workersRequired || 1));
+      const markerType = isUnfilled ? 'unfilled_job' : 'active_job';
+
+      const payload = {
+        id: String(j.id || j._id),
+        entityType: 'job',
+        markerType,
+        name: j.title || 'Job Opportunity',
+        title: j.title || 'Job Opportunity',
+        skill: j.skillRequired || 'General Work',
+        workersRequired: Number(j.workersRequired) || 1,
+        wageAmount: Number(j.wageAmount) || 0,
+        wageType: j.wageType || 'daily',
+        status: j.status || 'open',
+        employerName: j.employerId?.name || 'Employer',
+        city,
+        address: j.address || j.location?.address || '',
+        createdAt: j.createdAt,
+      };
+
+      if (valid) {
+        markers.push({
+          ...payload,
+          coordinates: [lng, lat],
+          hasCoordinates: true,
+        });
+      } else {
+        unlocated.push({
+          ...payload,
+          hasCoordinates: false,
+          reason: 'Missing GPS coordinates',
+        });
+      }
+    });
+
+    // 4. Process Projects (Ongoing vs Completed)
+    projects.forEach((pDoc) => {
+      const p = pDoc.toJSON ? pDoc.toJSON() : { ...pDoc };
+      const { lng, lat, valid } = extractCoords(p);
+      const city = p.city || p.location?.city || 'Unspecified';
+      const isCompleted = p.status === 'completed';
+      const markerType = isCompleted ? 'completed_project' : 'ongoing_project';
+
+      const payload = {
+        id: String(p.id || p._id),
+        entityType: 'project',
+        markerType,
+        name: p.name || p.title || 'Project',
+        title: `${p.name || p.title || 'Project'} (${p.status})`,
+        status: p.status || 'in_progress',
+        progress: Number(p.progress || p.completionPercentage) || 0,
+        employerName: p.employerId?.name || 'Employer',
+        agreedWage: Number(p.agreedWage) || 0,
+        startDate: p.startDate,
+        expectedEndDate: p.expectedEndDate,
+        city,
+        address: p.address || p.location?.address || '',
+        createdAt: p.createdAt,
+      };
+
+      if (valid) {
+        markers.push({
+          ...payload,
+          coordinates: [lng, lat],
+          hasCoordinates: true,
+        });
+      } else {
+        unlocated.push({
+          ...payload,
+          hasCoordinates: false,
+          reason: 'Missing GPS coordinates',
+        });
+      }
+    });
+
+    // 5. Regional Supply vs Demand Summary by City
+    const citySummaryMap = {};
+    const ensureCity = (cityName) => {
+      const c = (cityName || 'Unspecified').trim();
+      if (!citySummaryMap[c]) {
+        citySummaryMap[c] = {
+          city: c,
+          availableWorkers: 0,
+          busyWorkers: 0,
+          totalWorkers: 0,
+          totalEmployers: 0,
+          totalJobs: 0,
+          openJobs: 0,
+          unfilledJobs: 0,
+          ongoingProjects: 0,
+          completedProjects: 0,
+        };
+      }
+      return citySummaryMap[c];
+    };
+
+    workers.forEach((w) => {
+      const cs = ensureCity(w.city || w.location?.city);
+      cs.totalWorkers++;
+      if (w.availability === 'available' || (w.isAvailableForWork && w.availability !== 'busy')) {
+        cs.availableWorkers++;
+      } else {
+        cs.busyWorkers++;
+      }
+    });
+
+    employers.forEach((e) => {
+      const cs = ensureCity(e.city || e.location?.city);
+      cs.totalEmployers++;
+    });
+
+    jobs.forEach((j) => {
+      const cs = ensureCity(j.city || j.location?.city);
+      cs.totalJobs++;
+      if (j.status === 'open') {
+        cs.openJobs++;
+        cs.unfilledJobs++;
+      }
+    });
+
+    projects.forEach((p) => {
+      const cs = ensureCity(p.city || p.location?.city);
+      if (p.status === 'completed') {
+        cs.completedProjects++;
+      } else {
+        cs.ongoingProjects++;
+      }
+    });
+
+    const supplyDemandSummary = Object.values(citySummaryMap).map((cs) => {
+      const gap = Math.max(0, cs.openJobs - cs.availableWorkers);
+      return {
+        ...cs,
+        gap,
+        status: gap >= 3 ? 'Critical Shortage' : gap > 0 ? 'Moderate Shortage' : 'Balanced',
+      };
+    });
+
+    supplyDemandSummary.sort((a, b) => b.gap - a.gap || b.openJobs - a.openJobs);
+
+    res.json({
+      success: true,
+      data: {
+        markers,
+        unlocated,
+        counts: {
+          totalMarkers: markers.length,
+          totalUnlocated: unlocated.length,
+          availableWorkers: markers.filter((m) => m.markerType === 'available_worker').length,
+          busyWorkers: markers.filter((m) => m.markerType === 'busy_worker').length,
+          employers: markers.filter((m) => m.markerType === 'employer').length,
+          activeJobs: markers.filter((m) => m.markerType === 'active_job').length,
+          unfilledJobs: markers.filter((m) => m.markerType === 'unfilled_job').length,
+          ongoingProjects: markers.filter((m) => m.markerType === 'ongoing_project').length,
+          completedProjects: markers.filter((m) => m.markerType === 'completed_project').length,
+        },
+        supplyDemandSummary,
+      },
     });
   } catch (error) {
     next(error);

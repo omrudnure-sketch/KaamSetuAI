@@ -7,41 +7,51 @@ import {
   getStoredToken,
   setStoredToken,
   clearStoredToken,
+  getStoredUser,
+  setStoredUser,
 } from '../services/authApi.js';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Hydrate user immediately from localStorage for persistent instant login
+  const [user, setUser] = useState(() => getStoredUser());
+  const [loading, setLoading] = useState(() => !getStoredUser());
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const initAuth = async () => {
       try {
         const storedToken = getStoredToken();
-        // If there's an existing token in storage, verify and hydrate the active session
+        const cachedUser = getStoredUser();
+
         if (storedToken) {
+          if (cachedUser) {
+            setUser(cachedUser);
+            setLoading(false);
+          }
           try {
             const res = await fetchCurrentUser();
             if (res.success && res.data) {
               setUser(res.data);
-            } else {
+              setStoredUser(res.data);
+            } else if (!cachedUser) {
               clearStoredToken();
               setUser(null);
             }
-          } catch (_err) {
-            clearStoredToken();
-            setUser(null);
+          } catch (err) {
+            // Only force logout if server explicitly returns 401 Unauthorized
+            if (err.response?.status === 401) {
+              clearStoredToken();
+              setUser(null);
+            }
+            // For network errors or temporary glitches, preserve active user session
           }
         } else {
-          // Fresh browser / unauthenticated guest: no stored token
-          // Do not invoke protected endpoints, ensuring clean visitor state with zero errors
           setUser(null);
         }
       } catch (_err) {
-        clearStoredToken();
-        setUser(null);
+        // Safe fallback
       } finally {
         setLoading(false);
       }
@@ -77,6 +87,7 @@ export const AuthProvider = ({ children }) => {
           setStoredToken(res.data.token);
         }
         setUser(res.data.user);
+        setStoredUser(res.data.user);
         return { success: true, user: res.data.user };
       }
     } catch (err) {
@@ -102,6 +113,7 @@ export const AuthProvider = ({ children }) => {
           setStoredToken(res.data.token);
         }
         setUser(res.data.user);
+        setStoredUser(res.data.user);
         return { success: true, user: res.data.user };
       }
     } catch (err) {
@@ -122,7 +134,7 @@ export const AuthProvider = ({ children }) => {
     try {
       await logoutUser();
     } catch (_err) {
-      // Ignore logout errors
+      // Ignore network errors during logout
     } finally {
       clearStoredToken();
       setUser(null);
@@ -136,11 +148,10 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         error,
-        setError,
         login,
         register,
         logout,
-        setUser,
+        setError,
       }}
     >
       {children}
@@ -155,4 +166,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

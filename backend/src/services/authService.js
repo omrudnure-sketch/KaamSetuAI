@@ -32,7 +32,7 @@ export const generateAccessToken = (user) => {
   };
 
   return jwt.sign(payload, secret, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    expiresIn: process.env.JWT_EXPIRES_IN || '365d',
   });
 };
 

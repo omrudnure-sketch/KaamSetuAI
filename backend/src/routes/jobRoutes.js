@@ -38,10 +38,10 @@ router.patch('/:id/close', requireAuth, requireRole('employer'), closeJob);
 // GET /api/jobs/map - Discover open jobs on map (must be declared before /:id)
 router.get('/map', requireAuth, getJobsMap);
 
-// GET /api/jobs - Browse available open jobs
-router.get('/', requireAuth, requireRole('worker'), getAvailableJobs);
+// GET /api/jobs - Browse available open jobs (open to workers, employers, admins)
+router.get('/', requireAuth, requireRole('worker', 'employer', 'admin'), getAvailableJobs);
 
 // GET /api/jobs/:id - View specific open job details
-router.get('/:id', requireAuth, requireRole('worker'), getJobById);
+router.get('/:id', requireAuth, requireRole('worker', 'employer', 'admin'), getJobById);
 
 export default router;

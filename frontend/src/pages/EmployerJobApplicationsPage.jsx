@@ -184,12 +184,6 @@ export const EmployerJobApplicationsPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <button
-            onClick={() => navigate('/employer/jobs')}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors mb-2"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to My Jobs
-          </button>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 flex items-center gap-2">
             <Users className="w-7 h-7 text-primary" />
             <span>Job Applications</span>
@@ -230,11 +224,11 @@ export const EmployerJobApplicationsPage = () => {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`text-xs font-bold px-2.5 py-0.5 rounded-md border ${getStatusBadgeClass(app.status)}`}>
-                      {app.status.toUpperCase()}
+                      {(app.status || 'pending').toUpperCase()}
                     </span>
                     {app.workerId?.preferredLanguage && (
                       <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
-                        Lang: {app.workerId.preferredLanguage.toUpperCase()}
+                        Lang: {(app.workerId?.preferredLanguage || 'en').toUpperCase()}
                       </span>
                     )}
                   </div>

@@ -83,7 +83,11 @@ export const requirePermission = (permission) => {
     }
 
     const adminRole = req.user.adminRole || 'super_admin';
-    const userPermissions = req.user.permissions || ADMIN_ROLE_PERMISSIONS[adminRole] || ADMIN_ROLE_PERMISSIONS.super_admin;
+    const roleDefaultPermissions = ADMIN_ROLE_PERMISSIONS[adminRole] || ADMIN_ROLE_PERMISSIONS.super_admin;
+    const userPermissions =
+      Array.isArray(req.user.permissions) && req.user.permissions.length > 0
+        ? req.user.permissions
+        : roleDefaultPermissions;
 
     if (userPermissions.includes('*') || userPermissions.includes(permission)) {
       return next();

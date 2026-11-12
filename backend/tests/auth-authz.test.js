@@ -181,7 +181,7 @@ export async function runAuthAuthzTests() {
 
 if (process.argv[1]?.endsWith('auth-authz.test.js')) {
   runAuthAuthzTests()
-    .then(() => disconnectTestDB())
+    .then(() => disconnectTestDB().then(() => process.exit(0)))
     .catch((err) => {
       console.error(err);
       disconnectTestDB().then(() => process.exit(1));

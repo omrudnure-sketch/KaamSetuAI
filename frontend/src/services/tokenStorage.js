@@ -1,12 +1,15 @@
 /**
- * Client token storage helper for KaamSetu AI.
- * Safely persists and retrieves authentication tokens in local storage.
+ * Client token and session storage helper for KaamSetu AI.
+ * Safely persists and retrieves authentication tokens and user state in local storage
+ * so the user remains logged in on the device until they explicitly sign out.
  */
 
 export const TOKEN_STORAGE_KEY = 'kaamsetu_auth_token';
 export const LEGACY_STORAGE_KEY = 'token';
+export const USER_STORAGE_KEY = 'kaamsetu_auth_user';
 
 let memoryToken = null;
+let memoryUser = null;
 
 export const getStoredToken = () => {
   try {
@@ -43,14 +46,40 @@ export const setStoredToken = (token) => {
   }
 };
 
+export const getStoredUser = () => {
+  try {
+    if (typeof window !== 'undefined') {
+      const raw = window.localStorage?.getItem(USER_STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    }
+  } catch (_e) {}
+  return memoryUser;
+};
+
+export const setStoredUser = (user) => {
+  memoryUser = user || null;
+  try {
+    if (typeof window !== 'undefined') {
+      if (user) {
+        window.localStorage?.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+      } else {
+        window.localStorage?.removeItem(USER_STORAGE_KEY);
+      }
+    }
+  } catch (_e) {}
+};
+
 export const clearStoredToken = () => {
   memoryToken = null;
+  memoryUser = null;
   try {
     if (typeof window !== 'undefined') {
       window.localStorage?.removeItem(TOKEN_STORAGE_KEY);
       window.localStorage?.removeItem(LEGACY_STORAGE_KEY);
+      window.localStorage?.removeItem(USER_STORAGE_KEY);
       window.sessionStorage?.removeItem(TOKEN_STORAGE_KEY);
       window.sessionStorage?.removeItem(LEGACY_STORAGE_KEY);
+      window.sessionStorage?.removeItem(USER_STORAGE_KEY);
     }
   } catch (_e) {
     // Storage access blocked

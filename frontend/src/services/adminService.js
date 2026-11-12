@@ -1,7 +1,17 @@
 import { authApiClient } from './authApi.js';
 
+export const getDashboardOverview = async () => {
+  const response = await authApiClient.get('/admin/dashboard/overview');
+  return response.data;
+};
+
 export const getDashboardAnalytics = async () => {
   const response = await authApiClient.get('/admin/analytics');
+  return response.data;
+};
+
+export const getVerificationQueue = async (params) => {
+  const response = await authApiClient.get('/admin/verifications', { params });
   return response.data;
 };
 
@@ -91,4 +101,74 @@ export const addRiskReviewNote = async (id, data) => {
   const response = await authApiClient.post(`/admin/risk-flags/${id}/notes`, data);
   return response.data;
 };
+
+// ============================================================================
+// Comprehensive Admin Platform Monitoring & Geospatial Intelligence APIs
+// ============================================================================
+
+export const getAdminGeoEntities = async (params) => {
+  const response = await authApiClient.get('/admin/map/entities', { params });
+  return response.data;
+};
+
+export const getAdminGeoGaps = async () => {
+  const response = await authApiClient.get('/admin/analytics/geo-gaps');
+  return response.data;
+};
+
+export const getAdminGeoSupply = async () => {
+  const response = await authApiClient.get('/admin/analytics/geo-supply');
+  return response.data;
+};
+
+export const getAdminGeoDemand = async () => {
+  const response = await authApiClient.get('/admin/analytics/geo-demand');
+  return response.data;
+};
+
+export const getWorkerDirectory = async (params) => {
+  const response = await authApiClient.get('/admin/workers/directory', { params });
+  return response.data;
+};
+
+export const getWorkerDetails = async (id) => {
+  const response = await authApiClient.get(`/admin/workers/${id}/details`);
+  return response.data;
+};
+
+export const getEmployerDirectory = async (params) => {
+  const response = await authApiClient.get('/admin/employers/directory', { params });
+  return response.data;
+};
+
+export const getEmployerDetails = async (id) => {
+  const response = await authApiClient.get(`/admin/employers/${id}/details`);
+  return response.data;
+};
+
+export const getProjectMonitoringList = async (params) => {
+  const response = await authApiClient.get('/admin/projects/monitoring', { params });
+  return response.data;
+};
+
+export const getProjectMonitoringDetails = async (id) => {
+  const response = await authApiClient.get(`/admin/projects/${id}/monitoring`);
+  return response.data;
+};
+
+export const getAdminMonitoringOverview = async () => {
+  const response = await authApiClient.get('/admin/monitoring/overview');
+  return response.data;
+};
+
+export const getAdminLiveActivityFeed = async (limit = 35) => {
+  const response = await authApiClient.get('/admin/monitoring/activity-feed', { params: { limit } });
+  return response.data;
+};
+
+export const getAdminGlobalSearch = async (q) => {
+  const response = await authApiClient.get('/admin/monitoring/search', { params: { q } });
+  return response.data;
+};
+
 

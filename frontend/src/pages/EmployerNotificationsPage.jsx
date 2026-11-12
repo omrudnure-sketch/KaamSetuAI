@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../services/notificationService.js';
-import { Bell, CheckCheck } from 'lucide-react';
+import { Bell, CheckCheck, Sparkles, Clock, AlertCircle } from 'lucide-react';
 
 export const EmployerNotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
@@ -14,7 +14,7 @@ export const EmployerNotificationsPage = () => {
     try {
       setLoading(true);
       const res = await getNotifications();
-      if (res.success && res.data) {
+      if (res?.success && Array.isArray(res?.data)) {
         setNotifications(res.data);
       }
     } catch (_err) {
@@ -38,49 +38,67 @@ export const EmployerNotificationsPage = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-4xl">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Employer Notifications</h1>
-          <p className="text-gray-600 text-sm mt-1">Real-time alerts for applications, hiring, progress, and disputes</p>
+    <div className="w-full max-w-4xl mx-auto space-y-6 pb-12">
+      {/* Header Banner */}
+      <div className="ks-glass-card p-6 sm:p-8 relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-primary/10 via-sky-500/10 to-transparent rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="ks-badge-cyan">
+              <Sparkles className="w-3.5 h-3.5" /> Real-time Activity
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+            <Bell className="w-7 h-7 text-primary dark:text-sky-400" />
+            <span>Employer Notifications</span>
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 max-w-xl">
+            Real-time updates on worker applications, contract milestones, daily punches, and platform notices
+          </p>
         </div>
+
         <button
           onClick={handleMarkAllRead}
-          className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100"
+          className="ks-btn-outline text-xs px-4 py-2 font-bold flex items-center gap-1.5 self-start sm:self-auto relative z-10"
         >
-          <CheckCheck className="w-3.5 h-3.5" /> Mark All Read
+          <CheckCheck className="w-3.5 h-3.5 text-primary dark:text-sky-400" />
+          <span>Mark All Read</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="ks-glass-card overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-xs text-gray-500">Loading notifications...</div>
+          <div className="p-12 text-center text-xs text-slate-500 animate-pulse">Loading notifications...</div>
         ) : notifications.length === 0 ? (
-          <div className="p-12 text-center text-gray-500 flex flex-col items-center space-y-2">
-            <Bell className="w-10 h-10 text-gray-300" />
-            <p className="text-sm font-medium">No notifications found.</p>
+          <div className="p-16 text-center text-slate-500 dark:text-slate-400 flex flex-col items-center space-y-2">
+            <Bell className="w-10 h-10 text-slate-400 opacity-60" />
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">No notifications found.</p>
+            <p className="text-xs">When workers apply or send messages, alerts will appear here.</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-slate-200/80 dark:border-white/5">
             {notifications.map((n) => (
               <div
                 key={n._id}
                 onClick={() => !n.isRead && handleMarkRead(n._id)}
-                className={`p-5 flex items-start justify-between gap-4 transition-colors ${
-                  !n.isRead ? 'bg-indigo-50/40 font-medium' : 'bg-white hover:bg-gray-50'
+                className={`p-5 flex items-start justify-between gap-4 transition-colors cursor-pointer ${
+                  !n.isRead
+                    ? 'bg-primary/5 dark:bg-white/5 font-medium'
+                    : 'hover:bg-white/40 dark:hover:bg-white/5'
                 }`}
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-gray-900 text-sm">{n.title}</span>
-                    <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-600">
-                      {n.type?.replace(/_/g, ' ')}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">{n.title}</span>
+                    <span className="ks-badge-cyan text-[10px] uppercase font-bold">
+                      {n.type?.replace(/_/g, ' ') || 'Notice'}
                     </span>
-                    {!n.isRead && <span className="w-2 h-2 rounded-full bg-indigo-600"></span>}
+                    {!n.isRead && <span className="w-2 h-2 rounded-full bg-primary dark:bg-sky-400" />}
                   </div>
-                  <p className="text-xs text-gray-700 leading-relaxed">{n.message}</p>
-                  <span className="text-[10px] text-gray-400 block pt-1">
-                    {new Date(n.createdAt).toLocaleString()}
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{n.message}</p>
+                  <span className="text-[10px] text-slate-400 flex items-center gap-1 pt-1">
+                    <Clock className="w-3 h-3" />
+                    <span>{new Date(n.createdAt).toLocaleString()}</span>
                   </span>
                 </div>
               </div>

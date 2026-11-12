@@ -1,8 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { getEmployerPayments, recordPayment } from '../services/paymentService.js';
 import { getEmployerProjects } from '../services/projectService.js';
+import {
+  CreditCard,
+  Plus,
+  CheckCircle2,
+  AlertCircle,
+  Calendar,
+  Building2,
+  Users,
+  Sparkles,
+  DollarSign,
+  FileText,
+  X,
+  Clock,
+} from 'lucide-react';
 
-const EmployerPaymentsPage = () => {
+export const EmployerPaymentsPage = () => {
   const [payments, setPayments] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,8 +50,8 @@ const EmployerPaymentsPage = () => {
         getEmployerPayments(),
         getEmployerProjects(),
       ]);
-      setPayments(payRes.data || []);
-      setProjects(projRes.data || []);
+      setPayments(Array.isArray(payRes?.data) ? payRes.data : []);
+      setProjects(Array.isArray(projRes?.data) ? projRes.data : []);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load payments');
     } finally {
@@ -48,7 +62,7 @@ const EmployerPaymentsPage = () => {
   const handleProjectSelect = (projId) => {
     setSelectedProjectId(projId);
     const proj = projects.find((p) => p._id === projId);
-    if (proj && proj.workers) {
+    if (proj && Array.isArray(proj.workers)) {
       setSelectedProjectWorkers(proj.workers);
       if (proj.workers.length > 0) {
         setFormData((prev) => ({ ...prev, projectWorkerId: proj.workers[0]._id }));
@@ -94,96 +108,148 @@ const EmployerPaymentsPage = () => {
     }
   };
 
-  const totalPaid = payments.filter((p) => p.status === 'recorded').reduce((acc, p) => acc + p.amount, 0);
+  const totalPaid = payments
+    .filter((p) => (p.status || '').toLowerCase() === 'recorded')
+    .reduce((acc, p) => acc + (p.amount || 0), 0);
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-6xl">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Employer Payments Ledger</h1>
-          <p className="text-gray-600 text-sm mt-1">Record, track, and manage worker payments across your projects</p>
+    <div className="w-full max-w-6xl mx-auto space-y-6 pb-12">
+      {/* Header Banner */}
+      <div className="ks-glass-card p-6 sm:p-8 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-primary/10 via-sky-500/10 to-transparent rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="ks-badge-cyan">
+              <Sparkles className="w-3.5 h-3.5" /> Project Finance & Payroll
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+            <CreditCard className="w-7 h-7 text-primary dark:text-sky-400" />
+            <span>Employer Payments Ledger</span>
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 max-w-xl">
+            Record, track, and manage worker wages, milestone disbursements, and ledger statements across all active sites
+          </p>
         </div>
+
         <button
           onClick={() => setShowModal(true)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2.5 rounded-lg text-sm shadow-sm transition-colors"
+          className="ks-btn-primary text-xs px-5 py-2.5 font-bold flex items-center gap-2 self-start md:self-auto relative z-10 shadow-xs"
         >
-          + Record New Payment
+          <Plus className="w-4 h-4" />
+          <span>Record New Payment</span>
         </button>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-          {error}
+        <div className="p-4 ks-glass-card border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs sm:text-sm flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+        <div className="w-full p-16 text-center ks-glass-card">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3" />
+          <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">Loading payments ledger...</p>
         </div>
       ) : (
         <>
           {/* Stats Bar */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Recorded Payments</span>
-              <p className="text-2xl font-extrabold text-indigo-600 mt-2">₹{totalPaid.toLocaleString()}</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="ks-glass-card p-5 space-y-1">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Total Recorded Disbursed
+              </span>
+              <p className="text-2xl font-black text-emerald-500 dark:text-emerald-400">
+                ₹{totalPaid.toLocaleString()}
+              </p>
             </div>
-            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Transactions</span>
-              <p className="text-2xl font-extrabold text-gray-900 mt-2">{payments.length}</p>
+            <div className="ks-glass-card p-5 space-y-1">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Total Transactions
+              </span>
+              <p className="text-2xl font-black text-slate-900 dark:text-white">
+                {payments.length}
+              </p>
             </div>
-            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Active Projects</span>
-              <p className="text-2xl font-extrabold text-blue-600 mt-2">{projects.length}</p>
+            <div className="ks-glass-card p-5 space-y-1">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Active Projects
+              </span>
+              <p className="text-2xl font-black text-primary dark:text-sky-400">
+                {projects.length}
+              </p>
             </div>
           </div>
 
           {/* Payments Table */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-              <h2 className="text-lg font-bold text-gray-900">Payment Timeline</h2>
+          <div className="ks-glass-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-200/80 dark:border-white/10 flex justify-between items-center">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Clock className="w-4 h-4 text-primary dark:text-sky-400" />
+                <span>Payment Timeline</span>
+              </h2>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                {payments.length} Records
+              </span>
             </div>
+
             {payments.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">No payment records found.</div>
+              <div className="p-12 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400 space-y-3">
+                <CreditCard className="w-10 h-10 mx-auto text-slate-400 opacity-60" />
+                <p>No payment records found yet. Record daily or milestone wage payments to populate the ledger.</p>
+              </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-gray-600">
-                  <thead className="bg-gray-50 text-xs font-semibold text-gray-500 uppercase border-b">
+                <table className="w-full text-left text-xs sm:text-sm">
+                  <thead className="bg-slate-100/50 dark:bg-white/5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200/80 dark:border-white/10">
                     <tr>
-                      <th className="px-6 py-3">Date</th>
-                      <th className="px-6 py-3">Project</th>
-                      <th className="px-6 py-3">Worker</th>
-                      <th className="px-6 py-3">Type</th>
-                      <th className="px-6 py-3">Method</th>
-                      <th className="px-6 py-3">Amount</th>
-                      <th className="px-6 py-3">Status</th>
+                      <th className="px-5 py-3.5">Date</th>
+                      <th className="px-5 py-3.5">Project</th>
+                      <th className="px-5 py-3.5">Worker</th>
+                      <th className="px-5 py-3.5">Type</th>
+                      <th className="px-5 py-3.5">Method</th>
+                      <th className="px-5 py-3.5">Amount</th>
+                      <th className="px-5 py-3.5">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {payments.map((p) => (
-                      <tr key={p._id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                          {new Date(p.paymentDate).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 font-medium text-gray-800">
-                          {p.projectId?.name || 'N/A'}
-                        </td>
-                        <td className="px-6 py-4 font-medium text-gray-900">
-                          {p.workerId?.name || 'Worker'}
-                        </td>
-                        <td className="px-6 py-4 capitalize">{p.type}</td>
-                        <td className="px-6 py-4 uppercase font-semibold text-xs text-gray-500">{p.method}</td>
-                        <td className="px-6 py-4 font-bold text-gray-900">₹{p.amount?.toLocaleString()}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${
-                            p.status === 'recorded' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
-                          }`}>
-                            {p.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                  <tbody className="divide-y divide-slate-200/80 dark:border-white/5">
+                    {payments.map((p) => {
+                      const dateStr = p.paymentDate ? new Date(p.paymentDate).toLocaleDateString() : '';
+                      const statusStr = p.status || 'recorded';
+                      return (
+                        <tr key={p._id} className="hover:bg-white/40 dark:hover:bg-white/5 transition-colors">
+                          <td className="px-5 py-3.5 whitespace-nowrap font-medium text-slate-900 dark:text-white">
+                            {dateStr}
+                          </td>
+                          <td className="px-5 py-3.5 font-bold text-slate-900 dark:text-white">
+                            {p.projectId?.name || 'Project'}
+                          </td>
+                          <td className="px-5 py-3.5 font-semibold text-primary dark:text-sky-400">
+                            {p.workerId?.name || 'Worker'}
+                          </td>
+                          <td className="px-5 py-3.5 capitalize text-slate-600 dark:text-slate-400">{p.type || 'daily'}</td>
+                          <td className="px-5 py-3.5 uppercase font-bold text-[11px] text-slate-500 dark:text-slate-400">
+                            {p.method || 'cash'}
+                          </td>
+                          <td className="px-5 py-3.5 font-black text-emerald-500 dark:text-emerald-400">
+                            ₹{(p.amount || 0).toLocaleString()}
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold capitalize border ${
+                                statusStr.toLowerCase() === 'recorded'
+                                  ? 'ks-badge-emerald'
+                                  : 'ks-badge-amber'
+                              }`}
+                            >
+                              {statusStr}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -194,17 +260,28 @@ const EmployerPaymentsPage = () => {
 
       {/* Record Payment Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Record Worker Payment</h2>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="ks-glass-card border-white/20 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-white/10 pb-3">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-primary dark:text-sky-400" />
+                <span>Record Worker Payment</span>
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
             <form onSubmit={handlePreSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Select Project</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Select Project</label>
                 <select
                   value={selectedProjectId}
                   onChange={(e) => handleProjectSelect(e.target.value)}
-                  className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500"
+                  className="ks-input text-xs"
                   required
                 >
                   <option value="">-- Choose Project --</option>
@@ -218,11 +295,11 @@ const EmployerPaymentsPage = () => {
 
               {selectedProjectId && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Select Worker</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Select Worker</label>
                   <select
                     value={formData.projectWorkerId}
                     onChange={(e) => setFormData({ ...formData, projectWorkerId: e.target.value })}
-                    className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500"
+                    className="ks-input text-xs"
                     required
                   >
                     <option value="">-- Choose Worker --</option>
@@ -237,11 +314,11 @@ const EmployerPaymentsPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Payment Type</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Payment Type</label>
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full border rounded-lg p-2.5 text-sm"
+                    className="ks-input text-xs"
                   >
                     <option value="daily">Daily</option>
                     <option value="weekly">Weekly</option>
@@ -252,7 +329,7 @@ const EmployerPaymentsPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Amount (₹)</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Amount (₹)</label>
                   <input
                     type="number"
                     min="1"
@@ -260,7 +337,7 @@ const EmployerPaymentsPage = () => {
                     value={formData.amount}
                     onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                     placeholder="e.g. 850"
-                    className="w-full border rounded-lg p-2.5 text-sm"
+                    className="ks-input text-xs"
                     required
                   />
                 </div>
@@ -268,11 +345,11 @@ const EmployerPaymentsPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Payment Method</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Payment Method</label>
                   <select
                     value={formData.method}
                     onChange={(e) => setFormData({ ...formData, method: e.target.value })}
-                    className="w-full border rounded-lg p-2.5 text-sm"
+                    className="ks-input text-xs"
                   >
                     <option value="cash">Cash</option>
                     <option value="bank_transfer">Bank Transfer</option>
@@ -282,49 +359,49 @@ const EmployerPaymentsPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Payment Date</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Payment Date</label>
                   <input
                     type="date"
                     value={formData.paymentDate}
                     onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })}
-                    className="w-full border rounded-lg p-2.5 text-sm"
+                    className="ks-input text-xs"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Reference No. (Optional)</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Reference No. (Optional)</label>
                 <input
                   type="text"
                   value={formData.reference}
                   onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
                   placeholder="Txn / Receipt ID"
-                  className="w-full border rounded-lg p-2.5 text-sm"
+                  className="ks-input text-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Notes (Optional)</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Notes (Optional)</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Optional payment description"
-                  className="w-full border rounded-lg p-2.5 text-sm h-20"
+                  placeholder="Optional payment description or advance deduction details..."
+                  className="ks-input text-xs h-20"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t">
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-200/80 dark:border-white/10">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                  className="ks-btn-outline text-xs px-4 py-2 font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700"
+                  className="ks-btn-primary text-xs px-5 py-2 font-bold shadow-xs"
                 >
                   Proceed to Confirm
                 </button>
@@ -336,24 +413,24 @@ const EmployerPaymentsPage = () => {
 
       {/* Confirmation Modal */}
       {confirmModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Confirm Payment Entry</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Are you sure you want to record a payment of <strong className="text-gray-900">₹{formData.amount}</strong> via <strong className="uppercase">{formData.method}</strong>? This action will update the project payment ledger.
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="ks-glass-card border-white/20 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Confirm Payment Entry</h3>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+              Are you sure you want to record a payment of <strong className="text-slate-900 dark:text-white">₹{formData.amount}</strong> via <strong className="uppercase">{formData.method}</strong>? This action will permanently update the project payment ledger.
             </p>
 
-            <div className="flex justify-end gap-3 pt-4 border-t">
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-200/80 dark:border-white/10">
               <button
                 onClick={() => setConfirmModal(false)}
-                className="px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                className="ks-btn-outline text-xs px-4 py-2 font-semibold"
               >
                 Go Back
               </button>
               <button
                 onClick={handleRecordPayment}
                 disabled={submitting}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50"
+                className="ks-btn-primary text-xs px-5 py-2 font-bold disabled:opacity-50"
               >
                 {submitting ? 'Recording...' : 'Confirm & Record'}
               </button>

@@ -9,6 +9,7 @@ import * as reportController from '../controllers/reportController.js';
 import * as mapController from '../controllers/mapController.js';
 import * as adminAssistantController from '../controllers/adminAssistantController.js';
 import * as riskFlagController from '../controllers/riskFlagController.js';
+import * as adminMonitoringController from '../controllers/adminMonitoringController.js';
 
 const router = express.Router();
 
@@ -45,7 +46,20 @@ router.get('/analytics/payments', requirePermission('analytics.read'), analytics
 router.get('/analytics/skills', requirePermission('analytics.read'), analyticsController.getSkills);
 router.get('/analytics/locations', requirePermission('analytics.read'), analyticsController.getLocations);
 
-// Geographic Analytics APIs (Step 20)
+// Comprehensive Platform Monitoring Routes (Workers, Employers, Projects, Activity)
+router.get('/workers/directory', requirePermission('users.read'), adminMonitoringController.getWorkerDirectory);
+router.get('/workers/:id/details', requirePermission('users.read'), adminMonitoringController.getWorkerDetails);
+router.get('/employers/directory', requirePermission('users.read'), adminMonitoringController.getEmployerDirectory);
+router.get('/employers/:id/details', requirePermission('users.read'), adminMonitoringController.getEmployerDetails);
+router.get('/projects/monitoring', requirePermission('projects.read'), adminMonitoringController.getProjectMonitoringList);
+router.get('/projects/:id/monitoring', requirePermission('projects.read'), adminMonitoringController.getProjectMonitoringDetails);
+router.get('/monitoring/overview', requirePermission('analytics.read'), adminMonitoringController.getAdminMonitoringOverview);
+router.get('/monitoring/activity-feed', requirePermission('analytics.read'), adminMonitoringController.getAdminLiveActivityFeed);
+router.get('/monitoring/search', requirePermission('users.read'), adminMonitoringController.getAdminGlobalSearch);
+
+// Geographic Analytics & Platform Intelligence APIs (Step 20 & Admin Monitoring)
+router.get('/map/entities', requirePermission('analytics.read'), mapController.getAdminGeoEntities);
+router.get('/analytics/geo-entities', requirePermission('analytics.read'), mapController.getAdminGeoEntities);
 router.get('/analytics/geo-supply', requirePermission('analytics.read'), mapController.getAdminGeoSupply);
 router.get('/analytics/geo-demand', requirePermission('analytics.read'), mapController.getAdminGeoDemand);
 router.get('/analytics/geo-gaps', requirePermission('analytics.read'), mapController.getAdminGeoGaps);

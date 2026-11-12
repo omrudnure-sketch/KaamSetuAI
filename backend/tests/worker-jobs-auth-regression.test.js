@@ -238,14 +238,15 @@ export async function runWorkerJobsAuthRegressionTests() {
     // 8. REGRESSION TEST: Role Access Guard
     // ========================================================
     console.log('\n--- 8. Role-Based Access Guard ---');
-    const employerJobsRes = await fetch(`${baseUrl}/jobs`, {
-      method: 'GET',
+    const workerPostJobRes = await fetch(`${baseUrl}/jobs`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${employerToken}`,
+        Authorization: `Bearer ${workerBearerToken}`,
       },
+      body: JSON.stringify({ title: 'Illegal Job Posting by Worker' }),
     });
-    assert(employerJobsRes.status === 403, 'GET /api/jobs with employer token returns 403 Forbidden');
+    assert(workerPostJobRes.status === 403, 'POST /api/jobs with worker token returns 403 Forbidden');
 
     console.log(`\nAll ${passed}/${total} regression assertions passed successfully!`);
   } finally {

@@ -46,7 +46,7 @@ export const WorkerComplaintsPage = () => {
     if (projRecord && projRecord.projectId?.employerId) {
       setFormData((prev) => ({
         ...prev,
-        targetUserId: projRecord.projectId.employerId._id || projRecord.projectId.employerId,
+        targetUserId: projRecord.projectId.employerId?._id || projRecord.projectId.employerId,
       }));
     }
   };

@@ -96,14 +96,46 @@ app.use((req, res, next) => {
 });
 
 // Security & Parsing Middleware
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 app.use(rateLimiter({ windowMs: 15 * 60 * 1000, max: 1000 }));
 app.use(securitySanitizer);
+
+// Serve static uploaded media (chat images, voice notes, profile attachments)
+const uploadsDir = path.join(__dirname, '../uploads');
+app.use(
+  '/uploads',
+  express.static(uploadsDir, {
+    setHeaders: (res, filePath) => {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Accept-Ranges', 'bytes');
+      const lower = (filePath || '').toLowerCase();
+      if (lower.includes('audio') || lower.endsWith('.webm') || lower.endsWith('.weba')) {
+        res.setHeader('Content-Type', 'audio/webm');
+      } else if (lower.endsWith('.ogg')) {
+        res.setHeader('Content-Type', 'audio/ogg');
+      } else if (lower.endsWith('.mp3')) {
+        res.setHeader('Content-Type', 'audio/mpeg');
+      } else if (lower.endsWith('.wav')) {
+        res.setHeader('Content-Type', 'audio/wav');
+      } else if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {
+        res.setHeader('Content-Type', 'image/jpeg');
+      } else if (lower.endsWith('.png')) {
+        res.setHeader('Content-Type', 'image/png');
+      } else if (lower.endsWith('.webp')) {
+        res.setHeader('Content-Type', 'image/webp');
+      }
+    },
+  })
+);
 
 // Initialize Socket.IO
 initSocket(httpServer, corsOptions);
@@ -138,10 +170,14 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 import { pgPool } from './config/supabase.js';
+import { ensureDefaultAdmin } from './utils/seedAdmin.js';
+import { seedInitialDemoData } from './utils/seedInitialData.js';
 
 // Start Database Connection & Server
 const startServer = async () => {
   await connectDB();
+  await ensureDefaultAdmin();
+  await seedInitialDemoData();
 
   httpServer.listen(PORT, () => {
     console.log(`[KaamSetu AI] HTTP & Socket.IO Server is running on port ${PORT}`);

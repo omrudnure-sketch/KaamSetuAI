@@ -14,6 +14,7 @@ import { getProjectPayments, recordPayment } from '../services/paymentService.js
 import { createReview, getProjectReviews } from '../services/reviewService.js';
 import { getProjectSummary } from '../services/aiService.js';
 import { AiSummaryCard } from '../components/AiSummaryCard.jsx';
+import { GlassSpringNav } from '../components/GlassSpringNav.jsx';
 import {
   ArrowLeft,
   Users,
@@ -294,17 +295,6 @@ export const EmployerProjectDetailPage = () => {
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-6 pb-12">
-      {/* Navigation */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => navigate('/employer/projects')}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Employer Projects</span>
-        </button>
-      </div>
-
       {actionMessage && (
         <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-bold rounded-2xl flex items-center gap-2 shadow-sm">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
@@ -318,7 +308,7 @@ export const EmployerProjectDetailPage = () => {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-bold px-3 py-1 rounded-md border bg-primary/10 text-primary border-primary/20">
-                {project.status.toUpperCase()}
+                {(project.status || 'in_progress').toUpperCase()}
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{project.name}</h1>
@@ -379,28 +369,23 @@ export const EmployerProjectDetailPage = () => {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-2">
-        {[
-          { id: 'overview', label: 'Overview' },
-          { id: 'attendance', label: 'Attendance' },
-          { id: 'progress', label: 'Progress' },
-          { id: 'extensions', label: 'Extensions' },
-          { id: 'payments', label: 'Payments' },
-          { id: 'reviews', label: 'Reviews' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 text-sm font-bold rounded-xl transition-all whitespace-nowrap ${
-              activeTab === tab.id
-                ? 'bg-primary text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Navigation Tabs with Glassmorphism Spring Glide */}
+      <div className="flex items-center overflow-x-auto pb-2 scrollbar-none">
+        <GlassSpringNav
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={[
+            { id: 'overview', key: 'overview', label: 'Overview' },
+            { id: 'attendance', key: 'attendance', label: 'Attendance' },
+            { id: 'progress', key: 'progress', label: 'Progress' },
+            { id: 'extensions', key: 'extensions', label: 'Extensions' },
+            { id: 'payments', key: 'payments', label: 'Payments' },
+            { id: 'reviews', key: 'reviews', label: 'Reviews' },
+          ]}
+          variant="glass-light"
+          size="md"
+          ariaLabel="Project section tabs"
+        />
       </div>
 
       {/* TAB 1: OVERVIEW */}

@@ -47,3 +47,12 @@ Thumbs.db
 # Test reports
 testing/reports/*.json
 !testing/reports/.gitkeep
+
+# Local Dev & Uploads
+.local_dev_store.json
+backend/.local_dev_store.json
+backend/uploads/
+uploads/
+scratch/
+landing-page-reference/
+

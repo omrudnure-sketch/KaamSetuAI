@@ -102,6 +102,8 @@ export const AppRoutes = () => {
           <Route path="worker/invitations" element={<WorkerInvitationsPage />} />
           <Route path="worker/hiring" element={<WorkerHiringListPage />} />
           <Route path="worker/hiring/:id" element={<WorkerHiringDetailPage />} />
+          <Route path="worker/hirings" element={<WorkerHiringListPage />} />
+          <Route path="worker/hirings/:id" element={<WorkerHiringDetailPage />} />
           <Route path="worker/projects" element={<WorkerProjectsListPage />} />
           <Route path="worker/projects/:id" element={<WorkerProjectDetailPage />} />
           <Route path="worker/earnings" element={<WorkerEarningsPage />} />
@@ -121,6 +123,7 @@ export const AppRoutes = () => {
           <Route path="employer/profile" element={<EmployerProfilePage />} />
           <Route path="employer/jobs" element={<EmployerJobsPage />} />
           <Route path="employer/jobs/create" element={<CreateJobPage />} />
+          <Route path="employer/jobs/new" element={<CreateJobPage />} />
           <Route path="employer/jobs/:id" element={<EmployerJobDetailPage />} />
           <Route path="employer/jobs/:id/edit" element={<CreateJobPage />} />
           <Route path="employer/jobs/:id/applications" element={<EmployerJobApplicationsPage />} />
@@ -130,6 +133,8 @@ export const AppRoutes = () => {
           <Route path="employer/invitations" element={<EmployerInvitationsPage />} />
           <Route path="employer/hiring" element={<EmployerHiringListPage />} />
           <Route path="employer/hiring/:id" element={<EmployerHiringDetailPage />} />
+          <Route path="employer/hirings" element={<EmployerHiringListPage />} />
+          <Route path="employer/hirings/:id" element={<EmployerHiringDetailPage />} />
           <Route path="employer/projects" element={<EmployerProjectsListPage />} />
           <Route path="employer/projects/:id" element={<EmployerProjectDetailPage />} />
           <Route path="employer/payments" element={<EmployerPaymentsPage />} />

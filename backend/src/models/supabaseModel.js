@@ -98,8 +98,8 @@ export const SUPABASE_TABLE_COLUMNS = {
   project_extensions: new Set(['id', 'project_id', 'requested_by', 'additional_days', 'reason', 'original_end_date', 'new_end_date', 'status', 'approved_by', 'created_at', 'updated_at']),
   payments: new Set(['id', 'project_id', 'payer_id', 'payee_id', 'amount', 'wage_type', 'status', 'payment_date', 'transaction_ref', 'notes', 'created_at']),
   reviews: new Set(['id', 'project_id', 'reviewer_id', 'reviewee_id', 'rating', 'comment', 'created_at']),
-  messages: new Set(['id', 'conversation_id', 'sender_id', 'content', 'is_read', 'read_at', 'created_at']),
-  conversations: new Set(['id', 'participant_a', 'participant_b', 'related_project_id', 'last_message_at', 'participants', 'created_at', 'updated_at']),
+  messages: new Set(['id', 'conversation_id', 'sender_id', 'receiver_id', 'message_type', 'content', 'attachment_url', 'attachment_name', 'attachment_size', 'duration', 'attachments', 'is_read', 'read_at', 'created_at']),
+  conversations: new Set(['id', 'participant_a', 'participant_b', 'related_project_id', 'project_id', 'job_id', 'conversation_type', 'last_message', 'last_message_at', 'participants', 'status', 'initiated_by', 'request_message', 'accepted_at', 'rejected_at', 'created_at', 'updated_at']),
   notifications: new Set(['id', 'user_id', 'type', 'title', 'message', 'is_read', 'data', 'created_at']),
   complaints: new Set(['id', 'filed_by', 'against_user', 'against_user_id', 'project_id', 'category', 'description', 'status', 'assigned_admin_id', 'resolution_notes', 'resolved_at', 'created_at', 'updated_at']),
   disputes: new Set(['id', 'complaint_id', 'project_id', 'claimant_id', 'respondent_id', 'assigned_admin_id', 'status', 'resolution_notes', 'resolved_at', 'created_at', 'updated_at']),
@@ -177,16 +177,68 @@ export class SupabaseDocument {
   }
 
   async populate(config) {
-    const configs = Array.isArray(config) ? config : [config];
+    const configs = Array.isArray(config) ? config.flat(Infinity) : [config];
     await this._model._applyPopulate([this], configs);
     return this;
   }
 }
 
-// In-Memory store per table for offline testing and fixtures
+// In-Memory store per table for offline testing and fixtures, with local file persistence in dev mode
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const LOCAL_DEV_STORE_PATH = path.resolve(__dirname, '../../.local_dev_store.json');
+
 const globalInMemoryStores = new Map();
+let isStoreInitialized = false;
+
+const loadLocalDevStore = () => {
+  if (isStoreInitialized) return;
+  isStoreInitialized = true;
+  if (process.env.NODE_ENV === 'test') return;
+
+  try {
+    if (fs.existsSync(LOCAL_DEV_STORE_PATH)) {
+      const content = fs.readFileSync(LOCAL_DEV_STORE_PATH, 'utf-8');
+      if (content.trim()) {
+        const raw = JSON.parse(content);
+        for (const [table, records] of Object.entries(raw)) {
+          const tableMap = new Map();
+          if (Array.isArray(records)) {
+            for (const item of records) {
+              const id = String(item.id || item._id);
+              tableMap.set(id, item);
+            }
+          }
+          globalInMemoryStores.set(table, tableMap);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[KaamSetu AI] Local dev store load warning:', err.message);
+  }
+};
+
+const saveLocalDevStore = () => {
+  if (process.env.NODE_ENV === 'test') return;
+  try {
+    const serialized = {};
+    for (const [table, map] of globalInMemoryStores.entries()) {
+      serialized[table] = Array.from(map.values()).map((doc) =>
+        doc.toJSON ? doc.toJSON() : doc
+      );
+    }
+    fs.writeFileSync(LOCAL_DEV_STORE_PATH, JSON.stringify(serialized, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('[KaamSetu AI] Local dev store save warning:', err.message);
+  }
+};
 
 export const getInMemoryStore = (tableName) => {
+  loadLocalDevStore();
   if (!globalInMemoryStores.has(tableName)) {
     globalInMemoryStores.set(tableName, new Map());
   }
@@ -196,6 +248,13 @@ export const getInMemoryStore = (tableName) => {
 export const clearAllInMemoryStores = () => {
   for (const store of globalInMemoryStores.values()) {
     store.clear();
+  }
+  if (process.env.NODE_ENV !== 'test') {
+    try {
+      if (fs.existsSync(LOCAL_DEV_STORE_PATH)) {
+        fs.unlinkSync(LOCAL_DEV_STORE_PATH);
+      }
+    } catch (_err) {}
   }
 };
 
@@ -234,7 +293,11 @@ export class SupabaseQuery {
   }
 
   populate(config) {
-    if (config) this.populateConfigs.push(config);
+    if (Array.isArray(config)) {
+      this.populateConfigs.push(...config);
+    } else if (config) {
+      this.populateConfigs.push(config);
+    }
     return this;
   }
 
@@ -354,6 +417,7 @@ export class SupabaseModel {
     // In-memory persistence
     const doc = new SupabaseDocument(docData, this);
     getInMemoryStore(this.tableName).set(doc.id, doc);
+    saveLocalDevStore();
     return doc;
   }
 
@@ -406,6 +470,7 @@ export class SupabaseModel {
 
     const doc = new SupabaseDocument(merged, this);
     getInMemoryStore(this.tableName).set(doc.id, doc);
+    saveLocalDevStore();
     return options.new === false ? existing : doc;
   }
 
@@ -429,6 +494,7 @@ export class SupabaseModel {
     }
 
     getInMemoryStore(this.tableName).delete(existing.id);
+    saveLocalDevStore();
     return existing;
   }
 
@@ -470,6 +536,82 @@ export class SupabaseModel {
     return { matchedCount: 1, modifiedCount: 1 };
   }
 
+  // Evaluate MongoDB-style aggregation expression on a document
+  _evaluateExpression(doc, expr) {
+    if (expr === null || expr === undefined) return null;
+    if (typeof expr === 'string') {
+      if (expr.startsWith('$')) {
+        const field = expr.slice(1);
+        return this._getNestedValue(doc, field);
+      }
+      return expr;
+    }
+    if (typeof expr === 'number' || typeof expr === 'boolean') {
+      return expr;
+    }
+    if (Array.isArray(expr)) {
+      return expr.map((e) => this._evaluateExpression(doc, e));
+    }
+    if (typeof expr === 'object') {
+      if (expr.$ifNull !== undefined && Array.isArray(expr.$ifNull)) {
+        const primary = this._evaluateExpression(doc, expr.$ifNull[0]);
+        if (primary !== null && primary !== undefined && primary !== '') {
+          return primary;
+        }
+        return this._evaluateExpression(doc, expr.$ifNull[1]);
+      }
+      if (expr.$toLower !== undefined) {
+        const val = this._evaluateExpression(doc, expr.$toLower);
+        return val ? String(val).toLowerCase() : '';
+      }
+      if (expr.$toUpper !== undefined) {
+        const val = this._evaluateExpression(doc, expr.$toUpper);
+        return val ? String(val).toUpperCase() : '';
+      }
+      if (expr.$cond !== undefined) {
+        let cond, trueVal, falseVal;
+        if (Array.isArray(expr.$cond)) {
+          [cond, trueVal, falseVal] = expr.$cond;
+        } else if (typeof expr.$cond === 'object' && expr.$cond !== null) {
+          cond = expr.$cond.if;
+          trueVal = expr.$cond.then;
+          falseVal = expr.$cond.else;
+        }
+        let condResult = false;
+        if (typeof cond === 'object' && cond !== null) {
+          if (cond.$eq !== undefined && Array.isArray(cond.$eq)) {
+            const [a, b] = cond.$eq.map((x) => this._evaluateExpression(doc, x));
+            condResult = a === b;
+          } else if (cond.$ne !== undefined && Array.isArray(cond.$ne)) {
+            const [a, b] = cond.$ne.map((x) => this._evaluateExpression(doc, x));
+            condResult = a !== b;
+          } else if (cond.$gt !== undefined && Array.isArray(cond.$gt)) {
+            const [a, b] = cond.$gt.map((x) => this._evaluateExpression(doc, x));
+            condResult = Number(a) > Number(b);
+          } else if (cond.$gte !== undefined && Array.isArray(cond.$gte)) {
+            const [a, b] = cond.$gte.map((x) => this._evaluateExpression(doc, x));
+            condResult = Number(a) >= Number(b);
+          } else {
+            condResult = Boolean(this._evaluateExpression(doc, cond));
+          }
+        } else {
+          condResult = Boolean(this._evaluateExpression(doc, cond));
+        }
+        return condResult
+          ? this._evaluateExpression(doc, trueVal)
+          : this._evaluateExpression(doc, falseVal);
+      }
+
+      // Compound dictionary object like { city: expr1, skill: expr2 }
+      const res = {};
+      for (const [k, v] of Object.entries(expr)) {
+        res[k] = this._evaluateExpression(doc, v);
+      }
+      return res;
+    }
+    return expr;
+  }
+
   // Aggregation pipeline ($match, $group with $sum/$avg/$push, $sort, $limit)
   async aggregate(pipeline = []) {
     let items = await this.find({});
@@ -482,25 +624,15 @@ export class SupabaseModel {
         const groupSpec = stage.$group;
         const groups = new Map();
 
-        const getGroupKey = (doc, keyDef) => {
-          if (!keyDef) return 'null';
-          if (typeof keyDef === 'string' && keyDef.startsWith('$')) {
-            const field = keyDef.slice(1);
-            return String(this._getNestedValue(doc, field) ?? 'null');
-          }
-          return String(keyDef);
-        };
-
         for (const doc of items) {
-          const groupKey = getGroupKey(doc, groupSpec._id);
+          const evaluatedId = this._evaluateExpression(doc, groupSpec._id);
+          const groupKey =
+            typeof evaluatedId === 'object' && evaluatedId !== null
+              ? JSON.stringify(evaluatedId)
+              : String(evaluatedId ?? 'null');
+
           if (!groups.has(groupKey)) {
-            let initialId = groupSpec._id;
-            if (typeof initialId === 'string' && initialId.startsWith('$')) {
-              initialId = this._getNestedValue(doc, initialId.slice(1));
-            } else if (initialId === null) {
-              initialId = null;
-            }
-            groups.set(groupKey, { _id: initialId, _count: 0, _docs: [] });
+            groups.set(groupKey, { _id: evaluatedId, _count: 0, _docs: [] });
           }
           const groupObj = groups.get(groupKey);
           groupObj._count++;
@@ -516,21 +648,22 @@ export class SupabaseModel {
               if (accumulator.$sum !== undefined) {
                 if (accumulator.$sum === 1) {
                   res[outField] = groupObj._count;
-                } else if (typeof accumulator.$sum === 'string' && accumulator.$sum.startsWith('$')) {
-                  const field = accumulator.$sum.slice(1);
-                  res[outField] = groupObj._docs.reduce((sum, d) => sum + Number(this._getNestedValue(d, field) || 0), 0);
                 } else {
-                  res[outField] = groupObj._docs.reduce((sum, d) => sum + Number(accumulator.$sum || 0), 0);
+                  res[outField] = groupObj._docs.reduce((sum, d) => {
+                    const val = this._evaluateExpression(d, accumulator.$sum);
+                    return sum + Number(val || 0);
+                  }, 0);
                 }
               } else if (accumulator.$avg !== undefined) {
-                if (typeof accumulator.$avg === 'string' && accumulator.$avg.startsWith('$')) {
-                  const field = accumulator.$avg.slice(1);
-                  const validDocs = groupObj._docs.filter((d) => this._getNestedValue(d, field) !== undefined && this._getNestedValue(d, field) !== null);
-                  const total = validDocs.reduce((sum, d) => sum + Number(this._getNestedValue(d, field) || 0), 0);
-                  res[outField] = validDocs.length > 0 ? total / validDocs.length : 0;
-                }
+                const values = groupObj._docs
+                  .map((d) => this._evaluateExpression(d, accumulator.$avg))
+                  .filter((v) => v !== null && v !== undefined && !isNaN(Number(v)));
+                const total = values.reduce((sum, v) => sum + Number(v), 0);
+                res[outField] = values.length > 0 ? total / values.length : 0;
               } else if (accumulator.$push !== undefined) {
-                res[outField] = groupObj._docs;
+                res[outField] = groupObj._docs.map((d) =>
+                  this._evaluateExpression(d, accumulator.$push)
+                );
               }
             }
           }
@@ -613,14 +746,13 @@ export class SupabaseModel {
 
         if (isSingle) {
           const { data: singleRow, error } = await sbQuery.maybeSingle();
-          if (!error) {
+          if (!error && singleRow) {
             queriedFromSupabase = true;
-            if (!singleRow) return null;
-            return new SupabaseDocument(mapObjectToCamel(singleRow), this);
+            items = [new SupabaseDocument(mapObjectToCamel(singleRow), this)];
           }
         } else {
           const { data: rows, error } = await sbQuery;
-          if (!error && rows) {
+          if (!error && rows && rows.length > 0) {
             queriedFromSupabase = true;
             items = rows.map((r) => new SupabaseDocument(mapObjectToCamel(r), this));
           }
@@ -682,6 +814,7 @@ export class SupabaseModel {
 
   // Populate referenced entities
   async _applyPopulate(items, populateConfigs) {
+    const flatConfigs = (Array.isArray(populateConfigs) ? populateConfigs : [populateConfigs]).flat(Infinity).filter(Boolean);
     const tableFieldMap = {
       employerId: 'users',
       workerId: 'users',
@@ -693,6 +826,7 @@ export class SupabaseModel {
       againstUserId: 'users',
       filedBy: 'users',
       senderId: 'users',
+      receiverId: 'users',
       requestedBy: 'users',
       approvedBy: 'users',
       verifiedBy: 'users',
@@ -713,7 +847,7 @@ export class SupabaseModel {
       conversationId: 'conversations',
     };
 
-    for (const config of populateConfigs) {
+    for (const config of flatConfigs) {
       const path = typeof config === 'string' ? config : config?.path;
       const select = typeof config === 'object' ? config.select : null;
       const nested = typeof config === 'object' ? config.populate : null;
@@ -735,7 +869,10 @@ export class SupabaseModel {
             const elId = typeof element === 'object' ? (element.id || element._id) : element;
             if (!elId) continue;
             try {
-              const populatedDoc = await targetModel.findById(elId);
+              let populatedDoc = await targetModel.findById(elId);
+              if (!populatedDoc) {
+                populatedDoc = getInMemoryStore(targetTable).get(String(elId));
+              }
               if (populatedDoc) {
                 let populatedObj = populatedDoc.toObject ? populatedDoc.toObject() : { ...populatedDoc };
                 if (select && typeof select === 'string') {
@@ -748,8 +885,12 @@ export class SupabaseModel {
                 }
                 populatedObj.toString = function () { return String(this.id || this._id || ''); };
                 populatedList.push(populatedObj);
+              } else {
+                populatedList.push(element);
               }
-            } catch (_err) {}
+            } catch (_err) {
+              populatedList.push(element);
+            }
           }
           item[path] = populatedList;
           continue;
@@ -759,7 +900,10 @@ export class SupabaseModel {
         if (!refId) continue;
 
         try {
-          const populatedDoc = await targetModel.findById(refId);
+          let populatedDoc = await targetModel.findById(refId);
+          if (!populatedDoc) {
+            populatedDoc = getInMemoryStore(targetTable).get(String(refId));
+          }
           if (populatedDoc) {
             let populatedObj = populatedDoc.toObject ? populatedDoc.toObject() : { ...populatedDoc };
             if (select && typeof select === 'string') {
@@ -788,12 +932,19 @@ export class SupabaseModel {
     if (path === '_id' || path === 'id') return doc.id || doc._id;
     if (path === 'location.city') return doc.city || doc.location?.city;
     if (path === 'location.area') return doc.area || doc.location?.area;
-    if (!path.includes('.')) return doc[path];
+    if (!path.includes('.')) {
+      if (doc[path] !== undefined) return doc[path];
+      const camel = snakeToCamel(path);
+      if (doc[camel] !== undefined) return doc[camel];
+      const snake = camelToSnake(path);
+      if (doc[snake] !== undefined) return doc[snake];
+      return undefined;
+    }
     const parts = path.split('.');
     let curr = doc;
     for (const p of parts) {
       if (curr === null || curr === undefined) return undefined;
-      curr = curr[p];
+      curr = curr[p] !== undefined ? curr[p] : curr[snakeToCamel(p)];
     }
     return curr;
   }
@@ -864,8 +1015,11 @@ export class SupabaseModel {
         // Query for element in array: { participants: userId }
         const arr = rawDocVal.map((x) => String(this._extractIdOrPrimitive(x)));
         if (!arr.includes(String(expVal))) return false;
-      } else if (expected !== undefined && expected !== null) {
-        if (String(docVal) !== String(expVal)) return false;
+      } else if (expected === null) {
+        if (docVal !== null && docVal !== undefined) return false;
+      } else if (expected !== undefined) {
+        if (docVal === null || docVal === undefined) return false;
+        if (String(docVal).toLowerCase() !== String(expVal).toLowerCase()) return false;
       }
     }
 

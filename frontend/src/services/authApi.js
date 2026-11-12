@@ -2,16 +2,22 @@ import axios from 'axios';
 import { getApiBaseUrl } from './api.js';
 import {
   TOKEN_STORAGE_KEY,
+  USER_STORAGE_KEY,
   getStoredToken,
   setStoredToken,
   clearStoredToken,
+  getStoredUser,
+  setStoredUser,
 } from './tokenStorage.js';
 
 export {
   TOKEN_STORAGE_KEY,
+  USER_STORAGE_KEY,
   getStoredToken,
   setStoredToken,
   clearStoredToken,
+  getStoredUser,
+  setStoredUser,
 };
 
 export const authApiClient = axios.create({

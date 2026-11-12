@@ -1,6 +1,7 @@
 import JobInvitation from '../models/JobInvitation.js';
 import Job from '../models/Job.js';
 import User from '../models/User.js';
+import WorkerProfile from '../models/WorkerProfile.js';
 
 // Helper hook for future notification system
 const emitEvent = (eventName, data) => {
@@ -29,17 +30,70 @@ export const inviteWorker = async (employerId, payload) => {
     throw error;
   }
 
-  const targetWorker = await User.findById(workerId);
+  // Extract clean ID string if an object or nested ID was passed
+  const cleanWorkerId =
+    typeof workerId === 'object' && workerId !== null
+      ? String(workerId._id || workerId.id || workerId.userId || workerId.workerId || '')
+      : String(workerId || '').trim();
+
+  // Flexible worker resolution: accepts User ID, WorkerProfile ID, email, phone, or name
+  let targetWorker = null;
+  if (cleanWorkerId) {
+    targetWorker = await User.findById(cleanWorkerId);
+    if (!targetWorker) {
+      targetWorker = await User.findOne({
+        $or: [
+          { _id: cleanWorkerId },
+          { id: cleanWorkerId },
+          { email: cleanWorkerId.toLowerCase() },
+          { phone: cleanWorkerId },
+        ],
+      });
+    }
+    if (!targetWorker) {
+      const profile = await WorkerProfile.findById(cleanWorkerId);
+      if (profile) {
+        const uId =
+          typeof profile.userId === 'object' && profile.userId !== null
+            ? profile.userId._id || profile.userId.id
+            : profile.userId;
+        if (uId) targetWorker = await User.findById(uId);
+      }
+    }
+    if (!targetWorker) {
+      const profile = await WorkerProfile.findOne({
+        $or: [
+          { _id: cleanWorkerId },
+          { id: cleanWorkerId },
+          { userId: cleanWorkerId },
+          { fullName: cleanWorkerId },
+        ],
+      });
+      if (profile) {
+        const uId =
+          typeof profile.userId === 'object' && profile.userId !== null
+            ? profile.userId._id || profile.userId.id
+            : profile.userId;
+        if (uId) targetWorker = await User.findById(uId);
+      }
+    }
+    if (!targetWorker) {
+      targetWorker = await User.findOne({ name: cleanWorkerId, role: 'worker' });
+    }
+  }
+
   if (!targetWorker || targetWorker.role !== 'worker') {
     const error = new Error('Target worker not found or user is not a worker');
     error.statusCode = 400;
     throw error;
   }
 
+  const resolvedWorkerId = String(targetWorker.id || targetWorker._id);
+
   // Prevent duplicate active invitations for the same job and worker
   const activeInvitation = await JobInvitation.findOne({
     jobId,
-    workerId,
+    workerId: resolvedWorkerId,
     status: 'pending',
   });
   if (activeInvitation) {
@@ -50,7 +104,7 @@ export const inviteWorker = async (employerId, payload) => {
 
   const invitation = await JobInvitation.create({
     jobId,
-    workerId,
+    workerId: resolvedWorkerId,
     employerId,
     message: message || '',
     proposedWage: proposedWage || job.wageAmount,
@@ -61,7 +115,7 @@ export const inviteWorker = async (employerId, payload) => {
   emitEvent('JOB_INVITED', {
     invitationId: invitation._id,
     jobId,
-    workerId,
+    workerId: resolvedWorkerId,
     employerId,
   });
 
@@ -69,7 +123,17 @@ export const inviteWorker = async (employerId, payload) => {
 };
 
 export const getWorkerInvitations = async (workerId, query = {}) => {
-  const filter = { workerId };
+  const cleanId = String(workerId);
+  const possibleIds = [cleanId];
+  try {
+    const profile = await WorkerProfile.findOne({ userId: cleanId });
+    if (profile) {
+      const pId = String(profile.id || profile._id);
+      if (pId && !possibleIds.includes(pId)) possibleIds.push(pId);
+    }
+  } catch (_e) {}
+
+  const filter = { workerId: possibleIds.length === 1 ? cleanId : { $in: possibleIds } };
   if (query.status) {
     filter.status = query.status;
   }

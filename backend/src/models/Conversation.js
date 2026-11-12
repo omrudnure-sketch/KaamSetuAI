@@ -7,10 +7,14 @@ const Conversation = createModel('conversations', {
   participantB: null,
   projectId: null,
   jobId: null,
-  conversationType: 'project',
+  conversationType: 'direct',
   lastMessage: '',
   lastMessageAt: new Date().toISOString(),
-  status: 'active',
+  status: 'accepted',
+  initiatedBy: null,
+  requestMessage: '',
+  acceptedAt: null,
+  rejectedAt: null,
 });
 
 export default Conversation;
