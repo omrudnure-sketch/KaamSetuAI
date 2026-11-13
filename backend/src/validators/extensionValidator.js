@@ -21,6 +21,15 @@ const createExtensionSchema = z
     requestedEndDate: z
       .string({ required_error: 'Requested end date is required' })
       .refine((val) => !isNaN(Date.parse(val)), { message: 'Invalid requested end date format' }),
+    previousEndDate: z
+      .string()
+      .optional()
+      .refine((val) => !val || !isNaN(Date.parse(val)), { message: 'Invalid previous end date format' }),
+    additionalDays: z
+      .number({ invalid_type_error: 'Additional days must be a number' })
+      .int()
+      .min(1)
+      .optional(),
     proposedWage: z
       .number({ invalid_type_error: 'Proposed wage must be a number' })
       .min(0.01, 'Proposed wage must be greater than 0')

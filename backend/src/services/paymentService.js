@@ -28,17 +28,25 @@ export const recordPayment = async (user, projectId, inputData) => {
     throw error;
   }
 
+  const wageType = ['daily', 'hourly', 'milestone', 'fixed'].includes(inputData.type)
+    ? inputData.type
+    : inputData.type === 'weekly' ? 'daily' : 'milestone';
+
   const payment = new Payment({
     projectId,
     projectWorkerId: projectWorker._id,
     workerId: projectWorker.workerId,
+    payeeId: projectWorker.workerId,
     employerId: employerId,
-    type: inputData.type,
+    payerId: employerId,
+    type: inputData.type || 'daily',
+    wageType,
     amount: inputData.amount,
     paymentDate: inputData.paymentDate ? new Date(inputData.paymentDate) : new Date(),
     status: inputData.status || 'recorded',
     method: inputData.method || 'cash',
     reference: inputData.reference || '',
+    transactionRef: inputData.reference || '',
     notes: inputData.notes || '',
     createdBy: userId,
   });

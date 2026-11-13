@@ -55,13 +55,19 @@ export const createRequest = async (user, projectId, inputData) => {
   const workerApproval = isWorker ? 'approved' : 'pending';
   const employerApproval = isEmployer ? 'approved' : 'pending';
 
+  const diffMs = new Date(requestedEndDate).getTime() - new Date(previousEndDate).getTime();
+  const additionalDays = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+
   const extension = new ProjectExtension({
     projectId,
     projectWorkerId: targetProjectWorkerId,
     requestedBy: user.id,
     requestType: 'duration_extension',
     previousEndDate,
+    originalEndDate: previousEndDate,
     requestedEndDate,
+    newEndDate: requestedEndDate,
+    additionalDays,
     previousWage,
     proposedWage: inputData.proposedWage || null,
     reason: inputData.reason,

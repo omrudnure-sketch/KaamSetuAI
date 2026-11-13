@@ -38,7 +38,11 @@ export const createOrUpdateDailyProgress = async (workerId, projectId, payload) 
 
   if (progress) {
     progress.percentage = percentage;
-    if (description !== undefined) progress.description = description;
+    progress.completionPercentage = percentage;
+    if (description !== undefined) {
+      progress.description = description;
+      progress.summary = description;
+    }
     if (tasksCompleted) progress.tasksCompleted = tasksCompleted;
     if (blockers) progress.blockers = blockers;
     if (expectedCompletionDate !== undefined) {
@@ -52,7 +56,9 @@ export const createOrUpdateDailyProgress = async (workerId, projectId, payload) 
       workerId,
       date: dateStr,
       percentage,
+      completionPercentage: percentage,
       description: description || '',
+      summary: description || '',
       tasksCompleted: tasksCompleted || [],
       blockers: blockers || [],
       expectedCompletionDate: expectedCompletionDate ? new Date(expectedCompletionDate) : null,

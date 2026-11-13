@@ -47,6 +47,41 @@ export const mapObjectToSnake = (obj) => {
     } else if (key === 'participants' && Array.isArray(val)) {
       if (!res.participant_a && val[0]) res.participant_a = String(val[0]?._id || val[0]?.id || val[0]);
       if (!res.participant_b && val[1]) res.participant_b = String(val[1]?._id || val[1]?.id || val[1]);
+    } else if (key === 'employerId' || key === 'employer_id' || key === 'payerId' || key === 'payer_id') {
+      const scalarId = typeof val === 'object' && val !== null ? (val.id || val._id || '') : val;
+      const strId = scalarId ? String(scalarId) : null;
+      res['employer_id'] = strId;
+      res['payer_id'] = strId;
+    } else if (key === 'workerId' || key === 'worker_id' || key === 'payeeId' || key === 'payee_id') {
+      const scalarId = typeof val === 'object' && val !== null ? (val.id || val._id || '') : val;
+      const strId = scalarId ? String(scalarId) : null;
+      res['worker_id'] = strId;
+      res['payee_id'] = strId;
+    } else if (key === 'percentage' || key === 'completionPercentage' || key === 'completion_percentage') {
+      const pct = Math.max(0, Math.min(100, Math.round(Number(val) || 0)));
+      res['completion_percentage'] = pct;
+      res['percentage'] = pct;
+    } else if (key === 'description' || key === 'summary') {
+      res['description'] = val;
+      if (!res['summary']) res['summary'] = val;
+    } else if (key === 'previousEndDate' || key === 'previous_end_date' || key === 'originalEndDate' || key === 'original_end_date') {
+      res['original_end_date'] = val;
+      res['previous_end_date'] = val;
+    } else if (key === 'requestedEndDate' || key === 'requested_end_date' || key === 'newEndDate' || key === 'new_end_date') {
+      res['new_end_date'] = val;
+      res['requested_end_date'] = val;
+    } else if (key === 'additionalDays' || key === 'additional_days') {
+      res['additional_days'] = Math.max(1, Number(val) || 1);
+    } else if (key === 'type' || key === 'wageType' || key === 'wage_type') {
+      let wt = val;
+      if (!['daily', 'hourly', 'milestone', 'fixed'].includes(wt)) {
+        wt = wt === 'weekly' ? 'daily' : 'milestone';
+      }
+      res['wage_type'] = wt;
+      res['type'] = val;
+    } else if (key === 'reference' || key === 'transactionRef' || key === 'transaction_ref') {
+      res['transaction_ref'] = val;
+      res['reference'] = val;
     } else if (key.startsWith('$')) {
       // Ignore Mongo operator wrappers like $set
       if (typeof val === 'object' && val !== null) {
@@ -83,6 +118,17 @@ export const mapObjectToSnake = (obj) => {
       }
     }
   }
+
+  // Auto-calculate additional_days if original_end_date & new_end_date are present
+  if (res['original_end_date'] && res['new_end_date'] && !res['additional_days']) {
+    try {
+      const diffMs = new Date(res['new_end_date']).getTime() - new Date(res['original_end_date']).getTime();
+      res['additional_days'] = Math.max(1, Math.round(diffMs / 86400000));
+    } catch (_e) {
+      res['additional_days'] = 1;
+    }
+  }
+
   return res;
 };
 
@@ -97,6 +143,51 @@ export const mapObjectToCamel = (obj) => {
   if (res.id !== undefined) {
     res._id = String(res.id);
     res.id = String(res.id);
+  }
+  // Cross-compatibility mappings for payments, progress, extensions
+  if (res.payerId !== undefined) {
+    res.employerId = String(res.payerId);
+  } else if (res.employerId !== undefined) {
+    res.payerId = String(res.employerId);
+  }
+  if (res.payeeId !== undefined) {
+    res.workerId = String(res.payeeId);
+  } else if (res.workerId !== undefined) {
+    res.payeeId = String(res.workerId);
+  }
+  if (res.wageType !== undefined) {
+    res.type = res.wageType;
+  } else if (res.type !== undefined) {
+    res.wageType = res.type;
+  }
+  if (res.transactionRef !== undefined) {
+    res.reference = res.transactionRef;
+  } else if (res.reference !== undefined) {
+    res.transactionRef = res.reference;
+  }
+  if (res.completionPercentage !== undefined) {
+    res.percentage = Number(res.completionPercentage);
+  } else if (res.percentage !== undefined) {
+    res.completionPercentage = Number(res.percentage);
+  }
+  if (res.summary !== undefined && !res.description) {
+    res.description = res.summary;
+  }
+  if (res.description !== undefined && !res.summary) {
+    res.summary = res.description;
+  }
+  if (res.originalEndDate !== undefined) {
+    res.previousEndDate = res.originalEndDate;
+  } else if (res.previousEndDate !== undefined) {
+    res.originalEndDate = res.previousEndDate;
+  }
+  if (res.newEndDate !== undefined) {
+    res.requestedEndDate = res.newEndDate;
+  } else if (res.requestedEndDate !== undefined) {
+    res.newEndDate = res.requestedEndDate;
+  }
+  if (res.additionalDays !== undefined) {
+    res.additionalDays = Number(res.additionalDays);
   }
   if (res.participantA && res.participantB && (!res.participants || !res.participants.length)) {
     res.participants = [String(res.participantA), String(res.participantB)];
@@ -129,9 +220,18 @@ export const SUPABASE_TABLE_COLUMNS = {
   hiring_agreements: new Set(['id', 'job_id', 'employer_id', 'worker_id', 'agreed_wage', 'wage_type', 'start_date', 'expected_end_date', 'terms', 'proposed_by', 'status', 'confirmed_at', 'created_at', 'updated_at']),
   projects: new Set(['id', 'hiring_agreement_id', 'employer_id', 'title', 'description', 'location', 'start_date', 'expected_end_date', 'actual_end_date', 'payment_amount', 'status', 'completion_requested_by', 'created_at', 'updated_at']),
   project_workers: new Set(['id', 'project_id', 'worker_id', 'hiring_agreement_id', 'agreed_wage', 'wage_type', 'status', 'joined_at']),
-  progress_updates: new Set(['id', 'project_id', 'worker_id', 'date', 'completion_percentage', 'summary', 'created_at']),
-  project_extensions: new Set(['id', 'project_id', 'requested_by', 'additional_days', 'reason', 'original_end_date', 'new_end_date', 'status', 'approved_by', 'created_at', 'updated_at']),
-  payments: new Set(['id', 'project_id', 'payer_id', 'payee_id', 'amount', 'wage_type', 'status', 'payment_date', 'transaction_ref', 'notes', 'created_at']),
+  progress_updates: new Set([
+    'id', 'project_id', 'worker_id', 'date', 'completion_percentage', 'summary', 'description',
+    'tasks_completed', 'blockers', 'expected_completion_date', 'photos', 'created_at'
+  ]),
+  project_extensions: new Set([
+    'id', 'project_id', 'requested_by', 'additional_days', 'reason', 'original_end_date', 'new_end_date',
+    'status', 'approved_by', 'created_at', 'updated_at', 'proposed_wage', 'project_worker_id'
+  ]),
+  payments: new Set([
+    'id', 'project_id', 'payer_id', 'payee_id', 'amount', 'wage_type', 'status',
+    'payment_date', 'transaction_ref', 'notes', 'created_at'
+  ]),
   reviews: new Set(['id', 'project_id', 'reviewer_id', 'reviewee_id', 'rating', 'comment', 'created_at']),
   messages: new Set(['id', 'conversation_id', 'sender_id', 'receiver_id', 'message_type', 'content', 'attachment_url', 'attachment_name', 'attachment_size', 'duration', 'attachments', 'is_read', 'read_at', 'created_at']),
   conversations: new Set(['id', 'participant_a', 'participant_b', 'related_project_id', 'project_id', 'job_id', 'conversation_type', 'last_message', 'last_message_at', 'status', 'initiated_by', 'request_message', 'accepted_at', 'rejected_at', 'created_at', 'updated_at']),
@@ -845,6 +945,21 @@ export class SupabaseModel {
           if (snakeKey === 'location.city' || snakeKey === 'location_city') snakeKey = 'city';
           if (snakeKey === 'location.area' || snakeKey === 'location_area') snakeKey = 'area';
 
+          if (this.tableName === 'payments') {
+            if (snakeKey === 'employer_id' || k === 'employerId' || k === 'payerId') snakeKey = 'payer_id';
+            if (snakeKey === 'worker_id' || k === 'workerId' || k === 'payeeId') snakeKey = 'payee_id';
+            if (snakeKey === 'type' || k === 'type' || k === 'wageType') snakeKey = 'wage_type';
+            if (snakeKey === 'reference' || k === 'reference' || k === 'transactionRef') snakeKey = 'transaction_ref';
+          }
+          if (this.tableName === 'progress_updates') {
+            if (snakeKey === 'percentage' || k === 'percentage' || k === 'completionPercentage') snakeKey = 'completion_percentage';
+          }
+          if (this.tableName === 'project_extensions') {
+            if (snakeKey === 'previous_end_date' || k === 'previousEndDate' || k === 'originalEndDate') snakeKey = 'original_end_date';
+            if (snakeKey === 'requested_end_date' || k === 'requestedEndDate' || k === 'newEndDate') snakeKey = 'new_end_date';
+            if (snakeKey === 'additional_days' || k === 'additionalDays') snakeKey = 'additional_days';
+          }
+
           if (this.tableName === 'conversations' && (k === 'participants' || snakeKey === 'participants')) {
             if (v && v.$all && Array.isArray(v.$all) && v.$all.length >= 2) {
               const p1 = String(v.$all[0]?._id || v.$all[0]?.id || v.$all[0]);
@@ -1067,6 +1182,21 @@ export class SupabaseModel {
     if (path === '_id' || path === 'id') return doc.id || doc._id;
     if (path === 'location.city') return doc.city || doc.location?.city;
     if (path === 'location.area') return doc.area || doc.location?.area;
+    if (path === 'employerId' || path === 'payerId' || path === 'payer_id' || path === 'employer_id') {
+      return doc.payerId ?? doc.payer_id ?? doc.employerId ?? doc.employer_id;
+    }
+    if (path === 'workerId' || path === 'payeeId' || path === 'payee_id' || path === 'worker_id') {
+      return doc.payeeId ?? doc.payee_id ?? doc.workerId ?? doc.worker_id;
+    }
+    if (path === 'percentage' || path === 'completionPercentage' || path === 'completion_percentage') {
+      return doc.completionPercentage ?? doc.completion_percentage ?? doc.percentage;
+    }
+    if (path === 'previousEndDate' || path === 'originalEndDate' || path === 'original_end_date' || path === 'previous_end_date') {
+      return doc.originalEndDate ?? doc.original_end_date ?? doc.previousEndDate ?? doc.previous_end_date;
+    }
+    if (path === 'requestedEndDate' || path === 'newEndDate' || path === 'new_end_date' || path === 'requested_end_date') {
+      return doc.newEndDate ?? doc.new_end_date ?? doc.requestedEndDate ?? doc.requested_end_date;
+    }
     if (!path.includes('.')) {
       if (doc[path] !== undefined) return doc[path];
       const camel = snakeToCamel(path);
