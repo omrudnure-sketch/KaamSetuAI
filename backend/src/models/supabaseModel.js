@@ -21,10 +21,12 @@ export const mapObjectToSnake = (obj) => {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
   const res = {};
   for (const [key, val] of Object.entries(obj)) {
-    if (key === '_id') {
-      res['id'] = val;
+    if (key === '_id' || key === 'id') {
+      const scalarId = typeof val === 'object' && val !== null ? (val.id || val._id || '') : val;
+      res['id'] = scalarId ? String(scalarId) : undefined;
     } else if (key === 'createdFromHiringAgreement') {
-      res['hiring_agreement_id'] = val;
+      const scalarId = typeof val === 'object' && val !== null ? (val.id || val._id || val) : val;
+      res['hiring_agreement_id'] = scalarId ? String(scalarId) : null;
     } else if (key === 'name' && obj.title === undefined) {
       res['title'] = val;
       res['name'] = val;
@@ -51,7 +53,34 @@ export const mapObjectToSnake = (obj) => {
         Object.assign(res, mapObjectToSnake(val));
       }
     } else {
-      res[camelToSnake(key)] = val;
+      const snakeKey = camelToSnake(key);
+      const isRelationalField =
+        key.endsWith('Id') ||
+        key.endsWith('_id') ||
+        snakeKey.endsWith('_id') ||
+        [
+          'participant_a',
+          'participant_b',
+          'initiated_by',
+          'sender_id',
+          'receiver_id',
+          'reviewer_id',
+          'reviewee_id',
+          'payer_id',
+          'payee_id',
+          'claimant_id',
+          'respondent_id',
+          'assigned_admin_id',
+          'approved_by',
+          'requested_by',
+        ].includes(snakeKey);
+
+      if (isRelationalField && typeof val === 'object' && val !== null && !Array.isArray(val)) {
+        const extracted = val.id || val._id;
+        res[snakeKey] = extracted ? String(extracted) : null;
+      } else {
+        res[snakeKey] = val;
+      }
     }
   }
   return res;
@@ -603,12 +632,20 @@ export class SupabaseModel {
       return expr.map((e) => this._evaluateExpression(doc, e));
     }
     if (typeof expr === 'object') {
-      if (expr.$ifNull !== undefined && Array.isArray(expr.$ifNull)) {
-        const primary = this._evaluateExpression(doc, expr.$ifNull[0]);
-        if (primary !== null && primary !== undefined && primary !== '') {
-          return primary;
+      if (expr.$ifNull !== undefined) {
+        if (Array.isArray(expr.$ifNull)) {
+          const primary = this._evaluateExpression(doc, expr.$ifNull[0]);
+          if (primary !== null && primary !== undefined && primary !== '') {
+            return primary;
+          }
+          return this._evaluateExpression(doc, expr.$ifNull[1]);
+        } else {
+          const primary = this._evaluateExpression(doc, expr.$ifNull);
+          if (primary !== null && primary !== undefined && primary !== '') {
+            return primary;
+          }
+          return null;
         }
-        return this._evaluateExpression(doc, expr.$ifNull[1]);
       }
       if (expr.$toLower !== undefined) {
         const val = this._evaluateExpression(doc, expr.$toLower);
@@ -675,7 +712,18 @@ export class SupabaseModel {
         const groups = new Map();
 
         for (const doc of items) {
-          const evaluatedId = this._evaluateExpression(doc, groupSpec._id);
+          let evaluatedId = this._evaluateExpression(doc, groupSpec._id);
+          if (evaluatedId && typeof evaluatedId === 'object') {
+            if (evaluatedId.$ifNull) {
+              evaluatedId = Array.isArray(evaluatedId.$ifNull)
+                ? (evaluatedId.$ifNull[1] || 'Unspecified')
+                : 'Unspecified';
+            } else if (evaluatedId.city && typeof evaluatedId.city === 'object' && evaluatedId.city.$ifNull) {
+              evaluatedId.city = Array.isArray(evaluatedId.city.$ifNull)
+                ? (evaluatedId.city.$ifNull[1] || 'Unspecified')
+                : 'Unspecified';
+            }
+          }
           const groupKey =
             typeof evaluatedId === 'object' && evaluatedId !== null
               ? JSON.stringify(evaluatedId)

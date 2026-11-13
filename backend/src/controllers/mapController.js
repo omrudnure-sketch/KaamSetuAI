@@ -39,6 +39,23 @@ export const haversineDistanceKm = (lat1, lon1, lat2, lon2) => {
   return Math.round(R * c * 10) / 10;
 };
 
+// Helper: Safely normalize any aggregation or object value to a clean string
+export const extractSafeString = (val, fallback = 'Unspecified') => {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val === 'string') return val.trim() || fallback;
+  if (typeof val === 'number') return String(val);
+  if (typeof val === 'object') {
+    if (val.$ifNull) {
+      const sub = Array.isArray(val.$ifNull) ? val.$ifNull[1] : val.$ifNull;
+      return extractSafeString(sub, fallback);
+    }
+    const candidate = val.city || val.name || val.title || val.skill;
+    if (candidate && candidate !== val) return extractSafeString(candidate, fallback);
+    return fallback;
+  }
+  return String(val);
+};
+
 /**
  * GET /api/jobs/map
  * Discover open jobs on map with geospatial & attribute filtering
@@ -302,7 +319,7 @@ export const getAdminGeoSupply = async (req, res, next) => {
     res.json({
       success: true,
       data: supplyByCity.map((c) => ({
-        city: typeof c._id === 'string' ? c._id : String(c._id?.city || 'Unspecified'),
+        city: extractSafeString(c._id, 'Unspecified'),
         totalWorkers: Number(c.totalWorkers || 0),
         availableWorkers: Number(c.availableWorkers || 0),
         verifiedWorkers: Number(c.verifiedWorkers || 0),
@@ -336,7 +353,7 @@ export const getAdminGeoDemand = async (req, res, next) => {
     res.json({
       success: true,
       data: demandByCity.map((c) => ({
-        city: typeof c._id === 'string' ? c._id : String(c._id?.city || 'Unspecified'),
+        city: extractSafeString(c._id, 'Unspecified'),
         openJobs: Number(c.openJobs || 0),
         workersNeeded: Number(c.workersNeeded || 0),
         avgWage: Math.round(Number(c.avgWage) || 0),
@@ -398,46 +415,47 @@ export const getAdminGeoGaps = async (req, res, next) => {
     const gapMap = {};
 
     jobsAgg.forEach((j) => {
-      const city = j._id.city;
-      const skill = j._id.skill;
+      const city = extractSafeString(j._id?.city || j._id, 'Unspecified');
+      const skill = extractSafeString(j._id?.skill, 'General');
       const key = `${city}___${skill}`;
       gapMap[key] = {
         city,
         skill,
-        openJobs: j.openJobs,
+        openJobs: Number(j.openJobs) || 0,
         availableWorkers: 0,
-        avgWage: Math.round(j.avgAdvertisedWage || 0),
+        avgWage: Math.round(Number(j.avgAdvertisedWage) || 0),
       };
     });
 
     workersAgg.forEach((w) => {
-      const city = w._id.city;
-      const skill = w._id.skill;
+      const city = extractSafeString(w._id?.city || w._id, 'Unspecified');
+      const skill = extractSafeString(w._id?.skill, 'General');
       const key = `${city}___${skill}`;
       if (!gapMap[key]) {
         gapMap[key] = {
           city,
           skill,
           openJobs: 0,
-          availableWorkers: w.availableWorkers,
+          availableWorkers: Number(w.availableWorkers) || 0,
           avgWage: 0,
         };
       } else {
-        gapMap[key].availableWorkers = w.availableWorkers;
+        gapMap[key].availableWorkers = Number(w.availableWorkers) || 0;
       }
     });
 
     const activeProjectsMap = {};
     projectsAgg.forEach((p) => {
-      activeProjectsMap[p._id] = p.activeProjects;
+      const pCity = extractSafeString(p._id, 'Unspecified');
+      activeProjectsMap[pCity] = Number(p.activeProjects) || 0;
     });
 
     const tableRows = Object.values(gapMap).map((row) => {
       const demand = Number(row.openJobs || 0);
       const supply = Number(row.availableWorkers || 0);
       const gap = Math.max(0, demand - supply);
-      const cityName = typeof row.city === 'string' ? row.city : String(row.city?.city || row.city || 'Unspecified');
-      const skillName = typeof row.skill === 'string' ? row.skill : String(row.skill?.skill || row.skill || 'General');
+      const cityName = extractSafeString(row.city, 'Unspecified');
+      const skillName = extractSafeString(row.skill, 'General');
 
       return {
         city: cityName,

@@ -240,7 +240,17 @@ export const sendChatRequest = async (user, inputData) => {
 
 // Accept or Reject Chat Request
 export const respondToChatRequest = async (user, conversationId, action) => {
-  const conversation = await getConversation(user, conversationId);
+  const targetId = typeof conversationId === 'object' && conversationId !== null
+    ? (conversationId.id || conversationId._id)
+    : conversationId;
+
+  if (!targetId || typeof targetId !== 'string') {
+    const error = new Error('Invalid conversation identifier');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const conversation = await getConversation(user, targetId);
 
   if (conversation.status !== 'pending') {
     const error = new Error(`Conversation is not in pending status (current: ${conversation.status})`);
@@ -255,16 +265,23 @@ export const respondToChatRequest = async (user, conversationId, action) => {
     throw error;
   }
 
+  const now = new Date().toISOString();
+
   if (action === 'accept') {
+    await Conversation.findByIdAndUpdate(conversation.id, {
+      status: 'accepted',
+      acceptedAt: now,
+      lastMessage: 'Chat request accepted. You can now communicate freely.',
+      lastMessageAt: now,
+    });
     conversation.status = 'accepted';
-    conversation.acceptedAt = new Date().toISOString();
+    conversation.acceptedAt = now;
     conversation.lastMessage = 'Chat request accepted. You can now communicate freely.';
-    conversation.lastMessageAt = new Date().toISOString();
-    await conversation.save();
+    conversation.lastMessageAt = now;
 
     // Create system message
     const welcomeMsg = new Message({
-      conversationId: conversation._id,
+      conversationId: conversation.id || conversation._id,
       senderId: user.id,
       receiverId: initiatorId,
       messageType: 'system',
@@ -278,35 +295,38 @@ export const respondToChatRequest = async (user, conversationId, action) => {
       type: 'CHAT_REQUEST_ACCEPTED',
       title: 'Chat Request Accepted',
       message: `${user.name || 'User'} accepted your chat request! You can now send messages, photos, and voice notes.`,
-      data: { conversationId: conversation._id.toString() },
+      data: { conversationId: (conversation.id || conversation._id).toString() },
       relatedEntityType: 'Conversation',
-      relatedEntityId: conversation._id,
+      relatedEntityId: conversation.id || conversation._id,
     });
 
     try {
       const io = getIO();
       if (io) {
         io.to(`user:${initiatorId}`).emit('chat_request:accepted', {
-          conversationId: conversation._id,
+          conversationId: conversation.id || conversation._id,
           acceptedBy: { id: user.id, name: user.name },
         });
-        io.to(`conversation:${conversation._id.toString()}`).emit('chat_request:accepted', {
-          conversationId: conversation._id,
+        io.to(`conversation:${(conversation.id || conversation._id).toString()}`).emit('chat_request:accepted', {
+          conversationId: conversation.id || conversation._id,
         });
       }
     } catch (_e) {}
 
     return conversation;
   } else if (action === 'reject') {
+    await Conversation.findByIdAndUpdate(conversation.id, {
+      status: 'rejected',
+      rejectedAt: now,
+    });
     conversation.status = 'rejected';
-    conversation.rejectedAt = new Date().toISOString();
-    await conversation.save();
+    conversation.rejectedAt = now;
 
     try {
       const io = getIO();
       if (io) {
         io.to(`user:${initiatorId}`).emit('chat_request:rejected', {
-          conversationId: conversation._id,
+          conversationId: conversation.id || conversation._id,
         });
       }
     } catch (_e) {}

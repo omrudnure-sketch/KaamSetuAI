@@ -308,10 +308,18 @@ export const AdminMapPage = () => {
   // Safe formatting helper to prevent any React child object crashes
   const safeText = (val, fallback = 'Unspecified') => {
     if (val === null || val === undefined) return fallback;
-    if (typeof val === 'string') return val;
-    if (typeof val === 'number') return String(val);
+    if (typeof val === 'string') return val.trim() || fallback;
+    if (typeof val === 'number' || typeof val === 'boolean') return String(val);
     if (typeof val === 'object') {
-      return val.name || val.title || val.city || fallback;
+      if (val.$ifNull) {
+        const sub = Array.isArray(val.$ifNull) ? val.$ifNull[1] : val.$ifNull;
+        return safeText(sub, fallback);
+      }
+      const candidate = val.name || val.title || val.city || val.label || val.value;
+      if (candidate !== undefined && candidate !== null && candidate !== val) {
+        return safeText(candidate, fallback);
+      }
+      return fallback;
     }
     return String(val);
   };
@@ -596,7 +604,7 @@ export const AdminMapPage = () => {
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[130px]">
-                            {m.name}
+                            {safeText(m.name, 'Unnamed')}
                           </span>
                           <span
                             className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded"
@@ -605,11 +613,11 @@ export const AdminMapPage = () => {
                               color: cfg.borderColor,
                             }}
                           >
-                            {cfg.label.split(' ')[0]}
+                            {safeText(cfg.label, '').split(' ')[0]}
                           </span>
                         </div>
                         <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
-                          <span>{m.skill || m.companyName || m.city}</span>
+                          <span>{safeText(m.skill || m.companyName || m.city, 'General')}</span>
                           <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
                             {m.dailyWage ? `${m.dailyWage} ₹` : m.wageAmount ? `${m.wageAmount} ₹` : ''}
                           </span>
@@ -677,20 +685,20 @@ export const AdminMapPage = () => {
                   filteredUnlocated.map((u) => (
                     <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
                       <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-slate-100">
-                        {u.name}
+                        {safeText(u.name, 'Unnamed')}
                       </td>
                       <td className="py-2.5 px-3 uppercase text-[10px] font-extrabold text-slate-500">
-                        {u.entityType}
+                        {safeText(u.entityType, 'Entity')}
                       </td>
                       <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400">
-                        {safeText(u.city)}
+                        {safeText(u.city, 'Unspecified')}
                       </td>
                       <td className="py-2.5 px-3 font-mono text-slate-600 dark:text-slate-400">
-                        {u.phone || 'N/A'}
+                        {safeText(u.phone, 'N/A')}
                       </td>
                       <td className="py-2.5 px-3">
                         <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                          {u.reason || 'Missing GPS coordinates'}
+                          {safeText(u.reason, 'Missing GPS coordinates')}
                         </span>
                       </td>
                     </tr>
@@ -749,7 +757,8 @@ export const AdminMapPage = () => {
                     const openJ = Number(row.openJobs) || 0;
                     const onProj = Number(row.ongoingProjects) || 0;
                     const gap = Number(row.gap) !== undefined ? Number(row.gap) : Math.max(0, openJ - avail);
-                    const alert = row.status || (gap >= 3 ? 'Critical Shortage' : gap > 0 ? 'Moderate Shortage' : 'Balanced');
+                    const rawAlert = row.status || (gap >= 3 ? 'Critical Shortage' : gap > 0 ? 'Moderate Shortage' : 'Balanced');
+                    const alert = safeText(rawAlert, 'Balanced');
 
                     return (
                       <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
@@ -778,9 +787,9 @@ export const AdminMapPage = () => {
                         <td className="py-2.5 px-3">
                           <span
                             className={`px-2 py-0.5 rounded-md font-bold text-[10px] uppercase border ${
-                              alert.includes('Critical')
+                              String(alert).includes('Critical')
                                 ? 'bg-rose-500/15 text-rose-600 border-rose-500/30'
-                                : alert.includes('Moderate')
+                                : String(alert).includes('Moderate')
                                 ? 'bg-amber-500/15 text-amber-600 border-amber-500/30'
                                 : 'bg-emerald-500/15 text-emerald-600 border-emerald-500/30'
                             }`}
