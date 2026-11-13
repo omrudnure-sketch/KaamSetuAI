@@ -419,6 +419,14 @@ export class SupabaseModel {
         const snakeData = mapObjectToSnake(docData);
         delete snakeData._id; // PostgreSQL uses 'id'
         const validColumnsData = filterValidColumns(this.tableName, snakeData);
+
+        // Omit null/undefined values on insert so PostgreSQL defaults apply safely
+        for (const [k, v] of Object.entries(validColumnsData)) {
+          if (v === null || v === undefined) {
+            delete validColumnsData[k];
+          }
+        }
+
         const { data: inserted, error } = await supabaseAdmin
           .from(this.tableName)
           .insert(validColumnsData)
@@ -433,29 +441,37 @@ export class SupabaseModel {
           }
 
           // Auto-heal schema cache errors (e.g., PostgREST PGRST204: Could not find the 'xyz' column)
-          const colMatch = error.message?.match(/Could not find the '([^']+)' column/i);
-          if (colMatch && colMatch[1]) {
-            const missingCol = colMatch[1];
-            console.warn(`[Supabase Auto-Heal]: Column '${missingCol}' missing in '${this.tableName}'. Removing and retrying insert...`);
-            if (SUPABASE_TABLE_COLUMNS[this.tableName]) {
-              SUPABASE_TABLE_COLUMNS[this.tableName].delete(missingCol);
-            }
-            delete validColumnsData[missingCol];
-            const retryRes = await supabaseAdmin
-              .from(this.tableName)
-              .insert(validColumnsData)
-              .select()
-              .single();
-            if (!retryRes.error && retryRes.data) {
-              const doc = new SupabaseDocument(mapObjectToCamel(retryRes.data), this);
-              getInMemoryStore(this.tableName).set(doc.id, doc);
-              return doc;
+          let currentError = error;
+          let retryCount = 0;
+          while (currentError && retryCount < 5) {
+            const colMatch = currentError.message?.match(/Could not find the '([^']+)' column/i);
+            if (colMatch && colMatch[1]) {
+              const missingCol = colMatch[1];
+              console.warn(`[Supabase Auto-Heal]: Column '${missingCol}' missing in '${this.tableName}'. Removing and retrying insert...`);
+              if (SUPABASE_TABLE_COLUMNS[this.tableName]) {
+                SUPABASE_TABLE_COLUMNS[this.tableName].delete(missingCol);
+              }
+              delete validColumnsData[missingCol];
+              retryCount++;
+              const retryRes = await supabaseAdmin
+                .from(this.tableName)
+                .insert(validColumnsData)
+                .select()
+                .single();
+              if (!retryRes.error && retryRes.data) {
+                const doc = new SupabaseDocument(mapObjectToCamel(retryRes.data), this);
+                getInMemoryStore(this.tableName).set(doc.id, doc);
+                return doc;
+              }
+              currentError = retryRes.error;
+            } else {
+              break;
             }
           }
 
           console.warn(`[Supabase ${this.tableName} Insert Notice]:`, error.message || error.code);
           if (process.env.NODE_ENV === 'production') {
-            throw new Error(`Database insert failed for ${this.tableName}: ${error.message}`);
+            throw new Error(`Database insert failed for ${this.tableName}: ${currentError?.message || error.message}`);
           }
         } else if (inserted) {
           const doc = new SupabaseDocument(mapObjectToCamel(inserted), this);
@@ -514,29 +530,37 @@ export class SupabaseModel {
           getInMemoryStore(this.tableName).set(doc.id, doc);
           return options.new === false ? existing : doc;
         } else if (error) {
-          const colMatch = error.message?.match(/Could not find the '([^']+)' column/i);
-          if (colMatch && colMatch[1]) {
-            const missingCol = colMatch[1];
-            console.warn(`[Supabase Auto-Heal]: Column '${missingCol}' missing in table '${this.tableName}'. Removing and retrying update...`);
-            if (SUPABASE_TABLE_COLUMNS[this.tableName]) {
-              SUPABASE_TABLE_COLUMNS[this.tableName].delete(missingCol);
-            }
-            delete validColumnsData[missingCol];
-            const retryRes = await supabaseAdmin
-              .from(this.tableName)
-              .update(validColumnsData)
-              .eq('id', existing.id)
-              .select()
-              .single();
-            if (!retryRes.error && retryRes.data) {
-              const doc = new SupabaseDocument(mapObjectToCamel(retryRes.data), this);
-              getInMemoryStore(this.tableName).set(doc.id, doc);
-              return options.new === false ? existing : doc;
+          let currentError = error;
+          let retryCount = 0;
+          while (currentError && retryCount < 5) {
+            const colMatch = currentError.message?.match(/Could not find the '([^']+)' column/i);
+            if (colMatch && colMatch[1]) {
+              const missingCol = colMatch[1];
+              console.warn(`[Supabase Auto-Heal]: Column '${missingCol}' missing in table '${this.tableName}'. Removing and retrying update...`);
+              if (SUPABASE_TABLE_COLUMNS[this.tableName]) {
+                SUPABASE_TABLE_COLUMNS[this.tableName].delete(missingCol);
+              }
+              delete validColumnsData[missingCol];
+              retryCount++;
+              const retryRes = await supabaseAdmin
+                .from(this.tableName)
+                .update(validColumnsData)
+                .eq('id', existing.id)
+                .select()
+                .single();
+              if (!retryRes.error && retryRes.data) {
+                const doc = new SupabaseDocument(mapObjectToCamel(retryRes.data), this);
+                getInMemoryStore(this.tableName).set(doc.id, doc);
+                return options.new === false ? existing : doc;
+              }
+              currentError = retryRes.error;
+            } else {
+              break;
             }
           }
           if (process.env.NODE_ENV === 'production') {
-            console.error(`[Supabase ${this.tableName} update error]:`, error.message);
-            throw new Error(`Database update failed for ${this.tableName}: ${error.message}`);
+            console.error(`[Supabase ${this.tableName} update error]:`, currentError?.message || error.message);
+            throw new Error(`Database update failed for ${this.tableName}: ${currentError?.message || error.message}`);
           }
         }
       } catch (err) {

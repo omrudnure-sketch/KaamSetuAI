@@ -10,11 +10,9 @@ const Conversation = createModel('conversations', {
   conversationType: 'direct',
   lastMessage: '',
   lastMessageAt: new Date().toISOString(),
-  status: 'accepted',
+  status: 'pending',
   initiatedBy: null,
   requestMessage: '',
-  acceptedAt: null,
-  rejectedAt: null,
 });
 
 export default Conversation;

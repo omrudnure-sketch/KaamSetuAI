@@ -102,6 +102,51 @@ export const AdminMapPage = () => {
   const mapInstanceRef = useRef(null);
   const markersLayerRef = useRef(null);
 
+  // Deep sanitization helper to strip any MongoDB-style operator objects ($ifNull, etc.)
+  const deepSanitize = (val) => {
+    if (val === null || val === undefined) return val;
+    if (typeof val === 'number' || typeof val === 'boolean') return val;
+    if (typeof val === 'string') return val;
+    if (Array.isArray(val)) return val.map(deepSanitize);
+    if (typeof val === 'object') {
+      if (val.$ifNull) {
+        return Array.isArray(val.$ifNull) ? String(val.$ifNull[1] || 'Unspecified') : 'Unspecified';
+      }
+      const clean = {};
+      for (const [k, v] of Object.entries(val)) {
+        if (k.startsWith('$')) continue;
+        clean[k] = deepSanitize(v);
+      }
+      return clean;
+    }
+    return String(val);
+  };
+
+  // Safe formatting helpers to prevent any React child object crashes
+  const safeNumber = (val, fallback = 0) => {
+    if (typeof val === 'number' && !isNaN(val)) return val;
+    if (typeof val === 'string' && val.trim() !== '' && !isNaN(Number(val))) return Number(val);
+    return fallback;
+  };
+
+  const safeText = (val, fallback = 'Unspecified') => {
+    if (val === null || val === undefined) return fallback;
+    if (typeof val === 'string') return val.trim() || fallback;
+    if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+    if (typeof val === 'object') {
+      if (val.$ifNull) {
+        const sub = Array.isArray(val.$ifNull) ? val.$ifNull[1] : val.$ifNull;
+        return safeText(sub, fallback);
+      }
+      const candidate = val.name || val.title || val.city || val.label || val.value;
+      if (candidate !== undefined && candidate !== null && typeof candidate !== 'object' && candidate !== val) {
+        return safeText(candidate, fallback);
+      }
+      return fallback;
+    }
+    return String(val);
+  };
+
   // Fetch geographic intelligence from backend
   const fetchData = async () => {
     setLoading(true);
@@ -118,7 +163,9 @@ export const AdminMapPage = () => {
         }),
       ]);
 
-      const entityData = resEntities.data || {};
+      const entityData = deepSanitize(resEntities.data || {});
+      const rawGaps = deepSanitize(resGaps.data || []);
+
       setMarkersData(Array.isArray(entityData.markers) ? entityData.markers : []);
       setUnlocatedData(Array.isArray(entityData.unlocated) ? entityData.unlocated : []);
       setCounts(entityData.counts || {});
@@ -126,8 +173,8 @@ export const AdminMapPage = () => {
       // Use backend supply demand summary, with fallback to resGaps
       if (Array.isArray(entityData.supplyDemandSummary) && entityData.supplyDemandSummary.length > 0) {
         setSupplyDemandRows(entityData.supplyDemandSummary);
-      } else if (Array.isArray(resGaps.data)) {
-        setSupplyDemandRows(resGaps.data);
+      } else if (Array.isArray(rawGaps)) {
+        setSupplyDemandRows(rawGaps);
       }
     } catch (err) {
       console.error('Error in AdminMapPage data fetch:', err);
@@ -305,25 +352,6 @@ export const AdminMapPage = () => {
     setTypeFilters((prev) => ({ ...prev, [typeKey]: !prev[typeKey] }));
   };
 
-  // Safe formatting helper to prevent any React child object crashes
-  const safeText = (val, fallback = 'Unspecified') => {
-    if (val === null || val === undefined) return fallback;
-    if (typeof val === 'string') return val.trim() || fallback;
-    if (typeof val === 'number' || typeof val === 'boolean') return String(val);
-    if (typeof val === 'object') {
-      if (val.$ifNull) {
-        const sub = Array.isArray(val.$ifNull) ? val.$ifNull[1] : val.$ifNull;
-        return safeText(sub, fallback);
-      }
-      const candidate = val.name || val.title || val.city || val.label || val.value;
-      if (candidate !== undefined && candidate !== null && candidate !== val) {
-        return safeText(candidate, fallback);
-      }
-      return fallback;
-    }
-    return String(val);
-  };
-
   return (
     <div className="w-full space-y-5 py-3">
       {/* ==============================================================
@@ -367,7 +395,7 @@ export const AdminMapPage = () => {
             <span className="w-2.5 h-2.5 rounded-full bg-cyan-500" />
           </div>
           <div className="text-2xl font-black text-cyan-600 dark:text-cyan-400 mt-1">
-            {counts.availableWorkers || markersData.filter((m) => m.markerType === 'available_worker').length}
+            {safeNumber(counts.availableWorkers, markersData.filter((m) => m.markerType === 'available_worker').length)}
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">Ready for work</div>
         </div>
@@ -378,7 +406,7 @@ export const AdminMapPage = () => {
             <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
           </div>
           <div className="text-2xl font-black text-slate-600 dark:text-slate-300 mt-1">
-            {counts.busyWorkers || markersData.filter((m) => m.markerType === 'busy_worker').length}
+            {safeNumber(counts.busyWorkers, markersData.filter((m) => m.markerType === 'busy_worker').length)}
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">On active gigs</div>
         </div>
@@ -389,7 +417,7 @@ export const AdminMapPage = () => {
             <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
           </div>
           <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
-            {counts.employers || markersData.filter((m) => m.markerType === 'employer').length}
+            {safeNumber(counts.employers, markersData.filter((m) => m.markerType === 'employer').length)}
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">Registered hubs</div>
         </div>
@@ -400,7 +428,7 @@ export const AdminMapPage = () => {
             <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
           </div>
           <div className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">
-            {counts.activeJobs || markersData.filter((m) => m.markerType === 'active_job').length}
+            {safeNumber(counts.activeJobs, markersData.filter((m) => m.markerType === 'active_job').length)}
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">Open postings</div>
         </div>
@@ -411,7 +439,7 @@ export const AdminMapPage = () => {
             <span className="w-2.5 h-2.5 rounded-full bg-orange-500 animate-ping" />
           </div>
           <div className="text-2xl font-black text-orange-600 dark:text-orange-400 mt-1">
-            {counts.unfilledJobs || markersData.filter((m) => m.markerType === 'unfilled_job').length}
+            {safeNumber(counts.unfilledJobs, markersData.filter((m) => m.markerType === 'unfilled_job').length)}
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">Need workers</div>
         </div>
@@ -422,7 +450,7 @@ export const AdminMapPage = () => {
             <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
           </div>
           <div className="text-2xl font-black text-purple-600 dark:text-purple-400 mt-1">
-            {counts.ongoingProjects || markersData.filter((m) => m.markerType === 'ongoing_project').length}
+            {safeNumber(counts.ongoingProjects, markersData.filter((m) => m.markerType === 'ongoing_project').length)}
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">Live work sites</div>
         </div>
@@ -433,7 +461,7 @@ export const AdminMapPage = () => {
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
           </div>
           <div className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">
-            {unlocatedData.length}
+            {safeNumber(unlocatedData.length, 0)}
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">Missing GPS</div>
         </div>
@@ -752,11 +780,11 @@ export const AdminMapPage = () => {
                 ) : (
                   supplyDemandRows.map((row, idx) => {
                     const cityName = safeText(row.city || row._id);
-                    const avail = Number(row.availableWorkers) || 0;
-                    const totalW = Number(row.totalWorkers) || avail;
-                    const openJ = Number(row.openJobs) || 0;
-                    const onProj = Number(row.ongoingProjects) || 0;
-                    const gap = Number(row.gap) !== undefined ? Number(row.gap) : Math.max(0, openJ - avail);
+                    const avail = safeNumber(row.availableWorkers, 0);
+                    const totalW = safeNumber(row.totalWorkers, avail);
+                    const openJ = safeNumber(row.openJobs, 0);
+                    const onProj = safeNumber(row.ongoingProjects, 0);
+                    const gap = safeNumber(row.gap, Math.max(0, openJ - avail));
                     const rawAlert = row.status || (gap >= 3 ? 'Critical Shortage' : gap > 0 ? 'Moderate Shortage' : 'Balanced');
                     const alert = safeText(rawAlert, 'Balanced');
 

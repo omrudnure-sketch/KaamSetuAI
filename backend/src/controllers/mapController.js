@@ -43,15 +43,36 @@ export const haversineDistanceKm = (lat1, lon1, lat2, lon2) => {
 export const extractSafeString = (val, fallback = 'Unspecified') => {
   if (val === null || val === undefined) return fallback;
   if (typeof val === 'string') return val.trim() || fallback;
-  if (typeof val === 'number') return String(val);
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
   if (typeof val === 'object') {
     if (val.$ifNull) {
       const sub = Array.isArray(val.$ifNull) ? val.$ifNull[1] : val.$ifNull;
       return extractSafeString(sub, fallback);
     }
     const candidate = val.city || val.name || val.title || val.skill;
-    if (candidate && candidate !== val) return extractSafeString(candidate, fallback);
+    if (candidate && typeof candidate !== 'object' && candidate !== val) return extractSafeString(candidate, fallback);
     return fallback;
+  }
+  return String(val);
+};
+
+// Helper: Recursively sanitize payloads so no MongoDB-style operator objects ($ifNull, etc.) reach JSON
+export const sanitizeForJson = (val) => {
+  if (val === null || val === undefined) return val;
+  if (typeof val === 'number' || typeof val === 'boolean') return val;
+  if (typeof val === 'string') return val;
+  if (Array.isArray(val)) return val.map(sanitizeForJson);
+  if (typeof val === 'object') {
+    if (val.$ifNull) {
+      const sub = Array.isArray(val.$ifNull) ? val.$ifNull[1] : 'Unspecified';
+      return sanitizeForJson(sub);
+    }
+    const clean = {};
+    for (const [k, v] of Object.entries(val)) {
+      if (k.startsWith('$')) continue;
+      clean[k] = sanitizeForJson(v);
+    }
+    return clean;
   }
   return String(val);
 };
@@ -316,7 +337,7 @@ export const getAdminGeoSupply = async (req, res, next) => {
       { $sort: { totalWorkers: -1 } },
     ]);
 
-    res.json({
+    res.json(sanitizeForJson({
       success: true,
       data: supplyByCity.map((c) => ({
         city: extractSafeString(c._id, 'Unspecified'),
@@ -325,7 +346,7 @@ export const getAdminGeoSupply = async (req, res, next) => {
         verifiedWorkers: Number(c.verifiedWorkers || 0),
         avgWage: Math.round(Number(c.avgWage) || 0),
       })),
-    });
+    }));
   } catch (error) {
     next(error);
   }
@@ -350,7 +371,7 @@ export const getAdminGeoDemand = async (req, res, next) => {
       { $sort: { openJobs: -1 } },
     ]);
 
-    res.json({
+    res.json(sanitizeForJson({
       success: true,
       data: demandByCity.map((c) => ({
         city: extractSafeString(c._id, 'Unspecified'),
@@ -358,7 +379,7 @@ export const getAdminGeoDemand = async (req, res, next) => {
         workersNeeded: Number(c.workersNeeded || 0),
         avgWage: Math.round(Number(c.avgWage) || 0),
       })),
-    });
+    }));
   } catch (error) {
     next(error);
   }
@@ -472,10 +493,10 @@ export const getAdminGeoGaps = async (req, res, next) => {
     // Sort by largest gap first
     tableRows.sort((a, b) => b.gap - a.gap);
 
-    res.json({
+    res.json(sanitizeForJson({
       success: true,
       data: tableRows,
-    });
+    }));
   } catch (error) {
     next(error);
   }
@@ -751,7 +772,7 @@ export const getAdminGeoEntities = async (req, res, next) => {
 
     supplyDemandSummary.sort((a, b) => b.gap - a.gap || b.openJobs - a.openJobs);
 
-    res.json({
+    res.json(sanitizeForJson({
       success: true,
       data: {
         markers,
@@ -769,7 +790,7 @@ export const getAdminGeoEntities = async (req, res, next) => {
         },
         supplyDemandSummary,
       },
-    });
+    }));
   } catch (error) {
     next(error);
   }
