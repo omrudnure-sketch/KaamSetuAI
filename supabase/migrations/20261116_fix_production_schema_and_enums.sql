@@ -52,6 +52,11 @@ ALTER TABLE IF EXISTS payments
     ADD COLUMN IF NOT EXISTS transaction_ref VARCHAR(100),
     ADD COLUMN IF NOT EXISTS notes TEXT;
 
+-- Ensure payer_id and payee_id do not fail on legacy NOT NULL constraints
+ALTER TABLE IF EXISTS payments
+    ALTER COLUMN payer_id DROP NOT NULL,
+    ALTER COLUMN payee_id DROP NOT NULL;
+
 -- 4. PROGRESS UPDATES TABLE — Rich Work Logs
 ALTER TABLE IF EXISTS progress_updates
     ADD COLUMN IF NOT EXISTS description TEXT,
@@ -79,3 +84,4 @@ ALTER TABLE IF EXISTS worker_profiles
 
 -- 7. NOTIFY POSTGREST TO RELOAD SCHEMA CACHE IMMEDIATELY
 NOTIFY pgrst, 'reload schema';
+

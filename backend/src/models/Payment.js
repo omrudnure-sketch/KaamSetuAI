@@ -6,6 +6,8 @@ const Payment = createModel('payments', {
   projectWorkerId: null,
   workerId: null,
   employerId: null,
+  payerId: null,
+  payeeId: null,
   type: 'daily',
   wageType: 'daily',
   amount: 0,

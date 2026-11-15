@@ -347,11 +347,10 @@ export const WorkerProjectDetailPage = () => {
             <button
               key={l}
               onClick={() => setLang(l)}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all capitalize ${
-                lang === l
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all capitalize ${lang === l
                   ? 'bg-primary text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
+                }`}
             >
               {l === 'en' ? 'English' : l === 'mr' ? 'मराठी' : 'हिंदी'}
             </button>
@@ -512,8 +511,8 @@ export const WorkerProjectDetailPage = () => {
                 const destUrl = hasCoords
                   ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
                   : addr
-                  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`
-                  : null;
+                    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`
+                    : null;
 
                 if (!destUrl) return null;
                 return (
@@ -584,8 +583,8 @@ export const WorkerProjectDetailPage = () => {
                   {attendance?.checkOut
                     ? 'Check-out completed for today'
                     : attendance?.checkIn
-                    ? 'Checked in, shift actively in progress'
-                    : 'Not checked in yet today'}
+                      ? 'Checked in, shift actively in progress'
+                      : 'Not checked in yet today'}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -768,11 +767,10 @@ export const WorkerProjectDetailPage = () => {
                       <span className="font-bold text-slate-900 dark:text-white">
                         Requested End: {new Date(ext.requestedEndDate).toLocaleDateString()}
                       </span>
-                      <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] ${
-                        ext.status === 'approved' ? 'ks-badge-emerald' :
-                        ext.status === 'rejected' ? 'ks-badge-rose' :
-                        'ks-badge-amber'
-                      }`}>
+                      <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] ${ext.status === 'approved' ? 'ks-badge-emerald' :
+                          ext.status === 'rejected' ? 'ks-badge-rose' :
+                            'ks-badge-amber'
+                        }`}>
                         {ext.status}
                       </span>
                     </div>
@@ -812,7 +810,7 @@ export const WorkerProjectDetailPage = () => {
           <h2 className="text-xl font-bold text-slate-900 dark:text-white border-b border-slate-200/80 dark:border-white/10 pb-3">
             {t.payments}
           </h2>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
             <div className="ks-glass-card p-4 space-y-1">
               <span className="text-xs text-slate-500 dark:text-slate-400">{t.expectedAmount}</span>

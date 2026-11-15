@@ -203,6 +203,14 @@ export const mapObjectToCamel = (obj) => {
   if (res.additionalDays !== undefined) {
     res.additionalDays = Number(res.additionalDays);
   }
+  if (res.workersNeeded !== undefined) {
+    res.workersRequired = Number(res.workersNeeded);
+  } else if (res.workersRequired !== undefined) {
+    res.workersNeeded = Number(res.workersRequired);
+  }
+  if (!res.startDate && res.createdAt) {
+    res.startDate = res.createdAt;
+  }
   if (res.participantA && res.participantB && (!res.participants || !res.participants.length)) {
     res.participants = [String(res.participantA), String(res.participantB)];
   }

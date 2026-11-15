@@ -1,4 +1,6 @@
+import fs from 'fs';
 import * as chatService from '../services/chatService.js';
+import { supabaseAdmin } from '../config/supabase.js';
 import {
   validateConversationInput,
   validateSendChatRequestInput,
@@ -184,7 +186,45 @@ export const uploadChatImage = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No image file uploaded' });
     }
 
-    const fileUrl = `/uploads/chat/images/${req.file.filename}`;
+    let fileUrl = `/uploads/chat/images/${req.file.filename}`;
+
+    // 1. Try uploading to Supabase Storage bucket 'chat-media'
+    if (supabaseAdmin) {
+      try {
+        const fileBuffer = fs.readFileSync(req.file.path);
+        const storagePath = `images/${req.file.filename}`;
+        const { data: uploadData, error: uploadErr } = await supabaseAdmin.storage
+          .from('chat-media')
+          .upload(storagePath, fileBuffer, {
+            contentType: req.file.mimetype,
+            upsert: true,
+          });
+
+        if (!uploadErr && uploadData) {
+          const { data: publicUrlData } = supabaseAdmin.storage
+            .from('chat-media')
+            .getPublicUrl(storagePath);
+          if (publicUrlData?.publicUrl) {
+            fileUrl = publicUrlData.publicUrl;
+          }
+        } else {
+          // If storage bucket is not configured, persist permanently as Base64 Data URL
+          const base64Data = fileBuffer.toString('base64');
+          fileUrl = `data:${req.file.mimetype};base64,${base64Data}`;
+        }
+      } catch (_storageErr) {
+        try {
+          const fileBuffer = fs.readFileSync(req.file.path);
+          fileUrl = `data:${req.file.mimetype};base64,${fileBuffer.toString('base64')}`;
+        } catch (_readErr) {}
+      }
+    } else {
+      try {
+        const fileBuffer = fs.readFileSync(req.file.path);
+        fileUrl = `data:${req.file.mimetype};base64,${fileBuffer.toString('base64')}`;
+      } catch (_readErr) {}
+    }
+
     return res.status(200).json({
       success: true,
       data: {
@@ -209,8 +249,45 @@ export const uploadChatAudio = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No audio file uploaded' });
     }
 
-    const fileUrl = `/uploads/chat/audio/${req.file.filename}`;
+    let fileUrl = `/uploads/chat/audio/${req.file.filename}`;
     const duration = parseInt(req.body.duration, 10) || 0;
+
+    // 1. Try uploading to Supabase Storage bucket 'chat-media'
+    if (supabaseAdmin) {
+      try {
+        const fileBuffer = fs.readFileSync(req.file.path);
+        const storagePath = `audio/${req.file.filename}`;
+        const { data: uploadData, error: uploadErr } = await supabaseAdmin.storage
+          .from('chat-media')
+          .upload(storagePath, fileBuffer, {
+            contentType: req.file.mimetype,
+            upsert: true,
+          });
+
+        if (!uploadErr && uploadData) {
+          const { data: publicUrlData } = supabaseAdmin.storage
+            .from('chat-media')
+            .getPublicUrl(storagePath);
+          if (publicUrlData?.publicUrl) {
+            fileUrl = publicUrlData.publicUrl;
+          }
+        } else {
+          // Fallback: persist permanently as Base64 Data URL
+          const base64Data = fileBuffer.toString('base64');
+          fileUrl = `data:${req.file.mimetype};base64,${base64Data}`;
+        }
+      } catch (_storageErr) {
+        try {
+          const fileBuffer = fs.readFileSync(req.file.path);
+          fileUrl = `data:${req.file.mimetype};base64,${fileBuffer.toString('base64')}`;
+        } catch (_readErr) {}
+      }
+    } else {
+      try {
+        const fileBuffer = fs.readFileSync(req.file.path);
+        fileUrl = `data:${req.file.mimetype};base64,${fileBuffer.toString('base64')}`;
+      } catch (_readErr) {}
+    }
 
     return res.status(200).json({
       success: true,

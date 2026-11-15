@@ -511,18 +511,39 @@ export const WorkerJobsPage = () => {
                       </div>
 
                       <div className="flex items-center gap-1.5">
-                        <MapPin className="w-4 h-4 text-rose-500" />
-                        <span className="truncate">{job.location?.city || 'N/A'}{job.location?.area ? `, ${job.location.area}` : ''}</span>
+                        <MapPin className="w-4 h-4 text-rose-500 flex-shrink-0" />
+                        <span className="truncate">
+                          {(() => {
+                            if (typeof job.location === 'string' && job.location.trim()) {
+                              return job.location;
+                            }
+                            const parts = [
+                              job.location?.area || job.area,
+                              job.location?.city || job.city,
+                              job.location?.address || job.address
+                            ].filter(Boolean);
+                            if (parts.length > 0) return parts.join(', ');
+                            return job.location?.city || job.city || job.location?.area || job.area || 'Kolhapur';
+                          })()}
+                        </span>
                       </div>
 
                       <div className="flex items-center gap-1.5">
-                        <Calendar className="w-4 h-4 text-primary dark:text-sky-400" />
-                        <span>{new Date(job.startDate).toLocaleDateString()}</span>
+                        <Calendar className="w-4 h-4 text-primary dark:text-sky-400 flex-shrink-0" />
+                        <span>
+                          {(() => {
+                            const rawDate = job.startDate || job.start_date || job.createdAt || job.created_at;
+                            if (rawDate && !isNaN(new Date(rawDate).getTime())) {
+                              return new Date(rawDate).toLocaleDateString();
+                            }
+                            return lang === 'mr' ? 'लगेच उपलब्ध' : lang === 'hi' ? 'तुरंत उपलब्ध' : 'Immediate';
+                          })()}
+                        </span>
                       </div>
 
                       <div className="flex items-center gap-1.5">
-                        <Users className="w-4 h-4 text-amber-500" />
-                        <span>{job.workersRequired} {t.workersNeeded}</span>
+                        <Users className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                        <span>{job.workersRequired || job.workersNeeded || job.workers_needed || 1} {t.workersNeeded}</span>
                       </div>
                     </div>
 
@@ -534,11 +555,7 @@ export const WorkerJobsPage = () => {
                   </div>
 
                   {/* Card Footer Action */}
-                  <div className="pt-3 border-t border-slate-200/80 dark:border-white/10 space-y-2">
-                    <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-xl text-center">
-                      <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">{t.applyNotice}</p>
-                    </div>
-
+                  <div className="pt-3 border-t border-slate-200/80 dark:border-white/10">
                     <Link
                       to={`/worker/jobs/${job._id}?lang=${lang}`}
                       className="ks-btn-primary w-full inline-flex items-center justify-center gap-2 py-2.5 text-xs font-bold"

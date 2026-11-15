@@ -11,7 +11,12 @@ export const AudioBubblePlayer = ({ audioUrl, duration = 0, isOutgoing = false }
   // Normalize media URL: handles direct relative /uploads/..., full URL, or blob
   const resolvedUrl = React.useMemo(() => {
     if (!audioUrl) return '';
-    if (audioUrl.startsWith('http://') || audioUrl.startsWith('https://') || audioUrl.startsWith('blob:')) {
+    if (
+      audioUrl.startsWith('http://') ||
+      audioUrl.startsWith('https://') ||
+      audioUrl.startsWith('blob:') ||
+      audioUrl.startsWith('data:')
+    ) {
       return audioUrl;
     }
     // If relative path like /uploads/..., can use relative via Vite proxy or append backend root

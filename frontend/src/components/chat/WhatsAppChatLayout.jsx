@@ -898,17 +898,33 @@ export const WhatsAppChatLayout = ({ portalRole = 'worker', selectedConversation
                           <div className="mb-1.5 rounded-xl overflow-hidden cursor-pointer group/img">
                             <img
                               src={
-                                msg.attachmentUrl.startsWith('http') || msg.attachmentUrl.startsWith('blob:')
+                                msg.attachmentUrl.startsWith('http') ||
+                                msg.attachmentUrl.startsWith('blob:') ||
+                                msg.attachmentUrl.startsWith('data:')
                                   ? msg.attachmentUrl
                                   : `${getSocketBaseUrl()}${msg.attachmentUrl}`
                               }
                               alt={msg.content || 'Photo'}
-                              onClick={() =>
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.style.display = 'none';
+                                if (e.currentTarget.parentElement) {
+                                  e.currentTarget.parentElement.innerHTML =
+                                    '<div class="p-3 text-xs bg-black/20 rounded-lg text-slate-400">Photo expired</div>';
+                                }
+                              }}
+                              onClick={() => {
+                                const resolvedUrl =
+                                  msg.attachmentUrl.startsWith('http') ||
+                                  msg.attachmentUrl.startsWith('blob:') ||
+                                  msg.attachmentUrl.startsWith('data:')
+                                    ? msg.attachmentUrl
+                                    : `${getSocketBaseUrl()}${msg.attachmentUrl}`;
                                 setLightboxImage({
-                                  url: msg.attachmentUrl,
+                                  url: resolvedUrl,
                                   caption: msg.content !== '📷 Photo' ? msg.content : '',
-                                })
-                              }
+                                });
+                              }}
                               className="max-h-64 w-auto object-cover rounded-xl transition-transform group-hover/img:scale-[1.02]"
                             />
                           </div>

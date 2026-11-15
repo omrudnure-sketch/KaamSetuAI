@@ -222,6 +222,30 @@ export const getAvailableJobs = async (queryParams) => {
     jobs.map(async (jobDoc) => {
       const job = jobDoc.toJSON ? jobDoc.toJSON() : { ...jobDoc };
       
+      // Normalize workers needed and date
+      job.workersRequired = job.workersRequired || job.workersNeeded || job.workers_needed || 1;
+      job.workersNeeded = job.workersRequired;
+      job.startDate = job.startDate || job.start_date || job.createdAt || job.created_at;
+
+      // Normalize location object structure
+      if (typeof job.location === 'string') {
+        const parts = job.location.split(',').map((s) => s.trim());
+        job.location = {
+          area: parts[0] || job.area || '',
+          city: parts[1] || job.city || parts[0] || 'Kolhapur',
+          address: job.location,
+        };
+      } else if (!job.location || typeof job.location !== 'object') {
+        job.location = {
+          city: job.city || 'Kolhapur',
+          area: job.area || '',
+          address: job.address || '',
+        };
+      } else {
+        if (!job.location.city && job.city) job.location.city = job.city;
+        if (!job.location.area && job.area) job.location.area = job.area;
+      }
+
       // Never expose employer phone/email publicly on jobs listing
       if (job.employerId && typeof job.employerId === 'object') {
         delete job.employerId.phone;
