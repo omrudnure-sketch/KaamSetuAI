@@ -13,6 +13,7 @@ export const handleCreateOrUpdateProgress = async (req, res, next) => {
     if (!validation.isValid) {
       return res.status(400).json({
         success: false,
+        message: validation.error,
         error: { message: validation.error },
       });
     }

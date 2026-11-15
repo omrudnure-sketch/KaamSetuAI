@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { updateWorkerAvailability, fetchWorkerProfile } from '../services/profileApi.js';
+import { getSessionLocation } from '../services/locationService.js';
 import { workerTranslations } from '../utils/workerTranslations.js';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 
@@ -50,10 +51,25 @@ export const WorkerAvailabilityControl = ({
     setSaving(true);
     setFeedback({ type: '', message: '' });
 
+    // Obtain current or permitted location if toggling available
+    let locationData = {};
+    if (targetStatus) {
+      const cached = getSessionLocation();
+      if (cached?.lat && cached?.lng) {
+        locationData = {
+          latitude: Number(cached.lat),
+          longitude: Number(cached.lng),
+          city: cached.city || undefined,
+          area: cached.area || undefined,
+        };
+      }
+    }
+
     try {
       const res = await updateWorkerAvailability({
         isAvailableForWork: targetStatus,
         availability: targetStatus ? 'available' : 'unavailable',
+        ...locationData,
       });
       if (res.success) {
         setFeedback({

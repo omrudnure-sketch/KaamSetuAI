@@ -107,6 +107,13 @@ export const updateWorkerAvailability = async (userId, availabilityData) => {
     availabilityUpdatedAt: new Date().toISOString(),
   };
 
+  if (availabilityData.latitude !== undefined && availabilityData.longitude !== undefined) {
+    update.latitude = Number(availabilityData.latitude);
+    update.longitude = Number(availabilityData.longitude);
+  }
+  if (availabilityData.city) update.city = availabilityData.city;
+  if (availabilityData.area) update.area = availabilityData.area;
+
   const updated = await WorkerProfile.findOneAndUpdate({ userId }, update, { new: true });
   return formatWorkerProfileResponse(updated);
 };

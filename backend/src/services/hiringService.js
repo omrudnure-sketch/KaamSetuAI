@@ -512,6 +512,22 @@ export const acceptHiringAgreement = async (userId, userRole, agreementId) => {
       workerId: agreement.workerId,
       agreedWage: agreement.agreedWage,
     });
+
+    // If confirmed agreements fulfill the job worker requirement, auto-complete the job
+    if (agreement.jobId) {
+      try {
+        const agreementJob = await Job.findById(agreement.jobId);
+        if (agreementJob) {
+          const limit = Number(agreementJob.workersRequired || agreementJob.workersNeeded || 1);
+          const selectedApps = await JobApplication.countDocuments({ jobId: agreement.jobId, status: 'selected' });
+          const confirmedAgreements = await HiringAgreement.countDocuments({ jobId: agreement.jobId, status: 'confirmed' });
+          const acceptedTotal = Math.max(selectedApps, confirmedAgreements + 1);
+          if (acceptedTotal >= limit && agreementJob.status === 'open') {
+            await Job.findByIdAndUpdate(agreementJob.id || agreementJob._id, { status: 'completed' });
+          }
+        }
+      } catch (_e) {}
+    }
   } else {
     agreement.status = userRole === 'employer' ? 'pending_worker' : 'pending_employer';
     emitEvent('HIRING_ACCEPTED', {

@@ -19,6 +19,18 @@ export const applyToJob = async (workerId, payload) => {
     throw error;
   }
 
+  // Check if job worker requirement limit has already been fulfilled
+  const limit = Number(job.workersRequired || job.workersNeeded || 1);
+  const selectedCount = await JobApplication.countDocuments({ jobId, status: 'selected' });
+  if (selectedCount >= limit) {
+    if (job.status === 'open') {
+      await Job.findByIdAndUpdate(jobId, { status: 'completed' });
+    }
+    const error = new Error('Cannot apply to a job whose worker requirement is already fulfilled');
+    error.statusCode = 400;
+    throw error;
+  }
+
   const jobEmployerId = job.employerId?._id || job.employerId?.id || job.employerId;
   if (jobEmployerId && jobEmployerId.toString() === workerId.toString()) {
     const error = new Error('Worker cannot apply to their own job');
@@ -182,8 +194,27 @@ export const selectApplication = async (employerId, applicationId) => {
     throw error;
   }
 
+  const actualJobId = (job?._id || job?.id || application.jobId).toString();
+  const limit = Number(job?.workersRequired || job?.workersNeeded || 1);
+  const selectedCount = await JobApplication.countDocuments({ jobId: actualJobId, status: 'selected' });
+
+  // Guard against exceeding the employer's required worker limit
+  if (selectedCount >= limit) {
+    if (job && job.status === 'open') {
+      await Job.findByIdAndUpdate(actualJobId, { status: 'completed' });
+    }
+    const error = new Error(`Worker requirement for this job has already been fulfilled (${selectedCount}/${limit} workers accepted)`);
+    error.statusCode = 400;
+    throw error;
+  }
+
   application.status = 'selected';
   await application.save();
+
+  // If selecting this worker completes the worker requirement, automatically update status to 'completed'
+  if (selectedCount + 1 >= limit) {
+    await Job.findByIdAndUpdate(actualJobId, { status: 'completed' });
+  }
 
   try {
     await createNotification({
@@ -191,7 +222,7 @@ export const selectApplication = async (employerId, applicationId) => {
       type: 'APPLICATION_SELECTED',
       title: 'Application Selected!',
       message: 'Your job application has been selected by the employer.',
-      data: { applicationId: application._id.toString(), jobId: (job?._id || application.jobId).toString() },
+      data: { applicationId: application._id.toString(), jobId: actualJobId },
       relatedEntityType: 'JobApplication',
       relatedEntityId: application._id,
     });
@@ -225,8 +256,21 @@ export const rejectApplication = async (employerId, applicationId) => {
     throw error;
   }
 
+  const wasSelected = application.status === 'selected';
   application.status = 'rejected';
   await application.save();
+
+  // If a previously selected application is rejected, check if completed job should revert to open
+  if (wasSelected && job) {
+    try {
+      const actualJobId = (job._id || job.id).toString();
+      const limit = Number(job.workersRequired || job.workersNeeded || 1);
+      const remainingSelected = await JobApplication.countDocuments({ jobId: actualJobId, status: 'selected' });
+      if (remainingSelected < limit && job.status === 'completed') {
+        await Job.findByIdAndUpdate(actualJobId, { status: 'open' });
+      }
+    } catch (_e) {}
+  }
 
   return application;
 };
@@ -245,14 +289,30 @@ export const withdrawApplication = async (workerId, applicationId) => {
     throw error;
   }
 
-  if (application.status !== 'pending' && application.status !== 'shortlisted') {
-    const error = new Error(`Cannot withdraw application with status '${application.status}'`);
+  if (application.status === 'withdrawn' || application.status === 'rejected') {
+    const error = new Error(`Application is already ${application.status}`);
     error.statusCode = 400;
     throw error;
   }
 
+  const wasSelected = application.status === 'selected';
   application.status = 'withdrawn';
   await application.save();
+
+  // If a previously selected application is withdrawn, check if completed job should revert to open
+  if (wasSelected && application.jobId) {
+    try {
+      const job = await Job.findById(application.jobId);
+      if (job) {
+        const actualJobId = (job._id || job.id).toString();
+        const limit = Number(job.workersRequired || job.workersNeeded || 1);
+        const remainingSelected = await JobApplication.countDocuments({ jobId: actualJobId, status: 'selected' });
+        if (remainingSelected < limit && job.status === 'completed') {
+          await Job.findByIdAndUpdate(actualJobId, { status: 'open' });
+        }
+      }
+    } catch (_e) {}
+  }
 
   return application;
 };

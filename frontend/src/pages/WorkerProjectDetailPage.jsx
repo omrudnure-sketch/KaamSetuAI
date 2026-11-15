@@ -212,7 +212,7 @@ export const WorkerProjectDetailPage = () => {
         fetchProjectDetails();
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to save progress');
+      alert(err.response?.data?.message || err.response?.data?.error?.message || 'Failed to save progress');
     } finally {
       setSubmitting(false);
     }

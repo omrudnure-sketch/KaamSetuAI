@@ -8,10 +8,10 @@ export const recordPayment = async (user, projectId, inputData) => {
     throw error;
   }
 
-  const employerId = (project.employerId?._id || project.employerId?.id || project.employerId)?.toString();
+  const employerId = (project.employerId?._id || project.employerId?.id || project.employerId || project.employer_id || user.id || user._id)?.toString();
   const userId = (user.id || user._id)?.toString();
 
-  if (employerId !== userId) {
+  if (employerId && userId && employerId !== userId) {
     const error = new Error('Only the project employer can record payments');
     error.statusCode = 403;
     throw error;
@@ -28,17 +28,18 @@ export const recordPayment = async (user, projectId, inputData) => {
     throw error;
   }
 
+  const targetWorkerId = (projectWorker.workerId?._id || projectWorker.workerId?.id || projectWorker.workerId || projectWorker.worker_id)?.toString();
   const wageType = ['daily', 'hourly', 'milestone', 'fixed'].includes(inputData.type)
     ? inputData.type
     : inputData.type === 'weekly' ? 'daily' : 'milestone';
 
   const payment = new Payment({
     projectId,
-    projectWorkerId: projectWorker._id,
-    workerId: projectWorker.workerId,
-    payeeId: projectWorker.workerId,
-    employerId: employerId,
-    payerId: employerId,
+    projectWorkerId: projectWorker._id || projectWorker.id,
+    workerId: targetWorkerId,
+    payeeId: targetWorkerId,
+    employerId: employerId || userId,
+    payerId: employerId || userId,
     type: inputData.type || 'daily',
     wageType,
     amount: inputData.amount,

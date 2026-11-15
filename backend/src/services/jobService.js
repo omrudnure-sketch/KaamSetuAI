@@ -1,10 +1,32 @@
 import Job from '../models/Job.js';
 import EmployerProfile from '../models/EmployerProfile.js';
 import User from '../models/User.js';
+import { resolveCityCoordinates } from '../controllers/mapController.js';
 
 export const createJobForEmployer = async (employerId, jobData) => {
+  let latitude = jobData.latitude || jobData.location?.coordinates?.[1];
+  let longitude = jobData.longitude || jobData.location?.coordinates?.[0];
+  const cityName = jobData.city || jobData.location?.city || jobData.location?.address;
+
+  if ((!latitude || !longitude || (latitude === 0 && longitude === 0)) && cityName) {
+    const coords = resolveCityCoordinates(cityName);
+    if (coords) {
+      longitude = coords[0];
+      latitude = coords[1];
+    }
+  }
+
   const job = new Job({
     ...jobData,
+    latitude: latitude || undefined,
+    longitude: longitude || undefined,
+    location: {
+      ...(jobData.location || {}),
+      city: jobData.city || jobData.location?.city || '',
+      area: jobData.area || jobData.location?.area || '',
+      address: jobData.address || jobData.location?.address || '',
+      coordinates: longitude && latitude ? [longitude, latitude] : undefined,
+    },
     employerId,
   });
   return await job.save();
@@ -46,9 +68,21 @@ export const getEmployerJobById = async (employerId, jobId, isAdmin = false) => 
 };
 
 export const updateEmployerJob = async (employerId, jobId, updateData) => {
+  const patch = { ...updateData };
+  const cityName = patch.city || patch.location?.city;
+  if (cityName && (!patch.latitude || !patch.longitude || (patch.latitude === 0 && patch.longitude === 0))) {
+    const coords = resolveCityCoordinates(cityName);
+    if (coords) {
+      patch.longitude = coords[0];
+      patch.latitude = coords[1];
+      if (patch.location) {
+        patch.location.coordinates = [coords[0], coords[1]];
+      }
+    }
+  }
   return await Job.findOneAndUpdate(
     { _id: jobId, employerId },
-    { $set: updateData },
+    { $set: patch },
     { new: true, runValidators: true }
   );
 };

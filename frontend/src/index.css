@@ -255,7 +255,38 @@
     background-color: var(--color-surface);
     color: var(--color-on-surface);
     overscroll-behavior: none;
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   }
+
+  /* Smooth, non-flickering transitions for theme-dependent surfaces and navigation */
+  header, nav, aside, main, footer {
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .ks-glass-card,
+  .bg-white,
+  .bg-slate-50,
+  .bg-slate-100,
+  .bg-slate-800,
+  .bg-slate-900,
+  .bg-slate-950 {
+    transition: background-color 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html, body, header, nav, aside, main, footer,
+    .ks-glass-card, .bg-white, .bg-slate-50, .bg-slate-100,
+    .bg-slate-800, .bg-slate-900, .bg-slate-950 {
+      transition: none !important;
+    }
+  }
+
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }

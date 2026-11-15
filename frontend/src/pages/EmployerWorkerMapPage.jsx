@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import L from 'leaflet';
 import { authApiClient } from '../services/authApi.js';
 import { LocationAccessBar } from '../components/LocationAccessBar.jsx';
-import { getSessionLocation } from '../services/locationService.js';
+import { getSessionLocation, KNOWN_REGIONS } from '../services/locationService.js';
 import {
   Map as MapIcon,
   List,
@@ -138,7 +138,21 @@ export const EmployerWorkerMapPage = () => {
       const validPoints = [];
 
       workers.forEach((w) => {
-        const coords = w?.location?.coordinates;
+        let coords = w?.location?.coordinates;
+        if (!coords || coords.length < 2 || (coords[0] === 0 && coords[1] === 0)) {
+          const cityCandidate = (typeof w?.location === 'object' ? w?.location?.city : w?.location) || w?.city;
+          if (cityCandidate) {
+            const matched = KNOWN_REGIONS.find(
+              (r) =>
+                r.city.toLowerCase() === cityCandidate.trim().toLowerCase() ||
+                r.name.toLowerCase().includes(cityCandidate.trim().toLowerCase())
+            );
+            if (matched) {
+              coords = [matched.lng, matched.lat];
+            }
+          }
+        }
+
         if (coords && coords.length >= 2 && !(coords[0] === 0 && coords[1] === 0)) {
           const lng = coords[0];
           const lat = coords[1];

@@ -99,6 +99,10 @@ export const workerProfileUpdateSchema = workerProfileSchema.partial();
 export const workerAvailabilitySchema = z.object({
   isAvailableForWork: z.boolean().optional(),
   availability: z.enum(['available', 'unavailable', 'busy']).optional(),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+  city: z.string().optional(),
+  area: z.string().optional(),
 });
 
 export const validateWorkerProfile = (data, isUpdate = false) => {

@@ -4,10 +4,12 @@ const createProgressSchema = z
   .object({
     date: z.string().optional(),
     percentage: z
-      .number({ required_error: 'Progress percentage is required' })
-      .min(0, 'Percentage cannot be less than 0')
-      .max(100, 'Percentage cannot exceed 100'),
+      .union([z.number(), z.string().transform((v) => Number(v))])
+      .refine((val) => !isNaN(val) && val >= 0 && val <= 100, {
+        message: 'Progress percentage must be between 0 and 100',
+      }),
     description: z.string().max(2000, 'Description cannot exceed 2000 characters').optional().default(''),
+    summary: z.string().max(2000).optional(),
     tasksCompleted: z.array(z.string()).optional().default([]),
     blockers: z.array(z.string()).optional().default([]),
     expectedCompletionDate: z
@@ -15,9 +17,8 @@ const createProgressSchema = z
       .nullable()
       .optional()
       .refine((val) => !val || !isNaN(Date.parse(val)), { message: 'Invalid expected completion date' }),
-    photos: z.array(z.string().url('Photo must be a valid URL')).optional().default([]),
-  })
-  .strict();
+    photos: z.array(z.string()).optional().default([]),
+  });
 
 export const validateProgressInput = (data) => {
   const result = createProgressSchema.safeParse(data);

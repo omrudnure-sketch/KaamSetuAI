@@ -4,7 +4,7 @@ import { createJob, getEmployerJobById, updateJob } from '../services/jobApi.js'
 import { Briefcase, ArrowLeft, Save, AlertCircle, CheckCircle2, Sparkles, MapPin, DollarSign, Calendar, Clock } from 'lucide-react';
 import { AiJobDescriptionAssistant } from '../components/AiJobDescriptionAssistant.jsx';
 import { LocationAccessBar } from '../components/LocationAccessBar.jsx';
-import { getSessionLocation } from '../services/locationService.js';
+import { getSessionLocation, KNOWN_REGIONS } from '../services/locationService.js';
 
 const SKILL_OPTIONS = [
   { value: 'electrician', label: 'Electrician' },
@@ -133,10 +133,33 @@ export const CreateJobPage = () => {
         coordinates:
           siteLocation?.lat && siteLocation?.lng
             ? { type: 'Point', coordinates: [siteLocation.lng, siteLocation.lat] }
-            : undefined,
+            : (() => {
+                const matched = formData.city
+                  ? KNOWN_REGIONS.find(
+                      (r) =>
+                        r.city?.toLowerCase() === formData.city.trim().toLowerCase() ||
+                        r.name?.toLowerCase().includes(formData.city.trim().toLowerCase())
+                    )
+                  : null;
+                return matched ? { type: 'Point', coordinates: [matched.lng, matched.lat] } : undefined;
+              })(),
       },
-      latitude: siteLocation?.lat || undefined,
-      longitude: siteLocation?.lng || undefined,
+      latitude:
+        siteLocation?.lat ||
+        KNOWN_REGIONS.find(
+          (r) =>
+            r.city?.toLowerCase() === formData.city.trim().toLowerCase() ||
+            r.name?.toLowerCase().includes(formData.city.trim().toLowerCase())
+        )?.lat ||
+        undefined,
+      longitude:
+        siteLocation?.lng ||
+        KNOWN_REGIONS.find(
+          (r) =>
+            r.city?.toLowerCase() === formData.city.trim().toLowerCase() ||
+            r.name?.toLowerCase().includes(formData.city.trim().toLowerCase())
+        )?.lng ||
+        undefined,
       wageType: formData.wageType,
       wageAmount: Number(formData.wageAmount),
       durationType: formData.durationType,

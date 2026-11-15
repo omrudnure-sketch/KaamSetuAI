@@ -5,9 +5,7 @@ const Payment = createModel('payments', {
   projectId: null,
   projectWorkerId: null,
   workerId: null,
-  payeeId: null,
   employerId: null,
-  payerId: null,
   type: 'daily',
   wageType: 'daily',
   amount: 0,
@@ -15,7 +13,6 @@ const Payment = createModel('payments', {
   status: 'recorded',
   method: 'cash',
   reference: '',
-  transactionRef: '',
   notes: '',
   createdBy: null,
 });

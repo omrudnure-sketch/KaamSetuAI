@@ -1,5 +1,42 @@
 import { Job, WorkerProfile, Project, EmployerProfile, User } from '../models/index.js';
 
+// Offline reference coordinates for major cities across Maharashtra and India
+export const CITY_COORDINATES = {
+  pune: [73.8567, 18.5204],
+  mumbai: [72.8777, 19.076],
+  'navi mumbai': [73.0297, 19.033],
+  thane: [72.9781, 19.2183],
+  nagpur: [79.0882, 21.1458],
+  nashik: [73.7898, 19.9975],
+  kolhapur: [74.2433, 16.705],
+  'chhatrapati sambhajinagar': [75.3433, 19.8762],
+  aurangabad: [75.3433, 19.8762],
+  solapur: [75.9064, 17.6599],
+  amravati: [77.7796, 20.9374],
+  sangli: [74.5815, 16.8524],
+  nanded: [77.321, 19.1383],
+  jalgaon: [75.5626, 21.0077],
+  akola: [77.0082, 20.7002],
+  latur: [76.5604, 18.4088],
+  dhule: [74.7749, 20.9042],
+  ahmednagar: [74.748, 19.0948],
+  satara: [73.999, 17.6805],
+  ratnagiri: [73.312, 16.9902],
+  rukadi: [74.3621, 16.7392],
+  delhi: [77.209, 28.6139],
+  bengaluru: [77.5946, 12.9716],
+  hyderabad: [78.4867, 17.385],
+};
+
+export const resolveCityCoordinates = (cityName) => {
+  if (!cityName || typeof cityName !== 'string') return null;
+  const clean = cityName.trim().toLowerCase();
+  for (const [k, v] of Object.entries(CITY_COORDINATES)) {
+    if (clean === k || clean.includes(k) || k.includes(clean)) return v; // [lng, lat]
+  }
+  return null;
+};
+
 // Helper: validate coordinates
 export const isValidCoordinate = (lng, lat) => {
   const numLng = Number(lng);
@@ -129,51 +166,74 @@ export const getJobsMap = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .limit(100);
 
-    let formattedJobs = jobs.map((jobDoc) => {
-      const j = jobDoc.toJSON ? jobDoc.toJSON() : { ...jobDoc };
-      let jLng = j.longitude;
-      let jLat = j.latitude;
-      if (jLng === undefined || jLat === undefined || (jLng === 0 && jLat === 0)) {
-        if (Array.isArray(j.location?.coordinates)) {
-          jLng = j.location.coordinates[0];
-          jLat = j.location.coordinates[1];
-        } else if (Array.isArray(j.location?.coordinates?.coordinates)) {
-          jLng = j.location.coordinates.coordinates[0];
-          jLat = j.location.coordinates.coordinates[1];
+    let formattedJobs = jobs
+      .filter((jobDoc) => {
+        const j = jobDoc.toJSON ? jobDoc.toJSON() : { ...jobDoc };
+        // Exclude jobs that are not open or whose requirement is fulfilled
+        if (j.status !== 'open') return false;
+        const needed = Number(j.workersRequired || j.workersNeeded || 1);
+        if (j.assignedWorkersCount && Number(j.assignedWorkersCount) >= needed) return false;
+        return true;
+      })
+      .map((jobDoc) => {
+        const j = jobDoc.toJSON ? jobDoc.toJSON() : { ...jobDoc };
+        let jLng = j.longitude;
+        let jLat = j.latitude;
+        if (jLng === undefined || jLat === undefined || (jLng === 0 && jLat === 0) || jLng === null || jLat === null) {
+          if (Array.isArray(j.location?.coordinates)) {
+            jLng = j.location.coordinates[0];
+            jLat = j.location.coordinates[1];
+          } else if (Array.isArray(j.location?.coordinates?.coordinates)) {
+            jLng = j.location.coordinates.coordinates[0];
+            jLat = j.location.coordinates.coordinates[1];
+          } else if (j.location?.lng && j.location?.lat) {
+            jLng = j.location.lng;
+            jLat = j.location.lat;
+          }
         }
-      }
-      const hasCoords = isValidCoordinate(jLng, jLat);
-      const coords = [Number(jLng) || 0, Number(jLat) || 0];
 
-      let distanceKm = null;
-      if (hasSearchCoords && hasCoords) {
-        distanceKm = haversineDistanceKm(searchLat, searchLng, Number(jLat), Number(jLng));
-      }
+        // City fallback lookup if GPS coordinates were not provided
+        if (!isValidCoordinate(jLng, jLat)) {
+          const cityCandidate = j.city || j.location?.city || (typeof j.location === 'string' ? j.location : '');
+          const resolved = resolveCityCoordinates(cityCandidate);
+          if (resolved) {
+            jLng = resolved[0];
+            jLat = resolved[1];
+          }
+        }
 
-      return {
-        _id: j.id || j._id,
-        id: j.id || j._id,
-        title: j.title,
-        skillRequired: j.skillRequired,
-        workersRequired: j.workersRequired,
-        wageType: j.wageType,
-        wageAmount: j.wageAmount,
-        durationType: j.durationType,
-        startDate: j.startDate,
-        workingHours: j.workingHours,
-        distanceKm,
-        location: {
-          city: j.city || j.location?.city || (typeof j.location === 'string' ? j.location : '') || 'Unspecified',
-          area: j.area || j.location?.area || '',
-          address: j.address || j.location?.address || '',
-          coordinates: coords, // [lng, lat]
-          hasCoordinates: hasCoords,
-        },
-        employer: {
-          name: j.employerId?.name || 'Employer',
-        },
-      };
-    });
+        const hasCoords = isValidCoordinate(jLng, jLat);
+        const coords = [Number(jLng) || 0, Number(jLat) || 0];
+
+        let distanceKm = null;
+        if (hasSearchCoords && hasCoords) {
+          distanceKm = haversineDistanceKm(searchLat, searchLng, Number(jLat), Number(jLng));
+        }
+
+        return {
+          _id: j.id || j._id,
+          id: j.id || j._id,
+          title: j.title,
+          skillRequired: j.skillRequired,
+          workersRequired: Number(j.workersRequired || j.workersNeeded || 1),
+          wageType: j.wageType,
+          wageAmount: j.wageAmount,
+          durationType: j.durationType,
+          startDate: j.startDate,
+          workingHours: j.workingHours,
+          distanceKm,
+          location: {
+            city: j.city || j.location?.city || (typeof j.location === 'string' ? j.location : '') || 'Unspecified',
+            area: j.area || j.location?.area || '',
+            address: j.address || j.location?.address || '',
+            coordinates: coords, // [lng, lat]
+            hasCoordinates: hasCoords,
+          },
+          employer: {
+            name: j.employerId?.name || 'Employer',
+          },
+        };
+      });
 
     if (hasSearchCoords) {
       formattedJobs = formattedJobs.filter((j) => !j.location.hasCoordinates || j.distanceKm === null || j.distanceKm <= searchRadiusKm);
@@ -222,6 +282,9 @@ export const getWorkersMap = async (req, res, next) => {
 
     if (availability) {
       query.availability = availability;
+    } else {
+      // Default to returning only available workers on the map
+      query.availability = 'available';
     }
 
     if (verificationStatus) {
@@ -260,40 +323,68 @@ export const getWorkersMap = async (req, res, next) => {
     // Filter out inactive or suspended accounts
     const activeWorkers = workers.filter((w) => !w.userId || w.userId.status === 'active');
 
-    let formattedWorkers = activeWorkers.map((workerDoc) => {
-      const w = workerDoc.toJSON ? workerDoc.toJSON() : { ...workerDoc };
-      const wLng = w.longitude ?? (w.location?.coordinates?.coordinates?.[0] ?? 0);
-      const wLat = w.latitude ?? (w.location?.coordinates?.coordinates?.[1] ?? 0);
-      const rawCoords = [Number(wLng) || 0, Number(wLat) || 0];
-      const approxCoords = approximateCoordinates(rawCoords);
+    let formattedWorkers = activeWorkers
+      .map((workerDoc) => {
+        const w = workerDoc.toJSON ? workerDoc.toJSON() : { ...workerDoc };
+        let wLng = w.longitude;
+        let wLat = w.latitude;
 
-      let distanceKm = null;
-      if (hasSearchCoords && isValidCoordinate(wLng, wLat)) {
-        distanceKm = haversineDistanceKm(searchLat, searchLng, Number(wLat), Number(wLng));
-      }
+        if (wLng === undefined || wLat === undefined || (wLng === 0 && wLat === 0) || wLng === null || wLat === null) {
+          if (Array.isArray(w.location?.coordinates)) {
+            wLng = w.location.coordinates[0];
+            wLat = w.location.coordinates[1];
+          } else if (Array.isArray(w.location?.coordinates?.coordinates)) {
+            wLng = w.location.coordinates.coordinates[0];
+            wLat = w.location.coordinates.coordinates[1];
+          } else if (w.location?.lng && w.location?.lat) {
+            wLng = w.location.lng;
+            wLat = w.location.lat;
+          }
+        }
 
-      return {
-        _id: w.id || w._id,
-        id: w.id || w._id,
-        fullName: w.fullName || 'Skilled Worker',
-        primarySkill: w.primarySkill || (Array.isArray(w.skills) ? w.skills[0] : 'General Worker'),
-        skills: w.skills || [],
-        experienceYears: w.experienceYears || 0,
-        dailyWage: w.dailyWage || 0,
-        availability: w.availability || 'available',
-        isAvailableForWork: w.isAvailableForWork ?? (w.availability !== 'unavailable'),
-        verificationStatus: w.verificationStatus,
-        rating: w.rating || 0,
-        totalReviews: w.totalReviews || w.reviewCount || 0,
-        distanceKm,
-        location: {
-          city: w.city || w.location?.city || 'Unspecified',
-          area: w.area || w.location?.area || '',
-          coordinates: approxCoords || [0, 0], // Approximate for privacy!
-          hasCoordinates: approxCoords !== null,
-        },
-      };
-    });
+        // City fallback lookup for offline/city-matched workers
+        if (!isValidCoordinate(wLng, wLat)) {
+          const cityCandidate = w.city || w.location?.city || (typeof w.location === 'string' ? w.location : '');
+          const resolved = resolveCityCoordinates(cityCandidate);
+          if (resolved) {
+            wLng = resolved[0];
+            wLat = resolved[1];
+          }
+        }
+
+        const isAvail = w.isAvailableForWork !== false && w.availability !== 'unavailable';
+        const rawCoords = [Number(wLng) || 0, Number(wLat) || 0];
+        const approxCoords = approximateCoordinates(rawCoords);
+
+        let distanceKm = null;
+        if (hasSearchCoords && isValidCoordinate(wLng, wLat)) {
+          distanceKm = haversineDistanceKm(searchLat, searchLng, Number(wLat), Number(wLng));
+        }
+
+        return {
+          _id: w.id || w._id,
+          id: w.id || w._id,
+          fullName: w.fullName || 'Skilled Worker',
+          primarySkill: w.primarySkill || (Array.isArray(w.skills) ? w.skills[0] : 'General Worker'),
+          skills: w.skills || [],
+          experienceYears: w.experienceYears || 0,
+          dailyWage: w.dailyWage || 0,
+          availability: w.availability || 'available',
+          isAvailableForWork: isAvail,
+          verificationStatus: w.verificationStatus,
+          rating: w.rating || 0,
+          totalReviews: w.totalReviews || w.reviewCount || 0,
+          distanceKm,
+          location: {
+            city: w.city || w.location?.city || 'Unspecified',
+            area: w.area || w.location?.area || '',
+            coordinates: approxCoords || [0, 0], // Approximate for privacy!
+            hasCoordinates: approxCoords !== null,
+          },
+        };
+      })
+      // Only available workers with valid coordinates appear on the discovery map
+      .filter((w) => w.isAvailableForWork && w.location.hasCoordinates);
 
     if (hasSearchCoords) {
       formattedWorkers = formattedWorkers.filter((w) => !w.location.hasCoordinates || w.distanceKm === null || w.distanceKm <= searchRadiusKm);

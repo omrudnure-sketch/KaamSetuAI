@@ -17,6 +17,8 @@ import {
   UserCheck,
   AlertCircle,
   FileText,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import {
   getMyConversations,
@@ -49,9 +51,15 @@ export const WhatsAppChatLayout = ({ portalRole = 'worker', selectedConversation
   const [activeConv, setActiveConv] = useState(null);
   const [messages, setMessages] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loadingChats, setLoadingChats] = useState(true);
+  const [chatsError, setChatsError] = useState(null);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [messagesError, setMessagesError] = useState(null);
   const [sending, setSending] = useState(false);
   const [textInput, setTextInput] = useState('');
+
+  // Cache messages by conversationId to avoid unnecessary re-fetching and flicker on switch
+  const messagesCacheRef = useRef({});
 
   // Media recording & uploading state
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
@@ -84,6 +92,14 @@ export const WhatsAppChatLayout = ({ portalRole = 'worker', selectedConversation
     if (!socket) return;
 
     const handleNewMessage = (newMsg) => {
+      const convId = newMsg.conversationId;
+      if (convId) {
+        const cached = messagesCacheRef.current[convId] || [];
+        if (!cached.some((m) => (m._id || m.id) === (newMsg._id || newMsg.id))) {
+          messagesCacheRef.current[convId] = [...cached, newMsg];
+        }
+      }
+
       if (activeConv && (newMsg.conversationId === activeConv._id || newMsg.conversationId === activeConv.id)) {
         setMessages((prev) => {
           if (prev.some((m) => (m._id || m.id) === (newMsg._id || newMsg.id))) return prev;
@@ -102,6 +118,15 @@ export const WhatsAppChatLayout = ({ portalRole = 'worker', selectedConversation
           (msg._id || msg.id) === messageId ? { ...msg, isRead: true, readAt } : msg
         )
       );
+      // Also update cache
+      if (activeConv) {
+        const convId = activeConv._id || activeConv.id;
+        if (messagesCacheRef.current[convId]) {
+          messagesCacheRef.current[convId] = messagesCacheRef.current[convId].map((msg) =>
+            (msg._id || msg.id) === messageId ? { ...msg, isRead: true, readAt } : msg
+          );
+        }
+      }
     };
 
     const handleChatRequestReceived = () => {
@@ -131,10 +156,11 @@ export const WhatsAppChatLayout = ({ portalRole = 'worker', selectedConversation
   // Auto scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, imagePreviewUrl]);
+  }, [messages, imagePreviewUrl, sending, uploadingMedia]);
 
   const loadData = async () => {
-    setLoading(true);
+    setLoadingChats(true);
+    setChatsError(null);
     try {
       const [convRes, reqRes] = await Promise.all([
         getMyConversations(),
@@ -166,8 +192,9 @@ export const WhatsAppChatLayout = ({ portalRole = 'worker', selectedConversation
       }
     } catch (err) {
       console.error('Failed to load chat data:', err);
+      setChatsError('Unable to load conversations. Please check your connection.');
     } finally {
-      setLoading(false);
+      setLoadingChats(false);
     }
   };
 
@@ -201,9 +228,23 @@ export const WhatsAppChatLayout = ({ portalRole = 'worker', selectedConversation
   };
 
   const loadMessages = async (convId) => {
+    if (!convId) return;
+    setMessagesError(null);
+
+    // If already in memory cache, show cached messages immediately to eliminate blank screen
+    const cached = messagesCacheRef.current[convId];
+    if (Array.isArray(cached) && cached.length > 0) {
+      setMessages(cached);
+      setLoadingMessages(false);
+    } else {
+      setLoadingMessages(true);
+      setMessages([]);
+    }
+
     try {
       const res = await getMessages(convId);
       const msgList = res?.data || [];
+      messagesCacheRef.current[convId] = msgList;
       setMessages(msgList);
 
       // Mark unread messages as read
@@ -215,6 +256,11 @@ export const WhatsAppChatLayout = ({ portalRole = 'worker', selectedConversation
       });
     } catch (err) {
       console.error('Failed to load messages:', err);
+      if (!messagesCacheRef.current[convId]) {
+        setMessagesError('Failed to load messages. Please tap to retry.');
+      }
+    } finally {
+      setLoadingMessages(false);
     }
   };
 
@@ -613,7 +659,37 @@ export const WhatsAppChatLayout = ({ portalRole = 'worker', selectedConversation
           ) : (
             /* All Chats View */
             <>
-              {filteredConversations.length === 0 ? (
+              {loadingChats ? (
+                /* Conversation List Skeleton Loader */
+                <div className="p-3 space-y-3" role="status" aria-label="Loading conversations">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="flex items-center gap-3 p-2 rounded-xl animate-pulse">
+                      <div className="w-11 h-11 rounded-full bg-slate-200 dark:bg-slate-800 shrink-0" />
+                      <div className="flex-1 space-y-2 py-1">
+                        <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded w-2/5" />
+                        <div className="h-2.5 bg-slate-200/80 dark:bg-slate-800/80 rounded w-3/4" />
+                      </div>
+                      <div className="h-2 bg-slate-200 dark:bg-slate-800 rounded w-8" />
+                    </div>
+                  ))}
+                </div>
+              ) : chatsError ? (
+                /* Error with retry */
+                <div className="p-6 text-center space-y-3">
+                  <div className="w-10 h-10 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-500 flex items-center justify-center mx-auto">
+                    <AlertCircle className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">{chatsError}</p>
+                  <button
+                    type="button"
+                    onClick={loadData}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary/90 transition-colors shadow-xs"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Retry</span>
+                  </button>
+                </div>
+              ) : filteredConversations.length === 0 ? (
                 <div className="p-8 text-center text-slate-400 space-y-2">
                   <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center mx-auto text-slate-400">
                     <UserCheck className="w-6 h-6" />
@@ -753,7 +829,37 @@ export const WhatsAppChatLayout = ({ portalRole = 'worker', selectedConversation
 
             {/* Message Stream */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {messages.length === 0 ? (
+              {loadingMessages ? (
+                /* Message Stream Skeleton */
+                <div className="space-y-4 p-2 animate-pulse" role="status" aria-label="Loading messages">
+                  <div className="flex justify-start">
+                    <div className="w-44 sm:w-64 h-12 rounded-2xl rounded-tl-xs bg-slate-200/90 dark:bg-slate-800" />
+                  </div>
+                  <div className="flex justify-end">
+                    <div className="w-52 sm:w-72 h-14 rounded-2xl rounded-tr-xs bg-emerald-100 dark:bg-emerald-950/40" />
+                  </div>
+                  <div className="flex justify-start">
+                    <div className="w-56 sm:w-80 h-16 rounded-2xl rounded-tl-xs bg-slate-200/90 dark:bg-slate-800" />
+                  </div>
+                  <div className="flex justify-end">
+                    <div className="w-40 sm:w-52 h-10 rounded-2xl rounded-tr-xs bg-emerald-100 dark:bg-emerald-950/40" />
+                  </div>
+                </div>
+              ) : messagesError ? (
+                /* Messages Error with Retry */
+                <div className="text-center py-12 space-y-3">
+                  <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
+                  <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">{messagesError}</p>
+                  <button
+                    type="button"
+                    onClick={() => loadMessages(activeConv?._id || activeConv?.id)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary/90 transition-colors shadow-xs"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Retry Loading Messages</span>
+                  </button>
+                </div>
+              ) : messages.length === 0 ? (
                 <div className="text-center py-12 text-slate-400 space-y-2">
                   <p className="text-xs font-semibold">Start the conversation</p>
                   <p className="text-[11px]">Send a message, site photo, or audio voice note below.</p>
@@ -900,6 +1006,17 @@ export const WhatsAppChatLayout = ({ portalRole = 'worker', selectedConversation
                   );
                 })
               )}
+
+              {/* Optimistic Pending Message / Uploading Indicator */}
+              {(sending || uploadingMedia) && (
+                <div className="flex justify-end">
+                  <div className="max-w-[75%] p-3 rounded-2xl rounded-tr-xs bg-emerald-600 text-white shadow-xs opacity-95 flex items-center gap-2 text-xs">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                    <span>{uploadingMedia ? 'Uploading media attachment...' : (textInput.trim() || 'Sending message...')}</span>
+                  </div>
+                </div>
+              )}
+
               <div ref={messagesEndRef} />
             </div>
 

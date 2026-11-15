@@ -50,13 +50,27 @@ export const mapObjectToSnake = (obj) => {
     } else if (key === 'employerId' || key === 'employer_id' || key === 'payerId' || key === 'payer_id') {
       const scalarId = typeof val === 'object' && val !== null ? (val.id || val._id || '') : val;
       const strId = scalarId ? String(scalarId) : null;
-      res['employer_id'] = strId;
-      res['payer_id'] = strId;
+      if (strId) {
+        res['employer_id'] = strId;
+        res['payer_id'] = strId;
+      } else {
+        if (!res['employer_id']) res['employer_id'] = null;
+        if (!res['payer_id']) res['payer_id'] = null;
+      }
     } else if (key === 'workerId' || key === 'worker_id' || key === 'payeeId' || key === 'payee_id') {
       const scalarId = typeof val === 'object' && val !== null ? (val.id || val._id || '') : val;
       const strId = scalarId ? String(scalarId) : null;
-      res['worker_id'] = strId;
-      res['payee_id'] = strId;
+      if (strId) {
+        res['worker_id'] = strId;
+        res['payee_id'] = strId;
+      } else {
+        if (!res['worker_id']) res['worker_id'] = null;
+        if (!res['payee_id']) res['payee_id'] = null;
+      }
+    } else if (key === 'status') {
+      let st = val;
+      if (st === 'recorded') st = 'completed';
+      res['status'] = st;
     } else if (key === 'percentage' || key === 'completionPercentage' || key === 'completion_percentage') {
       const pct = Math.max(0, Math.min(100, Math.round(Number(val) || 0)));
       res['completion_percentage'] = pct;
@@ -540,11 +554,30 @@ export class SupabaseModel {
             throw dupErr;
           }
 
-          // Auto-heal schema cache errors (e.g., PostgREST PGRST204: Could not find the 'xyz' column)
+          // Auto-heal schema cache errors and enum mismatches
           let currentError = error;
           let retryCount = 0;
-          while (currentError && retryCount < 5) {
-            const colMatch = currentError.message?.match(/Could not find the '([^']+)' column/i);
+          while (currentError && retryCount < 20) {
+            if (currentError.message?.includes('invalid input value for enum payment_status')) {
+              validColumnsData['status'] = 'completed';
+              retryCount++;
+              const retryRes = await supabaseAdmin
+                .from(this.tableName)
+                .insert(validColumnsData)
+                .select()
+                .single();
+              if (!retryRes.error && retryRes.data) {
+                const doc = new SupabaseDocument(mapObjectToCamel(retryRes.data), this);
+                getInMemoryStore(this.tableName).set(doc.id, doc);
+                return doc;
+              }
+              currentError = retryRes.error;
+              continue;
+            }
+
+            const colMatch =
+              currentError.message?.match(/Could not find the '([^']+)' column/i) ||
+              currentError.message?.match(/column "([^"]+)" of relation "[^"]+" does not exist/i);
             if (colMatch && colMatch[1]) {
               const missingCol = colMatch[1];
               console.warn(`[Supabase Auto-Heal]: Column '${missingCol}' missing in '${this.tableName}'. Removing and retrying insert...`);
@@ -632,8 +665,28 @@ export class SupabaseModel {
         } else if (error) {
           let currentError = error;
           let retryCount = 0;
-          while (currentError && retryCount < 5) {
-            const colMatch = currentError.message?.match(/Could not find the '([^']+)' column/i);
+          while (currentError && retryCount < 20) {
+            if (currentError.message?.includes('invalid input value for enum payment_status')) {
+              validColumnsData['status'] = 'completed';
+              retryCount++;
+              const retryRes = await supabaseAdmin
+                .from(this.tableName)
+                .update(validColumnsData)
+                .eq('id', existing.id)
+                .select()
+                .single();
+              if (!retryRes.error && retryRes.data) {
+                const doc = new SupabaseDocument(mapObjectToCamel(retryRes.data), this);
+                getInMemoryStore(this.tableName).set(doc.id, doc);
+                return options.new === false ? existing : doc;
+              }
+              currentError = retryRes.error;
+              continue;
+            }
+
+            const colMatch =
+              currentError.message?.match(/Could not find the '([^']+)' column/i) ||
+              currentError.message?.match(/column "([^"]+)" of relation "[^"]+" does not exist/i);
             if (colMatch && colMatch[1]) {
               const missingCol = colMatch[1];
               console.warn(`[Supabase Auto-Heal]: Column '${missingCol}' missing in table '${this.tableName}'. Removing and retrying update...`);
@@ -1236,9 +1289,11 @@ export class SupabaseModel {
     for (const [key, expected] of Object.entries(filter)) {
       if (key === '$or') continue;
 
+      const nested = this._getNestedValue(doc, key);
       const rawDocVal =
-        this._getNestedValue(doc, key) ||
-        (key === 'participants' && doc.participantA && doc.participantB ? [doc.participantA, doc.participantB] : undefined);
+        nested !== undefined
+          ? nested
+          : (key === 'participants' && doc.participantA && doc.participantB ? [doc.participantA, doc.participantB] : undefined);
       const docVal = this._extractIdOrPrimitive(rawDocVal);
       const expVal = this._extractIdOrPrimitive(expected);
 

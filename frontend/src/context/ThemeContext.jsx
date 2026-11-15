@@ -108,12 +108,12 @@ export const ThemeProvider = ({ children }) => {
     }
   }, [theme, applyThemeToDOM, persistTheme]);
 
-  // Guaranteed fail-safe timer: unmount transition overlay after 320ms maximum
+  // Guaranteed fail-safe timer: unmount transition overlay after 660ms maximum
   useEffect(() => {
     if (isTransitioning) {
       const safetyTimer = setTimeout(() => {
         setIsTransitioning(false);
-      }, 320);
+      }, 660);
       return () => clearTimeout(safetyTimer);
     }
   }, [isTransitioning]);

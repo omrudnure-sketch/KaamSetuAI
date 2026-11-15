@@ -61,29 +61,29 @@ export const ThemeTransitionOverlay = ({
       return;
     }
 
-    // Phase 1: Fast start
+    // Phase 1: Smooth start
     setPhase('start');
 
-    // Phase 2: Peak midpoint (~60ms)
+    // Phase 2: Peak midpoint (~180ms) - celestial elements morph at peak
     const midTimer = setTimeout(() => {
       setPhase('mid');
       if (onMidpointRef.current) onMidpointRef.current();
-    }, 60);
+    }, 180);
 
-    // Phase 3: Start exit fade (~160ms)
+    // Phase 3: Start exit fade (~400ms)
     const fadeTimer = setTimeout(() => {
       setPhase('fade-out');
-    }, 160);
+    }, 400);
 
-    // Phase 4: Complete transition and restore page (~260ms)
+    // Phase 4: Complete transition and restore page (~580ms)
     const endTimer = setTimeout(() => {
       if (onCompleteRef.current) onCompleteRef.current();
-    }, 260);
+    }, 580);
 
-    // Fail-safe safety timer (~300ms max)
+    // Fail-safe safety timer (~660ms max)
     const safetyTimer = setTimeout(() => {
       if (onCompleteRef.current) onCompleteRef.current();
-    }, 300);
+    }, 660);
 
     return () => {
       clearTimeout(midTimer);
@@ -106,7 +106,7 @@ export const ThemeTransitionOverlay = ({
   return (
     <div
       onClick={handleDismiss}
-      className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center overflow-hidden transition-all duration-300 pointer-events-none select-none ${
+      className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center overflow-hidden pointer-events-none select-none ${
         isFadingOut ? 'opacity-0 scale-102' : 'opacity-100 scale-100'
       } ${
         toDark
@@ -119,7 +119,7 @@ export const ThemeTransitionOverlay = ({
       }`}
       style={{
         transitionProperty: 'background, opacity, transform',
-        transitionDuration: '350ms, 200ms, 200ms',
+        transitionDuration: '480ms, 280ms, 280ms',
       }}
       role="status"
       aria-live="polite"

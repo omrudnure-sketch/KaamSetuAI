@@ -179,6 +179,11 @@ export const EmployerJobApplicationsPage = () => {
     }
   };
 
+  const selectedCount = applications.filter((a) => a.status === 'selected').length;
+  const firstAppJob = applications[0]?.jobId;
+  const workersNeeded = (typeof firstAppJob === 'object' ? (firstAppJob?.workersRequired || firstAppJob?.workersNeeded) : 1) || 1;
+  const isRequirementFulfilled = selectedCount >= workersNeeded;
+
   return (
     <div className="w-full max-w-5xl mx-auto space-y-6 pb-12">
       {/* Header */}
@@ -189,7 +194,27 @@ export const EmployerJobApplicationsPage = () => {
             <span>Job Applications</span>
           </h1>
         </div>
+        {applications.length > 0 && (
+          <div className="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300">
+            <span>Accepted Workers:</span>
+            <span className={isRequirementFulfilled ? 'text-emerald-600 font-extrabold' : 'text-primary'}>
+              {selectedCount} / {workersNeeded}
+            </span>
+          </div>
+        )}
       </div>
+
+      {isRequirementFulfilled && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl flex items-center justify-between gap-3 text-xs font-bold shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span>Worker requirement fulfilled ({selectedCount}/{workersNeeded} workers selected). Job automatically marked as Completed.</span>
+          </div>
+          <span className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-extrabold uppercase tracking-wide shrink-0">
+            Completed / Fulfilled
+          </span>
+        </div>
+      )}
 
       {actionMessage && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl flex items-center gap-2">
@@ -260,9 +285,15 @@ export const EmployerJobApplicationsPage = () => {
                     {(app.status === 'pending' || app.status === 'shortlisted') && (
                       <button
                         onClick={() => handleSelect(app._id)}
-                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl transition-all shadow-sm"
+                        disabled={isRequirementFulfilled}
+                        title={isRequirementFulfilled ? 'Worker requirement limit reached' : 'Select this worker'}
+                        className={`px-3.5 py-1.5 text-xs font-extrabold rounded-xl transition-all shadow-sm ${
+                          isRequirementFulfilled
+                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+                            : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                        }`}
                       >
-                        Select Worker
+                        {isRequirementFulfilled ? 'Limit Reached' : 'Select Worker'}
                       </button>
                     )}
 
