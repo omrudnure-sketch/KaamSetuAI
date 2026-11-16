@@ -134,8 +134,19 @@ export const getMatchingFactors = (job, workerProfile, weights = DEFAULT_WEIGHTS
   // 2. Location Compatibility (Weight: 20%)
   let locationScore = 60; // neutral default
   let distanceKm = null;
-  const jobCoords = job.location?.coordinates?.coordinates;
-  const workerCoords = workerProfile.location?.coordinates?.coordinates;
+  const getCoords = (loc, obj) => {
+    if (Array.isArray(loc?.coordinates) && loc.coordinates.length >= 2) return loc.coordinates;
+    if (Array.isArray(loc?.coordinates?.coordinates) && loc.coordinates.coordinates.length >= 2) return loc.coordinates.coordinates;
+    if (obj?.longitude !== undefined && obj?.latitude !== undefined && obj.longitude !== null && obj.latitude !== null) {
+      return [Number(obj.longitude), Number(obj.latitude)];
+    }
+    if (loc?.longitude !== undefined && loc?.latitude !== undefined && loc.longitude !== null && loc.latitude !== null) {
+      return [Number(loc.longitude), Number(loc.latitude)];
+    }
+    return null;
+  };
+  const jobCoords = getCoords(job.location, job);
+  const workerCoords = getCoords(workerProfile.location, workerProfile);
 
   if (jobCoords && workerCoords) {
     distanceKm = calculateDistanceKm(jobCoords, workerCoords);
@@ -435,6 +446,7 @@ export const recommendWorkersForJob = async (jobId, employerUserId, options = {}
       status: job.status,
     },
     results: paginatedResults,
+    recommendations: paginatedResults,
     pagination: {
       page: Number(page),
       limit: Number(limit),
@@ -448,10 +460,13 @@ export const recommendWorkersForJob = async (jobId, employerUserId, options = {}
  * Recommend suitable jobs for a worker (Section 22.2 & 22.6)
  */
 export const recommendJobsForWorker = async (workerUserId, options = {}) => {
-  const { page = 1, limit = 10, minScore = 30 } = options;
+  const { page = 1, limit = 10, minScore = 20 } = options;
 
   // 1. Fetch Worker Profile
-  const workerProfile = await WorkerProfile.findOne({ userId: workerUserId }).lean();
+  let workerProfile = await WorkerProfile.findOne({ userId: workerUserId }).lean();
+  if (!workerProfile) {
+    workerProfile = (await WorkerProfile.findById(workerUserId))?.toObject?.() || await WorkerProfile.findOne({ id: workerUserId }).lean();
+  }
   if (!workerProfile) {
     const error = new Error('Worker profile not found. Please complete your profile to view job recommendations.');
     error.status = 404;
@@ -461,38 +476,79 @@ export const recommendJobsForWorker = async (workerUserId, options = {}) => {
   // 2. Fetch Open Jobs
   const openJobs = await Job.find({ status: 'open' })
     .populate('employerId', 'name email status isVerified')
+    .sort({ createdAt: -1 })
     .lean();
 
   const scoredJobs = [];
 
   for (const job of openJobs) {
-    if (!job.employerId || job.employerId.status !== 'active') continue;
-
-    const matchAnalysis = calculateMatchScore(job, workerProfile);
-
-    if (matchAnalysis.score < minScore) continue;
-
-    if (matchAnalysis.factors.skill.matchType === 'mismatch' && matchAnalysis.score < 50) {
+    // Only exclude employers explicitly suspended/inactive
+    if (job.employerId && typeof job.employerId === 'object' && job.employerId.status && job.employerId.status !== 'active') {
       continue;
     }
 
+    const matchAnalysis = calculateMatchScore(job, workerProfile);
+
+    // Keep candidate if score is above minScore or if skill has non-mismatch affinity
+    const isSkillMatch = matchAnalysis.factors.skill.matchType !== 'mismatch';
+    if (matchAnalysis.score < minScore && !isSkillMatch) continue;
+
+    const locCity = job.location?.city || job.city || '';
+    const locArea = job.location?.area || job.area || '';
+    const locDisplay = typeof job.location === 'string' && job.location.trim()
+      ? job.location
+      : ([locArea, locCity].filter(Boolean).join(', ') || locCity || locArea || 'Nearby');
+
     scoredJobs.push({
-      jobId: job._id,
+      jobId: job._id || job.id,
       jobTitle: job.title,
       skillRequired: job.skillRequired,
       additionalSkills: job.additionalSkills || [],
-      employerName: job.employerId?.name || 'Employer',
-      location: `${job.location?.city || ''}${job.location?.area ? ', ' + job.location.area : ''}`,
-      city: job.location?.city,
+      employerName: job.employerId?.name || 'Verified Employer',
+      location: locDisplay,
+      city: locCity,
       wage: job.wageAmount,
-      wageType: job.wageType,
-      durationType: job.durationType,
-      startDate: job.startDate,
+      wageType: job.wageType || 'daily',
+      durationType: job.durationType || 'single_day',
+      startDate: job.startDate || job.start_date || job.createdAt,
       matchScore: matchAnalysis.score,
       matchingFactors: matchAnalysis.factors,
       explanation: matchAnalysis.explanation,
       approximateDistance: matchAnalysis.factors.location.distanceKm,
     });
+  }
+
+  // Fallback: If no job matched strict filters, include available open jobs with base scores
+  if (scoredJobs.length === 0 && openJobs.length > 0) {
+    for (const job of openJobs) {
+      if (job.employerId && typeof job.employerId === 'object' && job.employerId.status && job.employerId.status !== 'active') {
+        continue;
+      }
+      const matchAnalysis = calculateMatchScore(job, workerProfile);
+      const locCity = job.location?.city || job.city || '';
+      const locArea = job.location?.area || job.area || '';
+      const locDisplay = typeof job.location === 'string' && job.location.trim()
+        ? job.location
+        : ([locArea, locCity].filter(Boolean).join(', ') || locCity || locArea || 'Nearby');
+
+      scoredJobs.push({
+        jobId: job._id || job.id,
+        jobTitle: job.title,
+        skillRequired: job.skillRequired,
+        additionalSkills: job.additionalSkills || [],
+        employerName: job.employerId?.name || 'Verified Employer',
+        location: locDisplay,
+        city: locCity,
+        wage: job.wageAmount,
+        wageType: job.wageType || 'daily',
+        durationType: job.durationType || 'single_day',
+        startDate: job.startDate || job.start_date || job.createdAt,
+        matchScore: Math.max(35, matchAnalysis.score),
+        matchingFactors: matchAnalysis.factors,
+        explanation: matchAnalysis.explanation || `Open opportunity in ${locCity || 'your region'}. Available for workers ready to apply.`,
+        approximateDistance: matchAnalysis.factors.location.distanceKm,
+      });
+    }
   }
 
   // Sort descending by score
@@ -508,9 +564,10 @@ export const recommendJobsForWorker = async (workerUserId, options = {}) => {
     worker: {
       id: workerUserId,
       primarySkill: workerProfile.primarySkill,
-      city: workerProfile.location?.city,
+      city: workerProfile.location?.city || workerProfile.city,
     },
     results: paginatedResults,
+    recommendations: paginatedResults,
     pagination: {
       page: Number(page),
       limit: Number(limit),

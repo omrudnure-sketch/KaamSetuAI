@@ -147,7 +147,8 @@ export const WorkerJobsPage = () => {
       });
 
       if (res.success && res.data) {
-        setRecommendedJobs(res.data.recommendations || []);
+        const jobs = res.data.recommendations || res.data.results || [];
+        setRecommendedJobs(jobs);
         if (res.data.pagination) {
           setRecPagination(res.data.pagination);
         }
@@ -702,13 +703,17 @@ export const WorkerJobsPage = () => {
                         </div>
 
                         <div className="flex items-center gap-1.5">
-                          <MapPin className="w-4 h-4 text-rose-500" />
-                          <span className="truncate">{item.location || 'N/A'}</span>
+                          <MapPin className="w-4 h-4 text-rose-500 flex-shrink-0" />
+                          <span className="truncate">{item.location || item.city || 'Kolhapur'}</span>
                         </div>
 
                         <div className="flex items-center gap-1.5">
-                          <Calendar className="w-4 h-4 text-primary dark:text-sky-400" />
-                          <span>{item.startDate ? new Date(item.startDate).toLocaleDateString() : 'Immediate'}</span>
+                          <Calendar className="w-4 h-4 text-primary dark:text-sky-400 flex-shrink-0" />
+                          <span>
+                            {item.startDate && !isNaN(new Date(item.startDate).getTime())
+                              ? new Date(item.startDate).toLocaleDateString()
+                              : (lang === 'mr' ? 'लगेच उपलब्ध' : lang === 'hi' ? 'तुरंत उपलब्ध' : 'Immediate')}
+                          </span>
                         </div>
 
                         <div className="flex items-center gap-1.5">
