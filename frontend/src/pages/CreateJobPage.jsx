@@ -130,36 +130,17 @@ export const CreateJobPage = () => {
         city: formData.city.trim(),
         area: formData.area.trim(),
         address: formData.address.trim(),
-        coordinates:
-          siteLocation?.lat && siteLocation?.lng
-            ? { type: 'Point', coordinates: [siteLocation.lng, siteLocation.lat] }
-            : (() => {
-                const matched = formData.city
-                  ? KNOWN_REGIONS.find(
-                      (r) =>
-                        r.city?.toLowerCase() === formData.city.trim().toLowerCase() ||
-                        r.name?.toLowerCase().includes(formData.city.trim().toLowerCase())
-                    )
-                  : null;
-                return matched ? { type: 'Point', coordinates: [matched.lng, matched.lat] } : undefined;
-              })(),
+        ...(siteLocation?.lat && siteLocation?.lng
+          ? {
+              coordinates: {
+                type: 'Point',
+                coordinates: [Number(siteLocation.lng), Number(siteLocation.lat)],
+              },
+            }
+          : {}),
       },
-      latitude:
-        siteLocation?.lat ||
-        KNOWN_REGIONS.find(
-          (r) =>
-            r.city?.toLowerCase() === formData.city.trim().toLowerCase() ||
-            r.name?.toLowerCase().includes(formData.city.trim().toLowerCase())
-        )?.lat ||
-        undefined,
-      longitude:
-        siteLocation?.lng ||
-        KNOWN_REGIONS.find(
-          (r) =>
-            r.city?.toLowerCase() === formData.city.trim().toLowerCase() ||
-            r.name?.toLowerCase().includes(formData.city.trim().toLowerCase())
-        )?.lng ||
-        undefined,
+      latitude: siteLocation?.lat ? Number(siteLocation.lat) : undefined,
+      longitude: siteLocation?.lng ? Number(siteLocation.lng) : undefined,
       wageType: formData.wageType,
       wageAmount: Number(formData.wageAmount),
       durationType: formData.durationType,

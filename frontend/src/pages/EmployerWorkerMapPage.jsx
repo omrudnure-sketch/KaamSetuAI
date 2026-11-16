@@ -3,7 +3,12 @@ import { useNavigate, Link } from 'react-router-dom';
 import L from 'leaflet';
 import { authApiClient } from '../services/authApi.js';
 import { LocationAccessBar } from '../components/LocationAccessBar.jsx';
-import { getSessionLocation, KNOWN_REGIONS } from '../services/locationService.js';
+import {
+  getSessionLocation,
+  getCurrentPositionWithAddress,
+  reverseGeocode,
+  KNOWN_REGIONS,
+} from '../services/locationService.js';
 import {
   Map as MapIcon,
   List,
@@ -17,6 +22,8 @@ import {
   Clock,
   Send,
   Building,
+  Navigation,
+  Crosshair,
 } from 'lucide-react';
 
 export const EmployerWorkerMapPage = () => {
@@ -65,9 +72,40 @@ export const EmployerWorkerMapPage = () => {
         iconAnchor: [12, 12],
       });
 
-      employerMarkerRef.current = L.marker([locData.lat, locData.lng], { icon: employerIcon })
-        .bindPopup(`<b>🏢 Your Employer Location</b><br/><span>${locData.shortLabel || ''}</span><br/><span style="font-size:10px; color:#6b7280;">${locData.formattedCoords || ''}</span>`)
+      const employerMarker = L.marker([locData.lat, locData.lng], {
+        icon: employerIcon,
+        draggable: true,
+        autoPan: true,
+      })
+        .bindPopup(
+          `<b>🏢 Your Employer Location</b><br/>` +
+          `<span>${locData.shortLabel || ''}</span><br/>` +
+          `<span style="font-size:10px; color:#6b7280;">${locData.formattedCoords || ''}</span><br/>` +
+          `<span style="font-size:10px; color:#d97706; font-weight:bold;">(Drag pin to adjust exact location)</span>`
+        )
         .addTo(mapInstanceRef.current);
+
+      employerMarker.on('dragend', async (e) => {
+        const newPos = e.target.getLatLng();
+        const newLat = Number(newPos.lat);
+        const newLng = Number(newPos.lng);
+        console.info('[KaamSetu Leaflet] Employer pin dragged to:', { lat: newLat, lng: newLng });
+        const geocoded = await reverseGeocode(newLat, newLng);
+        if (geocoded) {
+          const updated = {
+            ...geocoded,
+            lat: newLat,
+            lng: newLng,
+            accuracy: 5,
+            accuracyRating: 'high',
+            isManualPin: true,
+          };
+          setActiveLocation(updated);
+          if (updated.city) setCity(updated.city);
+        }
+      });
+
+      employerMarkerRef.current = employerMarker;
     }
   };
 
@@ -139,23 +177,13 @@ export const EmployerWorkerMapPage = () => {
 
       workers.forEach((w) => {
         let coords = w?.location?.coordinates;
+        // Only plot workers with verified physical coordinates (avoid misleading city-center clustering)
         if (!coords || coords.length < 2 || (coords[0] === 0 && coords[1] === 0)) {
-          const cityCandidate = (typeof w?.location === 'object' ? w?.location?.city : w?.location) || w?.city;
-          if (cityCandidate) {
-            const matched = KNOWN_REGIONS.find(
-              (r) =>
-                r.city.toLowerCase() === cityCandidate.trim().toLowerCase() ||
-                r.name.toLowerCase().includes(cityCandidate.trim().toLowerCase())
-            );
-            if (matched) {
-              coords = [matched.lng, matched.lat];
-            }
-          }
+          return;
         }
 
-        if (coords && coords.length >= 2 && !(coords[0] === 0 && coords[1] === 0)) {
-          const lng = coords[0];
-          const lat = coords[1];
+        const lng = coords[0];
+        const lat = coords[1];
 
           const isVerified = w?.verificationStatus === 'verified';
           const badgeColor = isVerified ? '#059669' : '#0284c7';
@@ -204,7 +232,6 @@ export const EmployerWorkerMapPage = () => {
 
           markersLayerRef.current.addLayer(marker);
           validPoints.push([lat, lng]);
-        }
       });
 
       if (validPoints.length > 0 && mapInstanceRef.current) {
@@ -362,6 +389,34 @@ export const EmployerWorkerMapPage = () => {
             <div className="space-y-4">
               <div className="w-full h-[520px] rounded-2xl overflow-hidden ks-glass-card p-1 shadow-xl relative z-0">
                 <div ref={mapContainerRef} className="w-full h-full rounded-xl" />
+
+                {/* Quick Map Controls Overlay */}
+                <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const loc = await getCurrentPositionWithAddress();
+                        handleLocationAcquired(loc);
+                      } catch (err) {
+                        console.warn('GPS recenter failed:', err.message);
+                      }
+                    }}
+                    title="Recenter on My Employer GPS Location"
+                    className="p-2.5 rounded-xl bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-slate-100 shadow-md border border-slate-200/80 dark:border-white/10 hover:bg-amber-600 hover:text-white transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+                  >
+                    <Crosshair className="w-4 h-4 text-amber-600 group-hover:text-white" />
+                    <span className="hidden sm:inline">My GPS</span>
+                  </button>
+                </div>
+
+                {/* Drag hint overlay */}
+                {activeLocation && (
+                  <div className="absolute bottom-4 left-4 z-10 px-3 py-1.5 rounded-xl bg-slate-900/85 text-white text-[11px] font-medium shadow-md backdrop-blur-xs flex items-center gap-1.5 pointer-events-none">
+                    <Navigation className="w-3 h-3 text-amber-400 animate-pulse" />
+                    <span>Tip: Drag the 🏢 pin on the map to adjust your job site / office location</span>
+                  </div>
+                )}
               </div>
 
               {/* Bottom Cards */}

@@ -84,41 +84,81 @@ export const findNearestKnownCity = (lat, lng) => {
   };
 };
 
+// In-memory geocode cache to prevent redundant network requests (keyed by lat,lng rounded to 4 decimals ~11m)
+const geocodeCache = new Map();
+let latestGeocodeRequestId = 0;
+
 /**
  * Reverse geocodes latitude & longitude into human-readable area, city, and state
- * Uses OpenStreetMap Nominatim with offline fallback
+ * Uses OpenStreetMap Nominatim with street/building precision (zoom=18)
+ * Guaranteed: NEVER alters the original GPS coordinates, even on network failures
  */
-export const reverseGeocode = async (lat, lng) => {
+export const reverseGeocode = async (lat, lng, correlationId = null) => {
   const numLat = Number(lat);
   const numLng = Number(lng);
   const coordsFormatted = formatCoordinates(numLat, numLng, 4);
 
+  if (isNaN(numLat) || isNaN(numLng) || numLat < -90 || numLat > 90 || numLng < -180 || numLng > 180) {
+    throw new Error(`Invalid coordinates for reverse geocoding: lat=${lat}, lng=${lng}`);
+  }
+
+  const requestId = ++latestGeocodeRequestId;
+  const cacheKey = `${numLat.toFixed(4)},${numLng.toFixed(4)}`;
+
+  if (geocodeCache.has(cacheKey)) {
+    const cached = geocodeCache.get(cacheKey);
+    return {
+      ...cached,
+      lat: numLat,
+      lng: numLng,
+      formattedCoords: coordsFormatted,
+      fromCache: true,
+    };
+  }
+
+  if (correlationId) {
+    console.info(`[KaamSetu Location][${correlationId}] Reverse geocoding coords:`, { lat: numLat, lng: numLng });
+  }
+
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
 
+    // Request building and street level precision with zoom=18
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${numLat}&lon=${numLng}&zoom=14&addressdetails=1`,
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${numLat}&lon=${numLng}&zoom=18&addressdetails=1`,
       {
         signal: controller.signal,
         headers: {
           'Accept': 'application/json',
-          'User-Agent': 'KaamSetuAI-App',
+          'User-Agent': 'KaamSetuAI-App/1.0 (contact: support@kaamsetu.ai)',
         },
       }
     );
     clearTimeout(timeoutId);
 
+    // Prevent stale responses from overwriting newer user location requests
+    if (requestId !== latestGeocodeRequestId) {
+      console.warn(`[KaamSetu Location] Discarded stale geocode response #${requestId} (latest is #${latestGeocodeRequestId})`);
+      return null;
+    }
+
     if (response.ok) {
       const data = await response.json();
       const addr = data.address || {};
 
+      // Rich Indian address hierarchy resolution
+      const road = addr.road || addr.street || addr.pedestrian || addr.footway || '';
       const area =
         addr.suburb ||
         addr.neighbourhood ||
         addr.residential ||
         addr.quarter ||
-        addr.road ||
+        addr.hamlet ||
+        addr.village ||
+        addr.colony ||
+        addr.sector ||
+        addr.subdistrict ||
         '';
 
       const city =
@@ -126,6 +166,7 @@ export const reverseGeocode = async (lat, lng) => {
         addr.town ||
         addr.municipality ||
         addr.village ||
+        addr.city_district ||
         addr.county ||
         addr.state_district ||
         '';
@@ -133,37 +174,42 @@ export const reverseGeocode = async (lat, lng) => {
       const state = addr.state || 'Maharashtra';
       const postcode = addr.postcode || '';
 
-      // Build compact display label (e.g., "Kothrud, Pune, Maharashtra")
+      // Build structured, accurate display label (e.g., "Atigre, Kolhapur, Maharashtra" or "Paud Road, Kothrud, Pune")
       const labelParts = [];
+      if (road && road !== area) labelParts.push(road);
       if (area) labelParts.push(area);
-      if (city && city !== area) labelParts.push(city);
+      if (city && city !== area && !labelParts.includes(city)) labelParts.push(city);
       if (state && !labelParts.includes(state)) labelParts.push(state);
 
-      const shortLabel = labelParts.length > 0 ? labelParts.join(', ') : city || 'Current Location';
+      const resolvedCity = city || area || 'Local Area';
+      const shortLabel = labelParts.length > 0 ? labelParts.join(', ') : resolvedCity;
 
-      return {
+      const result = {
         lat: numLat,
         lng: numLng,
-        city: city || 'Pune',
-        area: area || '',
+        city: resolvedCity,
+        area: area || road || '',
         state,
         postcode,
         shortLabel,
         fullAddress: data.display_name || shortLabel,
         formattedCoords: coordsFormatted,
         source: 'nominatim',
+        accuracyEstimated: 'street_level',
       };
+
+      geocodeCache.set(cacheKey, result);
+      return result;
     }
   } catch (err) {
-    // Non-blocking fallback to offline nearest known city
-    console.warn('[KaamSetu Location] Reverse geocoding network notice, using nearest city match:', err.message);
+    console.warn('[KaamSetu Location] Reverse geocoding network notice:', err.message);
   }
 
-  // Fallback to nearest known reference city
+  // Graceful offline fallback: preserve EXACT coordinates, estimate city label from nearest region
   const nearest = findNearestKnownCity(numLat, numLng);
   return {
-    lat: numLat,
-    lng: numLng,
+    lat: numLat, // ORIGINAL GPS COORDINATES PRESERVED
+    lng: numLng, // ORIGINAL GPS COORDINATES PRESERVED
     city: nearest.city,
     area: nearest.distanceKm < 15 ? 'Local Vicinity' : '',
     state: nearest.state,
@@ -171,31 +217,56 @@ export const reverseGeocode = async (lat, lng) => {
     fullAddress: `${nearest.city}, ${nearest.state}`,
     formattedCoords: coordsFormatted,
     source: 'offline_fallback',
+    accuracyEstimated: 'approximate_city',
   };
 };
 
 /**
  * Acquires user's current GPS position using browser Geolocation API
- * and reverse-geocodes it into place names and coordinates.
+ * Configured with enableHighAccuracy: true, maximumAge: 0, and timeout: 20000
+ * Captures: latitude, longitude, accuracy (meters), and timestamp
  */
 export const getCurrentPositionWithAddress = (options = {}) => {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined' || !navigator.geolocation) {
-      return reject(new Error('Geolocation is not supported by your browser.'));
+      const err = new Error('Geolocation is not supported by your browser or environment.');
+      err.code = 0;
+      return reject(err);
     }
+
+    const correlationId = `loc-${Date.now()}-${Math.round(Math.random() * 1000)}`;
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
+        const lat = Number(pos.coords.latitude);
+        const lng = Number(pos.coords.longitude);
         const accuracy = Math.round(pos.coords.accuracy || 0);
+        const timestamp = pos.timestamp || Date.now();
+
+        // Evaluate location precision
+        const isCoarse = accuracy > 500; // >500m indicates cellular/ISP IP approximation
+        const accuracyRating = accuracy <= 20 ? 'high' : accuracy <= 150 ? 'medium' : 'low';
+
+        console.info(`[KaamSetu GPS][${correlationId}] Real-time position acquired:`, {
+          lat,
+          lng,
+          accuracyMeters: accuracy,
+          accuracyRating,
+          timestamp,
+        });
 
         try {
-          const geocoded = await reverseGeocode(lat, lng);
+          const geocoded = await reverseGeocode(lat, lng, correlationId);
           const fullResult = {
-            ...geocoded,
+            ...(geocoded || {}),
+            lat, // STRICTLY preserve original GPS coordinates
+            lng, // STRICTLY preserve original GPS coordinates
+            formattedCoords: formatCoordinates(lat, lng),
             accuracy,
-            timestamp: pos.timestamp || Date.now(),
+            accuracyRating,
+            isCoarse,
+            timestamp,
+            correlationId,
           };
           saveSessionLocation(fullResult);
           resolve(fullResult);
@@ -203,25 +274,40 @@ export const getCurrentPositionWithAddress = (options = {}) => {
           const basic = {
             lat,
             lng,
-            city: 'Current Location',
+            city: 'Detected Location',
             area: '',
             state: 'Maharashtra',
-            shortLabel: 'Current Location',
+            shortLabel: 'Detected Location',
             formattedCoords: formatCoordinates(lat, lng),
             accuracy,
-            timestamp: Date.now(),
+            accuracyRating,
+            isCoarse,
+            timestamp,
+            correlationId,
           };
           saveSessionLocation(basic);
           resolve(basic);
         }
       },
       (err) => {
-        reject(err);
+        let userMessage = 'Unable to acquire location.';
+        if (err.code === 1) {
+          userMessage = 'Location permission was denied. Please allow location access in your browser or select your city manually.';
+        } else if (err.code === 2) {
+          userMessage = 'GPS position unavailable. Please ensure device location services are turned on.';
+        } else if (err.code === 3) {
+          userMessage = 'Location request timed out. Please click retry to obtain a fresh GPS fix.';
+        }
+        const error = new Error(userMessage);
+        error.code = err.code;
+        error.original = err;
+        console.warn(`[KaamSetu GPS][${correlationId}] Acquisition error:`, err.message);
+        reject(error);
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000,
+        maximumAge: 0, // Force fresh hardware GPS lock (no stale cache)
+        timeout: 20000, // 20s allowance for satellite lock
         ...options,
       }
     );

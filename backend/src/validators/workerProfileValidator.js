@@ -65,8 +65,8 @@ export const workerProfileSchema = z
         address: z.string().trim().optional().default(''),
         pincode: z.string().trim().optional().default(''),
         state: z.string().trim().optional().default('Maharashtra'),
-        latitude: z.number().optional(),
-        longitude: z.number().optional(),
+        latitude: z.number().min(-90).max(90).optional().nullable(),
+        longitude: z.number().min(-180).max(180).optional().nullable(),
         coordinates: z.any().optional(),
       })
       .passthrough()
@@ -82,8 +82,8 @@ export const workerProfileSchema = z
     address: z.string().trim().max(300).optional(),
     pincode: z.string().trim().max(10).optional(),
     state: z.string().trim().optional(),
-    latitude: z.number().optional(),
-    longitude: z.number().optional(),
+    latitude: z.number().min(-90).max(90).optional().nullable(),
+    longitude: z.number().min(-180).max(180).optional().nullable(),
     documents: z.array(z.any()).optional().default([]),
     preferredWorkType: z
       .enum(['daily', 'multi_day', 'both'], {

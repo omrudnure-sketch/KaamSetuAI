@@ -32,7 +32,8 @@ export const createOrUpdateDailyProgress = async (workerId, projectId, payload) 
   }
 
   let progress = await ProgressUpdate.findOne({
-    projectWorkerId: projectWorker._id,
+    projectId: project._id,
+    workerId,
     date: dateStr,
   });
 

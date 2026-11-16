@@ -19,12 +19,18 @@ export const handleCreateOrUpdateProgress = async (req, res, next) => {
     }
 
     const progress = await createOrUpdateDailyProgress(req.user.id, projectId, validation.data);
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
+      message: 'Progress recorded successfully',
       data: progress,
     });
   } catch (error) {
-    next(error);
+    const statusCode = error.statusCode || 500;
+    return res.status(statusCode).json({
+      success: false,
+      message: error.message || 'Failed to save progress',
+      error: { message: error.message || 'Failed to save progress' },
+    });
   }
 };
 

@@ -23,8 +23,8 @@ export const LocationAccessBar = ({
 
   const translations = {
     en: {
-      detecting: 'Detecting GPS & Area...',
-      takenLocation: 'Taken Location:',
+      detecting: 'Acquiring GPS Signal...',
+      takenLocation: 'Active Location:',
       useMyLocation:
         role === 'employer'
           ? 'Find Workers Near My Location'
@@ -32,13 +32,16 @@ export const LocationAccessBar = ({
       radiusLabel: 'Radius:',
       clear: 'Clear',
       refresh: 'Refresh',
+      retry: 'Retry GPS',
       accuracy: 'Accuracy',
-      permDenied: 'Location permission was denied. You can manually enter city above.',
-      unavailable: 'Unable to acquire GPS location. Please check your network or device GPS.',
+      coarseWarning: 'Approximate network location detected. On map views, drag the pin to your exact spot.',
+      permDenied: 'Location permission was denied. Please allow location access in your browser or select your city manually.',
+      unavailable: 'GPS signal unavailable. Please ensure device location is enabled and try again.',
+      timeout: 'GPS request timed out. Please click retry to obtain a fresh location lock.',
     },
     mr: {
-      detecting: 'स्थान शोधत आहे...',
-      takenLocation: 'प्राप्त केलेले स्थान:',
+      detecting: 'GPS सिग्नल शोधत आहे...',
+      takenLocation: 'सक्रिय स्थान:',
       useMyLocation:
         role === 'employer'
           ? 'माझ्या स्थानाजवळील कामगार शोधा'
@@ -46,13 +49,16 @@ export const LocationAccessBar = ({
       radiusLabel: 'परिसर (Radius):',
       clear: 'स्थान काढा',
       refresh: 'रीफ्रेश करा',
+      retry: 'पुन्हा प्रयत्न करा',
       accuracy: 'अचूकता',
-      permDenied: 'स्थान परवानगी नाकारली. कृपया वर शहर निवडा.',
-      unavailable: 'स्थान मिळवण्यात अडचण आली. कृपया GPS चालू करा.',
+      coarseWarning: 'अंदाजे नेटवर्क स्थान मिळाले आहे. नकाशावर पिन हलवून अचूक स्थान निश्चित करा.',
+      permDenied: 'स्थान परवानगी नाकारली. कृपया ब्राऊझर सेटिंग्जमध्ये स्थान अनुमती द्या किंवा शहर निवडा.',
+      unavailable: 'GPS स्थान मिळवण्यात अडचण आली. कृपया GPS चालू करा.',
+      timeout: 'GPS शोधण्याची वेळ संपली. कृपया पुन्हा प्रयत्न करा.',
     },
     hi: {
-      detecting: 'स्थान पता लगाया जा रहा है...',
-      takenLocation: 'प्राप्त स्थान:',
+      detecting: 'जीपीएस सिग्नल खोजा जा रहा है...',
+      takenLocation: 'सक्रिय स्थान:',
       useMyLocation:
         role === 'employer'
           ? 'मेरे स्थान के पास मजदूर खोजें'
@@ -60,9 +66,12 @@ export const LocationAccessBar = ({
       radiusLabel: 'दूरी (Radius):',
       clear: 'हटाएं',
       refresh: 'रिफ्रेश',
+      retry: 'पुनः प्रयास करें',
       accuracy: 'सटीकता',
-      permDenied: 'स्थान अनुमति अस्वीकृत। आप ऊपर शहर दर्ज कर सकते हैं।',
-      unavailable: 'स्थान प्राप्त करने में असमर्थ। कृपया जीपीएस जांचें।',
+      coarseWarning: 'अनुमानित नेटवर्क स्थान प्राप्त हुआ। मानचित्र पर पिन खिसकाकर सटीक स्थान तय करें।',
+      permDenied: 'स्थान अनुमति अस्वीकृत। कृपया ब्राउज़र में स्थान अनुमति दें या शहर चुनें।',
+      unavailable: 'स्थान प्राप्त करने में असमर्थ। कृपया जीपीएस चालू करें।',
+      timeout: 'स्थान का समय समाप्त हो गया। कृपया पुनः प्रयास करें।',
     },
   };
 
@@ -83,8 +92,10 @@ export const LocationAccessBar = ({
       setLoading(false);
       if (err.code === 1) {
         setErrorMsg(t.permDenied);
+      } else if (err.code === 3) {
+        setErrorMsg(t.timeout);
       } else {
-        setErrorMsg(t.unavailable);
+        setErrorMsg(err.message || t.unavailable);
       }
     }
   };
@@ -95,6 +106,13 @@ export const LocationAccessBar = ({
     if (onLocationCleared) {
       onLocationCleared();
     }
+  };
+
+  // Helper to format accuracy badge label
+  const formatAccuracyBadge = (acc) => {
+    if (!acc && acc !== 0) return null;
+    if (acc < 1000) return `±${Math.round(acc)}m`;
+    return `±${(acc / 1000).toFixed(1)}km`;
   };
 
   return (
@@ -149,6 +167,23 @@ export const LocationAccessBar = ({
                 )}
               </div>
 
+              {/* Accuracy Metric Badge */}
+              {activeLocation.accuracy !== undefined && (
+                <span
+                  title={`${t.accuracy}: ${activeLocation.accuracy} meters`}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                    activeLocation.accuracy <= 30
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      : activeLocation.accuracy <= 500
+                      ? 'bg-sky-100 text-sky-800 border-sky-300'
+                      : 'bg-amber-100 text-amber-800 border-amber-300'
+                  }`}
+                >
+                  <Navigation className="w-2.5 h-2.5" />
+                  <span>{formatAccuracyBadge(activeLocation.accuracy)}</span>
+                </span>
+              )}
+
               {/* Quick Actions: Refresh & Clear */}
               <div className="inline-flex items-center gap-2">
                 <button
@@ -194,11 +229,29 @@ export const LocationAccessBar = ({
         )}
       </div>
 
-      {/* Error Message if GPS permission is denied */}
+      {/* Advisory hint if coarse location is detected */}
+      {activeLocation?.isCoarse && (
+        <div className="text-[11px] text-amber-700 bg-amber-50/80 border border-amber-200/80 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5">
+          <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+          <span>{t.coarseWarning}</span>
+        </div>
+      )}
+
+      {/* Error Message with Retry option */}
       {errorMsg && (
-        <div className="flex items-center gap-1.5 text-xs text-rose-700 bg-rose-50 border border-rose-200 p-2 rounded-lg">
-          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-          <span>{errorMsg}</span>
+        <div className="flex items-center justify-between gap-2 text-xs text-rose-700 bg-rose-50 border border-rose-200 p-2.5 rounded-lg">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">{errorMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleAcquire}
+            disabled={loading}
+            className="flex-shrink-0 px-2.5 py-1 text-xs font-bold text-rose-800 hover:text-white bg-rose-100 hover:bg-rose-600 rounded-md transition-all cursor-pointer"
+          >
+            {t.retry}
+          </button>
         </div>
       )}
     </div>

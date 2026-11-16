@@ -37,10 +37,15 @@ const jobBaseSchema = z.object({
     coordinates: z
       .object({
         type: z.literal('Point').optional().default('Point'),
-        coordinates: z.tuple([z.number(), z.number()]).optional().default([0, 0]),
+        coordinates: z.tuple([
+          z.number().min(-180, 'Longitude must be between -180 and 180').max(180),
+          z.number().min(-90, 'Latitude must be between -90 and 90').max(90),
+        ]).optional(),
       })
       .optional(),
   }),
+  latitude: z.number().min(-90).max(90).optional().nullable(),
+  longitude: z.number().min(-180).max(180).optional().nullable(),
   wageType: z
     .enum(['daily', 'weekly', 'fixed'], {
       errorMap: () => ({ message: 'Wage type must be daily, weekly, or fixed' }),

@@ -3,8 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import { authApiClient } from '../services/authApi.js';
 import { LocationAccessBar } from '../components/LocationAccessBar.jsx';
-import { getSessionLocation, KNOWN_REGIONS } from '../services/locationService.js';
-import { Map, List, Globe, Search, DollarSign, Filter, RotateCcw, MapPin, Briefcase } from 'lucide-react';
+import {
+  getSessionLocation,
+  getCurrentPositionWithAddress,
+  reverseGeocode,
+  KNOWN_REGIONS,
+} from '../services/locationService.js';
+import { Map, List, Globe, Search, DollarSign, Filter, RotateCcw, MapPin, Briefcase, Navigation, Crosshair } from 'lucide-react';
 
 // Multilingual text dictionary for English, Marathi, and Hindi
 const translations = {
@@ -218,63 +223,52 @@ export const WorkerJobMapPage = () => {
           lng <= 180 &&
           !(lat === 0 && lng === 0);
 
+        // Only plot jobs that have verified physical coordinates (avoid misleading city-center clustering)
         if (!hasValidCoords) {
-          // Fallback: check city in KNOWN_REGIONS if coordinates are missing
-          const cityName = job.location?.city || (typeof job.location === 'string' ? job.location : null);
-          if (cityName) {
-            const matched = KNOWN_REGIONS.find(
-              (r) => r.city.toLowerCase() === cityName.toLowerCase()
-            );
-            if (matched) {
-              lat = matched.lat;
-              lng = matched.lng;
-            }
-          }
+          return;
         }
 
-        if (lat !== null && lng !== null && !(lat === 0 && lng === 0)) {
-          // Leaflet uses [latitude, longitude] order
-          const skillLabel = job.skillRequired ? job.skillRequired.toUpperCase() : 'JOB';
-          const customIcon = L.divIcon({
-            className: 'custom-job-marker',
-            html: `
-              <div style="background-color: #0284c7; color: white; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: bold; border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 5px; white-space: nowrap;">
-                <span>🛠</span>
-                <span>${skillLabel} · ₹${job.wageAmount}</span>
-              </div>
-            `,
-            iconSize: [120, 26],
-            iconAnchor: [60, 26],
-          });
-
-          const marker = L.marker([lat, lng], { icon: customIcon });
-
-          const cityStr = job.location?.city || (typeof job.location === 'string' ? job.location : '') || 'Location';
-          const areaStr = job.location?.area ? ` • ${job.location.area}` : '';
-
-          const popupContent = `
-            <div style="font-family: inherit; font-size: 12px; min-width: 190px; padding: 4px; color: #1e293b;">
-              <div style="font-weight: 800; font-size: 13px; color: #0284c7; margin-bottom: 4px;">${job.title}</div>
-              <div style="color: #475569; margin-bottom: 2px;"><strong>Skill:</strong> ${job.skillRequired || 'General'}</div>
-              <div style="color: #475569; margin-bottom: 2px;"><strong>Wage:</strong> ₹${job.wageAmount} (${job.wageType || 'daily'})</div>
-              <div style="color: #475569; margin-bottom: 4px;"><strong>Location:</strong> ${cityStr}${areaStr}</div>
-              <button id="view-job-${job._id || job.id}" style="width: 100%; margin-top: 6px; padding: 6px; background-color: #0284c7; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
-                ${t.viewDetails}
-              </button>
+        // Leaflet uses [latitude, longitude] order
+        const skillLabel = job.skillRequired ? job.skillRequired.toUpperCase() : 'JOB';
+        const customIcon = L.divIcon({
+          className: 'custom-job-marker',
+          html: `
+            <div style="background-color: #0284c7; color: white; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: bold; border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+              <span>🛠</span>
+              <span>${skillLabel} · ₹${job.wageAmount}</span>
             </div>
-          `;
+          `,
+          iconSize: [120, 26],
+          iconAnchor: [60, 26],
+        });
 
-          marker.bindPopup(popupContent);
-          marker.on('popupopen', () => {
-            const btn = document.getElementById(`view-job-${job._id || job.id}`);
-            if (btn) {
-              btn.onclick = () => navigate(`/worker/jobs/${job._id || job.id}`);
-            }
-          });
+        const marker = L.marker([lat, lng], { icon: customIcon });
 
-          markersLayerRef.current.addLayer(marker);
-          validPoints.push([lat, lng]);
-        }
+        const cityStr = job.location?.city || (typeof job.location === 'string' ? job.location : '') || 'Location';
+        const areaStr = job.location?.area ? ` • ${job.location.area}` : '';
+
+        const popupContent = `
+          <div style="font-family: inherit; font-size: 12px; min-width: 190px; padding: 4px; color: #1e293b;">
+            <div style="font-weight: 800; font-size: 13px; color: #0284c7; margin-bottom: 4px;">${job.title}</div>
+            <div style="color: #475569; margin-bottom: 2px;"><strong>Skill:</strong> ${job.skillRequired || 'General'}</div>
+            <div style="color: #475569; margin-bottom: 2px;"><strong>Wage:</strong> ₹${job.wageAmount} (${job.wageType || 'daily'})</div>
+            <div style="color: #475569; margin-bottom: 4px;"><strong>Location:</strong> ${cityStr}${areaStr}</div>
+            <button id="view-job-${job._id || job.id}" style="width: 100%; margin-top: 6px; padding: 6px; background-color: #0284c7; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
+              ${t.viewDetails}
+            </button>
+          </div>
+        `;
+
+        marker.bindPopup(popupContent);
+        marker.on('popupopen', () => {
+          const btn = document.getElementById(`view-job-${job._id || job.id}`);
+          if (btn) {
+            btn.onclick = () => navigate(`/worker/jobs/${job._id || job.id}`);
+          }
+        });
+
+        markersLayerRef.current.addLayer(marker);
+        validPoints.push([lat, lng]);
       });
 
       // Add user location marker & radius circle if coords available
@@ -296,17 +290,51 @@ export const WorkerJobMapPage = () => {
         const userPinIcon = L.divIcon({
           className: 'custom-user-marker',
           html: `
-            <div style="background-color: #0284c7; color: white; width: 18px; height: 18px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(2,132,199,0.8); display: flex; align-items: center; justify-content: center;">
+            <div style="background-color: #0284c7; color: white; width: 22px; height: 22px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 14px rgba(2,132,199,0.9); display: flex; align-items: center; justify-content: center; font-size: 11px; cursor: grab;">
+              📍
             </div>
           `,
-          iconSize: [18, 18],
-          iconAnchor: [9, 9],
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
         });
 
-        userMarkerRef.current = L.marker([coords.lat, coords.lng], { icon: userPinIcon })
-          .bindPopup(`<b>📍 ${activeLocation?.shortLabel || 'Your Search Location'}</b><br/><span style="font-size: 11px; color: #475569;">${activeLocation?.formattedCoords || ''}</span>`)
+        const popupText = `
+          <b>📍 ${activeLocation?.shortLabel || 'Your Search Location'}</b><br/>
+          <span style="font-size: 11px; color: #475569;">${activeLocation?.formattedCoords || ''}</span><br/>
+          <span style="font-size: 10px; color: #0284c7; font-weight: bold;">(Drag pin anywhere to adjust exact location)</span>
+        `;
+
+        const userMarker = L.marker([coords.lat, coords.lng], {
+          icon: userPinIcon,
+          draggable: true,
+          autoPan: true,
+        })
+          .bindPopup(popupText)
           .addTo(mapInstanceRef.current);
 
+        userMarker.on('dragend', async (e) => {
+          const newPos = e.target.getLatLng();
+          const newLat = Number(newPos.lat);
+          const newLng = Number(newPos.lng);
+          console.info('[KaamSetu Leaflet] User marker dragged to:', { lat: newLat, lng: newLng });
+          setCoords({ lat: newLat, lng: newLng });
+          if (userCircleRef.current) {
+            userCircleRef.current.setLatLng([newLat, newLng]);
+          }
+          const geocoded = await reverseGeocode(newLat, newLng);
+          if (geocoded) {
+            setActiveLocation({
+              ...geocoded,
+              lat: newLat,
+              lng: newLng,
+              accuracy: 5,
+              accuracyRating: 'high',
+              isManualPin: true,
+            });
+          }
+        });
+
+        userMarkerRef.current = userMarker;
         validPoints.push([coords.lat, coords.lng]);
       }
 
@@ -477,6 +505,35 @@ export const WorkerJobMapPage = () => {
           {/* Leaflet Map Box with persistent DOM mount and loading overlay */}
           <div className="w-full h-[520px] rounded-2xl overflow-hidden border border-slate-200/80 dark:border-white/10 shadow-md relative z-0">
             <div ref={mapContainerRef} className="w-full h-full" />
+
+            {/* Quick Map Controls Overlay */}
+            <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const loc = await getCurrentPositionWithAddress();
+                    handleLocationAcquired(loc);
+                  } catch (err) {
+                    console.warn('GPS recenter failed:', err.message);
+                  }
+                }}
+                title="Recenter on My Current GPS Location"
+                className="p-2.5 rounded-xl bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-slate-100 shadow-md border border-slate-200/80 dark:border-white/10 hover:bg-primary hover:text-white transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+              >
+                <Crosshair className="w-4 h-4 text-primary group-hover:text-white" />
+                <span className="hidden sm:inline">My GPS</span>
+              </button>
+            </div>
+
+            {/* Drag hint overlay */}
+            {coords && (
+              <div className="absolute bottom-3 left-3 z-10 px-3 py-1.5 rounded-xl bg-slate-900/85 text-white text-[11px] font-medium shadow-md backdrop-blur-xs flex items-center gap-1.5 pointer-events-none">
+                <Navigation className="w-3 h-3 text-sky-400 animate-pulse" />
+                <span>Tip: Drag the 📍 pin on the map to adjust your exact location</span>
+              </div>
+            )}
+
             {loading && (
               <div className="absolute inset-0 bg-slate-900/35 backdrop-blur-xs flex items-center justify-center z-10 transition-opacity">
                 <div className="flex flex-col items-center gap-2.5 p-4 rounded-2xl bg-white/95 dark:bg-slate-900/95 shadow-xl border border-slate-200/80 dark:border-white/10 text-xs font-bold text-slate-800 dark:text-slate-200">

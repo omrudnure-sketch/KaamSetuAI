@@ -133,15 +133,19 @@ export const WorkerProfilePage = () => {
       profilePhoto: formData.profilePhoto,
       city: formData.city,
       area: formData.area,
+      latitude: activeLocation?.lat ? Number(activeLocation.lat) : undefined,
+      longitude: activeLocation?.lng ? Number(activeLocation.lng) : undefined,
       location: {
         city: formData.city,
         area: formData.area,
-        coordinates: {
-          type: 'Point',
-          coordinates: activeLocation?.lat && activeLocation?.lng
-            ? [activeLocation.lng, activeLocation.lat]
-            : [0, 0],
-        },
+        ...(activeLocation?.lat && activeLocation?.lng
+          ? {
+              coordinates: {
+                type: 'Point',
+                coordinates: [Number(activeLocation.lng), Number(activeLocation.lat)],
+              },
+            }
+          : {}),
       },
     };
 

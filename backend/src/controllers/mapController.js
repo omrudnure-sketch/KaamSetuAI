@@ -236,7 +236,7 @@ export const getJobsMap = async (req, res, next) => {
       });
 
     if (hasSearchCoords) {
-      formattedJobs = formattedJobs.filter((j) => !j.location.hasCoordinates || j.distanceKm === null || j.distanceKm <= searchRadiusKm);
+      formattedJobs = formattedJobs.filter((j) => j.location.hasCoordinates && j.distanceKm !== null && j.distanceKm <= searchRadiusKm);
       formattedJobs.sort((a, b) => {
         if (a.distanceKm === null) return 1;
         if (b.distanceKm === null) return -1;
@@ -387,7 +387,7 @@ export const getWorkersMap = async (req, res, next) => {
       .filter((w) => w.isAvailableForWork && w.location.hasCoordinates);
 
     if (hasSearchCoords) {
-      formattedWorkers = formattedWorkers.filter((w) => !w.location.hasCoordinates || w.distanceKm === null || w.distanceKm <= searchRadiusKm);
+      formattedWorkers = formattedWorkers.filter((w) => w.location.hasCoordinates && w.distanceKm !== null && w.distanceKm <= searchRadiusKm);
       formattedWorkers.sort((a, b) => {
         if (a.distanceKm === null) return 1;
         if (b.distanceKm === null) return -1;

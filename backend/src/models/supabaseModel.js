@@ -36,12 +36,29 @@ export const mapObjectToSnake = (obj) => {
       if (val.city && res.city === undefined) res.city = val.city;
       if (val.area && res.area === undefined) res.area = val.area;
       if (val.address && res.address === undefined) res.address = val.address;
+      let coordLng = null;
+      let coordLat = null;
       if (Array.isArray(val.coordinates) && val.coordinates.length >= 2) {
-        if (res.longitude === undefined) res.longitude = val.coordinates[0];
-        if (res.latitude === undefined) res.latitude = val.coordinates[1];
+        coordLng = Number(val.coordinates[0]);
+        coordLat = Number(val.coordinates[1]);
       } else if (val.coordinates?.coordinates && Array.isArray(val.coordinates.coordinates)) {
-        if (res.longitude === undefined) res.longitude = val.coordinates.coordinates[0];
-        if (res.latitude === undefined) res.latitude = val.coordinates.coordinates[1];
+        coordLng = Number(val.coordinates.coordinates[0]);
+        coordLat = Number(val.coordinates.coordinates[1]);
+      }
+      // Never store placeholder [0, 0] into real latitude/longitude columns
+      if (
+        coordLng !== null &&
+        coordLat !== null &&
+        !(coordLng === 0 && coordLat === 0) &&
+        !isNaN(coordLng) &&
+        !isNaN(coordLat) &&
+        coordLat >= -90 &&
+        coordLat <= 90 &&
+        coordLng >= -180 &&
+        coordLng <= 180
+      ) {
+        if (res.longitude === undefined || res.longitude === null || res.longitude === 0) res.longitude = coordLng;
+        if (res.latitude === undefined || res.latitude === null || res.latitude === 0) res.latitude = coordLat;
       }
       res['location'] = typeof val === 'string' ? val : ([val.area, val.city].filter(Boolean).join(', ') || val.address || '');
     } else if (key === 'participants' && Array.isArray(val)) {
@@ -49,23 +66,17 @@ export const mapObjectToSnake = (obj) => {
       if (!res.participant_b && val[1]) res.participant_b = String(val[1]?._id || val[1]?.id || val[1]);
     } else if (key === 'employerId' || key === 'employer_id' || key === 'payerId' || key === 'payer_id') {
       const scalarId = typeof val === 'object' && val !== null ? (val.id || val._id || '') : val;
-      const strId = scalarId ? String(scalarId) : null;
+      const strId = scalarId && scalarId !== 'null' && scalarId !== 'undefined' ? String(scalarId) : null;
       if (strId) {
         res['employer_id'] = strId;
         res['payer_id'] = strId;
-      } else {
-        if (!res['employer_id']) res['employer_id'] = null;
-        if (!res['payer_id']) res['payer_id'] = null;
       }
     } else if (key === 'workerId' || key === 'worker_id' || key === 'payeeId' || key === 'payee_id') {
       const scalarId = typeof val === 'object' && val !== null ? (val.id || val._id || '') : val;
-      const strId = scalarId ? String(scalarId) : null;
+      const strId = scalarId && scalarId !== 'null' && scalarId !== 'undefined' ? String(scalarId) : null;
       if (strId) {
         res['worker_id'] = strId;
         res['payee_id'] = strId;
-      } else {
-        if (!res['worker_id']) res['worker_id'] = null;
-        if (!res['payee_id']) res['payee_id'] = null;
       }
     } else if (key === 'status') {
       let st = val;
@@ -159,15 +170,24 @@ export const mapObjectToCamel = (obj) => {
     res.id = String(res.id);
   }
   // Cross-compatibility mappings for payments, progress, extensions
-  if (res.payerId !== undefined) {
-    res.employerId = String(res.payerId);
-  } else if (res.employerId !== undefined) {
-    res.payerId = String(res.employerId);
+  const cleanPayer = (res.payerId && res.payerId !== 'null' && res.payerId !== 'undefined')
+    ? String(typeof res.payerId === 'object' ? (res.payerId.id || res.payerId._id || '') : res.payerId)
+    : (res.employerId && res.employerId !== 'null' && res.employerId !== 'undefined')
+      ? String(typeof res.employerId === 'object' ? (res.employerId.id || res.employerId._id || '') : res.employerId)
+      : null;
+  if (cleanPayer) {
+    res.payerId = cleanPayer;
+    res.employerId = cleanPayer;
   }
-  if (res.payeeId !== undefined) {
-    res.workerId = String(res.payeeId);
-  } else if (res.workerId !== undefined) {
-    res.payeeId = String(res.workerId);
+
+  const cleanPayee = (res.payeeId && res.payeeId !== 'null' && res.payeeId !== 'undefined')
+    ? String(typeof res.payeeId === 'object' ? (res.payeeId.id || res.payeeId._id || '') : res.payeeId)
+    : (res.workerId && res.workerId !== 'null' && res.workerId !== 'undefined')
+      ? String(typeof res.workerId === 'object' ? (res.workerId.id || res.workerId._id || '') : res.workerId)
+      : null;
+  if (cleanPayee) {
+    res.payeeId = cleanPayee;
+    res.workerId = cleanPayee;
   }
   if (res.wageType !== undefined) {
     res.type = res.wageType;
@@ -210,6 +230,23 @@ export const mapObjectToCamel = (obj) => {
   }
   if (!res.startDate && res.createdAt) {
     res.startDate = res.createdAt;
+  }
+  // Coordinate normalization: construct GeoJSON coordinates array from top-level columns if missing
+  if (res.latitude !== undefined && res.longitude !== undefined && res.latitude !== null && res.longitude !== null) {
+    const lat = Number(res.latitude);
+    const lng = Number(res.longitude);
+    if (!isNaN(lat) && !isNaN(lng) && !(lat === 0 && lng === 0)) {
+      if (!res.location || typeof res.location !== 'object') {
+        res.location = {
+          city: res.city || '',
+          area: res.area || '',
+          address: typeof res.location === 'string' ? res.location : '',
+          coordinates: [lng, lat],
+        };
+      } else if (!res.location.coordinates || (res.location.coordinates[0] === 0 && res.location.coordinates[1] === 0)) {
+        res.location.coordinates = [lng, lat];
+      }
+    }
   }
   if (res.participantA && res.participantB && (!res.participants || !res.participants.length)) {
     res.participants = [String(res.participantA), String(res.participantB)];
@@ -541,6 +578,23 @@ export class SupabaseModel {
         const snakeData = mapObjectToSnake(docData);
         delete snakeData._id; // PostgreSQL uses 'id'
         const validColumnsData = filterValidColumns(this.tableName, snakeData);
+
+        // Table-specific fallbacks to prevent constraint violations
+        if (this.tableName === 'payments') {
+          const payerVal = validColumnsData.payer_id || validColumnsData.employer_id || docData.payerId || docData.employerId || docData.createdBy;
+          if (payerVal && payerVal !== 'null' && payerVal !== 'undefined') {
+            validColumnsData.payer_id = String(typeof payerVal === 'object' ? (payerVal.id || payerVal._id || '') : payerVal);
+          }
+          const payeeVal = validColumnsData.payee_id || validColumnsData.worker_id || docData.payeeId || docData.workerId;
+          if (payeeVal && payeeVal !== 'null' && payeeVal !== 'undefined') {
+            validColumnsData.payee_id = String(typeof payeeVal === 'object' ? (payeeVal.id || payeeVal._id || '') : payeeVal);
+          }
+        }
+        if (this.tableName === 'progress_updates') {
+          if (!validColumnsData.summary && (docData.description || docData.summary)) {
+            validColumnsData.summary = docData.description || docData.summary || 'Work progress recorded';
+          }
+        }
 
         // Omit null/undefined values on insert so PostgreSQL defaults apply safely
         for (const [k, v] of Object.entries(validColumnsData)) {
@@ -1014,6 +1068,7 @@ export class SupabaseModel {
           }
           if (this.tableName === 'progress_updates') {
             if (snakeKey === 'percentage' || k === 'percentage' || k === 'completionPercentage') snakeKey = 'completion_percentage';
+            if (snakeKey === 'project_worker_id' || k === 'projectWorkerId') continue;
           }
           if (this.tableName === 'project_extensions') {
             if (snakeKey === 'previous_end_date' || k === 'previousEndDate' || k === 'originalEndDate') snakeKey = 'original_end_date';

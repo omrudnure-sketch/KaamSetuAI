@@ -270,7 +270,8 @@ export const discoverWorkersForEmployer = async (req, res, next) => {
       });
 
     if (hasUserCoords) {
-      safeWorkers = safeWorkers.filter((w) => w.distanceKm === null || w.distanceKm <= maxRadius);
+      // Exclude workers without valid coordinates from nearby radius search
+      safeWorkers = safeWorkers.filter((w) => w.distanceKm !== null && w.distanceKm <= maxRadius);
       if (sort === 'nearest') {
         safeWorkers.sort((a, b) => {
           if (a.distanceKm === null) return 1;

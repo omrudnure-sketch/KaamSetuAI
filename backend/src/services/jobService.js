@@ -274,7 +274,8 @@ export const getAvailableJobs = async (queryParams) => {
 
   if (hasUserCoords) {
     if (maxRadius) {
-      enrichedJobs = enrichedJobs.filter((j) => j.distanceKm === null || j.distanceKm <= maxRadius);
+      // Exclude jobs without valid coordinates from nearby radius search
+      enrichedJobs = enrichedJobs.filter((j) => j.distanceKm !== null && j.distanceKm <= maxRadius);
     }
     if (sort === 'nearest') {
       enrichedJobs.sort((a, b) => {
